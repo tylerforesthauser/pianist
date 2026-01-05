@@ -131,8 +131,7 @@ class NoteEvent(BaseModel):
             data.pop("pitch", None)
         elif notes is not None:
             if not isinstance(notes, list):
-                data["pitches"] = None
-                return data
+                raise ValueError("Field 'notes' must be a list.")
             if not notes:
                 raise ValueError("'notes' must not be empty.")
 

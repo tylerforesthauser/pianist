@@ -288,6 +288,30 @@ def test_schema_rejects_empty_notes_and_empty_groups() -> None:
     assert "'groups' must not be empty" in str(exc_groups.value)
 
 
+def test_schema_rejects_notes_not_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "note",
+                                "start": 0,
+                                "duration": 1,
+                                "notes": {"hand": "rh", "pitch": "C4"},
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "Field 'notes' must be a list" in str(exc.value)
+
+
 def test_schema_rejects_mixed_pitch_representations() -> None:
     with pytest.raises(ValueError) as exc_legacy_notes:
         validate_composition_dict(
