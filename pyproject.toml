@@ -22,7 +22,7 @@ dev = [
 ]
 
 [project.scripts]
-pianist = "pianist._entry:main"
+pianist = "pianist.entry:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
