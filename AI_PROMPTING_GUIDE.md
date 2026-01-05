@@ -36,8 +36,8 @@ Hard requirements:
               optional: motif/section/phrase }
     - pedal: { type:"pedal", start, duration, value 0-127 }
     - tempo: { type:"tempo", start: beats>=0,
-               EITHER: bpm: number (instant tempo change)
-               OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change)
+               EITHER: bpm: number (instant tempo change at start beat)
+               OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change from start_bpm to end_bpm over duration beats)
                optional: section/phrase }
 
 Pitch format:
@@ -88,6 +88,13 @@ Dynamics and expression:
 
 Rhythm:
 - Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest where appropriate.
+
+Tempo changes:
+- Use tempo events to create ritardando (slowing down) or accelerando (speeding up) effects when musically appropriate.
+- For instant tempo changes: use `{ type: "tempo", start: <beat>, bpm: <new_tempo> }` to change tempo immediately at a specific beat.
+- For gradual tempo changes: use `{ type: "tempo", start: <beat>, start_bpm: <initial>, end_bpm: <final>, duration: <beats> }` to gradually change tempo over a duration. This is useful for ritardando at endings, accelerando in transitions, or expressive tempo flexibility.
+- Tempo events can be placed in any track; they will be automatically collected and rendered in the conductor track.
+- Use tempo changes musically: ritardando at phrase endings or final cadences, accelerando in transitions or climactic sections, or tempo flexibility for expressive purposes.
 
 Output quality:
 - Prefer events sorted by start time (not required, but reduces mistakes).
@@ -183,14 +190,13 @@ Create a dramatic sonata in C minor, about 250 beats, with contrasting themes an
 - **Tip**: You can also use descriptive terms like "slow", "moderate", "fast", "lively", or "relaxed" instead of specific BPM values.
 
 #### Tempo Changes
-You can include tempo changes within a composition to create ritardando (slowing down) or accelerando (speeding up) effects:
+You can request tempo changes in your composition to create expressive effects:
 
-- **Instant tempo changes**: Use `{ type: "tempo", start: <beat>, bpm: <new_tempo> }` to change tempo immediately at a specific beat.
-- **Gradual tempo changes**: Use `{ type: "tempo", start: <beat>, start_bpm: <initial>, end_bpm: <final>, duration: <beats> }` to gradually change tempo over a duration. For example:
-  - Ritardando: `{ type: "tempo", start: 120, start_bpm: 120, end_bpm: 80, duration: 8 }` (slow down from 120 to 80 BPM over 8 beats)
-  - Accelerando: `{ type: "tempo", start: 60, start_bpm: 60, end_bpm: 120, duration: 16 }` (speed up from 60 to 120 BPM over 16 beats)
+- **Ritardando (slowing down)**: Request a gradual slowdown, especially at phrase endings, cadences, or the end of a piece. For example: "Include a ritardando in the final 8 beats" or "Slow down gradually at the end."
+- **Accelerando (speeding up)**: Request a gradual speedup, often useful in transitions or climactic sections. For example: "Include an accelerando in the transition to the development section."
+- **Tempo flexibility**: Request tempo changes for expressive purposes, such as "Add some tempo flexibility in the lyrical middle section" or "Use a slight ritardando before the final cadence."
 
-Tempo events can be placed in any track and will be automatically collected and rendered in the conductor track. The system approximates gradual changes with discrete tempo steps for smooth playback.
+The AI model will automatically generate the appropriate tempo events in the JSON output. You don't need to specify the technical details—just describe the musical effect you want.
 
 #### Time Signature
 - **4/4 (common time)**: Most versatile. Natural, balanced feel. Good for most styles.
@@ -370,7 +376,7 @@ When requesting longer compositions, consider:
 - **Formal structures**: Sonata form, multi-movement works, or extended theme and variations naturally create longer pieces.
 - **Motif development**: Request 2-3 contrasting motifs that can be developed through sequences, modulations, and counterpoint.
 - **Section lengths**: Binary/ternary forms typically yield 32-128 beats; sonata form 150-300+; multi-movement works 200-500+.
-- **Section marking**: The model will use the `section` field to mark formal divisions (e.g., "exposition", "development", "recapitulation").
+- **Section marking**: The model will automatically use the `section` field to mark formal divisions (e.g., "exposition", "development", "recapitulation") in the output.
 - **Contrast and return**: Request different keys, textures, and moods between sections, with transitions and returns to earlier material.
 - **Dynamic arcs**: Request that dynamics shape larger arcs, building to climaxes and creating tension and release.
-- **Continuous music**: When requesting a specific length (e.g., "250 beats"), the model should fill that entire duration with music. Include transitions, extensions, and connecting passages between formal sections rather than leaving gaps. The piece should flow continuously from start to finish.
+- **Continuous music**: When you request a specific length (e.g., "250 beats"), the model will fill that entire duration with music. You can explicitly request transitions, extensions, and connecting passages between formal sections to ensure the piece flows continuously from start to finish.
