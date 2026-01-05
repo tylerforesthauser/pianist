@@ -88,10 +88,13 @@ Output quality:
 
 ### User Prompt Template
 
-**Note:** Replace `{{VARIABLE}}` placeholders with your specific values. You can provide a simple description of what you want, and the model will apply appropriate compositional principles.
+**Note:** Replace `{{VARIABLE}}` placeholders with your specific values. You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
+
+**Template structure:**
 
 ```
-Compose a piano piece:
+[OPTIONAL OPENING - phrase naturally]
+{{Compose a piano piece:}} or {{I'd like a piano piece}} or {{Create a piano composition}} or just start with the title
 
 Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
 
@@ -105,13 +108,9 @@ Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
 
 [DESCRIPTION - describe what you want in natural language]
 {{A gentle, flowing piece with a memorable melody that develops throughout.}}
-or
-{{A dramatic sonata with contrasting themes and a development section that explores different keys.}}
-or
-{{A short, playful waltz in a major key with light, dancing rhythms.}}
 ```
 
-**Example user prompts:**
+**Example user prompts (various phrasings):**
 
 ```
 Compose a piano piece:
@@ -128,8 +127,6 @@ A reflective sonata that begins quietly with a descending motif, builds to an em
 ```
 
 ```
-Compose a piano piece:
-
 Title: "Spring Dance"
 Form: ternary
 Key: G major
@@ -137,6 +134,14 @@ Tempo: 120
 Style/Character: playful, light
 
 A cheerful piece with a bouncy main theme, a contrasting middle section, and a return with added ornamentation.
+```
+
+```
+I'd like a gentle, flowing piano piece called "Morning Sketch" in C major. Something lyrical and contemplative, around 64 beats long, in ternary form.
+```
+
+```
+Create a dramatic sonata in C minor, about 250 beats, with contrasting themes and a development section that explores different keys. Tempo should be moderate, around 84 BPM.
 ```
 
 ### Tips for Choosing Parameters
