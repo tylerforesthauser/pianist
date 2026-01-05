@@ -63,15 +63,3 @@ For piano output, Pianist supports a **single Piano track** where each note (or 
 Pianist supports tempo changes within compositions, including instant tempo changes and gradual tempo changes (ritardando/accelerando) via `TempoEvent` objects.
 
 The prompting guide also recommends using a **system prompt** (format/schema invariants) plus a **user prompt** (musical brief) for better schema adherence.
-
-## Troubleshooting
-
-### ModuleNotFoundError after installation (Python 3.14+)
-
-The package includes automatic handling for Python 3.14+ compatibility issues with editable installs. If you still encounter `ModuleNotFoundError: No module named 'pianist'` after installing in editable mode, you can run the fallback fix script:
-
-```bash
-python3 fix_entry_point.py
-```
-
-Note: This should not be necessary as the fix is now built into the entry point wrapper.
