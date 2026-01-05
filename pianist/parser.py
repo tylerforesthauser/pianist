@@ -1,33 +1,36 @@
 """
-Parser for converting AI model text responses into structured music data.
+Parser for converting AI model text responses into music21 objects.
+
+This module provides a parser that converts structured AI responses (JSON/dict format)
+into music21 Stream objects that can be exported as MIDI files.
 """
 
 import re
-from typing import List, Dict, Any, Optional, Tuple
-from .music_theory import Note, TimeSignature, Tempo, Scale, ScaleType, Chord, ChordType
-from .composition import Motif, Phrase, Section, Composition
+import copy
+from typing import Dict, Any, Optional, List
+from music21 import note, chord, stream, tempo, meter, metadata
 
 
 class MusicParser:
     """
-    Parses AI-generated text descriptions of music into structured Composition objects.
+    Parses AI-generated text descriptions of music into music21 Stream objects.
     
     Supports various formats for describing notes, chords, rhythms, and musical structures.
+    Built on top of the music21 library for robust music theory support.
     """
     
     def __init__(self):
         self.default_tempo = 120
-        self.default_time_signature = TimeSignature(4, 4)
-        self.default_velocity = 64
+        self.default_time_signature = (4, 4)
     
-    def parse_note(self, note_str: str) -> Note:
+    def parse_note(self, note_str: str) -> note.Note:
         """
-        Parse a note string into a Note object.
+        Parse a note string into a music21 Note object.
         
         Formats supported:
-        - "C4:1.0:64" - note name, octave, duration, velocity
-        - "C4:1.0" - note name, octave, duration (default velocity)
-        - "C4" - note name, octave (default duration and velocity)
+        - "C4:1.0:64" - note name, duration (quarter lengths), velocity
+        - "C4:1.0" - note name, duration (default velocity)
+        - "C4" - note name (default duration and velocity)
         - "60:1.0:64" - MIDI pitch, duration, velocity
         - "60" - MIDI pitch only
         
@@ -35,114 +38,121 @@ class MusicParser:
             note_str: String representation of a note
             
         Returns:
-            Note object
+            music21 Note object
         """
         parts = note_str.strip().split(':')
-        
-        # Check if first part is a MIDI pitch number or note name
         first_part = parts[0].strip()
         
+        # Parse duration and velocity
+        duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
+        velocity_val = int(parts[2]) if len(parts) > 2 else 64
+        
+        # Create note
         if first_part.isdigit():
             # MIDI pitch format
-            pitch = int(first_part)
-            duration = float(parts[1]) if len(parts) > 1 else 1.0
-            velocity = int(parts[2]) if len(parts) > 2 else self.default_velocity
-            return Note(pitch=pitch, duration=duration, velocity=velocity)
+            n = note.Note(midi=int(first_part))
         else:
-            # Note name format (e.g., "C4", "C#4", "Db5")
-            # Extract note name and octave
-            match = re.match(r'([A-Ga-g][#b]?)(\d+)', first_part)
-            if not match:
-                raise ValueError(f"Invalid note format: {note_str}")
-            
-            note_name = match.group(1)
-            octave = int(match.group(2))
-            duration = float(parts[1]) if len(parts) > 1 else 1.0
-            velocity = int(parts[2]) if len(parts) > 2 else self.default_velocity
-            
-            return Note.from_name(note_name, octave, duration, velocity)
+            # Note name format (music21 handles this natively)
+            n = note.Note(first_part)
+        
+        n.quarterLength = duration_ql
+        n.volume.velocity = velocity_val
+        
+        return n
     
-    def parse_chord(self, chord_str: str) -> List[Note]:
+    def parse_chord(self, chord_str: str) -> chord.Chord:
         """
-        Parse a chord string into a list of Note objects.
+        Parse a chord string into a music21 Chord object.
         
         Formats supported:
-        - "Cmaj" - C major chord
-        - "Cmin" - C minor chord
-        - "C#dim" - C# diminished chord
-        - "Dmaj7" - D major seventh chord
-        - "C4maj:2.0:80" - C4 major chord with duration 2.0 and velocity 80
+        - "C4maj:2.0:80" - Root note, chord type, duration, velocity
+        - "Cmaj" - Chord with defaults
+        - "C4maj7" - Seventh chords
         
         Args:
             chord_str: String representation of a chord
             
         Returns:
-            List of Note objects representing the chord
+            music21 Chord object
         """
-        # Parse format: note[octave]type[:duration[:velocity]]
         parts = chord_str.strip().split(':')
         chord_part = parts[0]
-        duration = float(parts[1]) if len(parts) > 1 else 1.0
-        velocity = int(parts[2]) if len(parts) > 2 else self.default_velocity
+        duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
+        velocity_val = int(parts[2]) if len(parts) > 2 else 64
         
-        # Extract note name, octave, and chord type (order matters - longer patterns first!)
-        match = re.match(r'([A-Ga-g][#b]?)(\d+)?(maj7|min7|dom7|dim7|maj|min|dim|aug|sus2|sus4)', chord_part)
+        # Extract note name, octave, and chord type
+        match = re.match(r'([A-Ga-g][#b-]?)(\d+)?(maj7|min7|dom7|dim7|maj|min|dim|aug|sus2|sus4|7)?', chord_part)
         if not match:
             raise ValueError(f"Invalid chord format: {chord_str}")
         
-        note_name = match.group(1)
-        octave = int(match.group(2)) if match.group(2) else 4
-        chord_type_str = match.group(3)
+        root = match.group(1)
+        octave = match.group(2) if match.group(2) else '4'
+        chord_type = match.group(3) if match.group(3) else 'maj'
         
-        # Map chord type string to ChordType enum
-        chord_type_map = {
-            'maj': ChordType.MAJOR,
-            'min': ChordType.MINOR,
-            'dim': ChordType.DIMINISHED,
-            'aug': ChordType.AUGMENTED,
-            'maj7': ChordType.MAJOR_SEVENTH,
-            'min7': ChordType.MINOR_SEVENTH,
-            'dom7': ChordType.DOMINANT_SEVENTH,
-            'dim7': ChordType.DIMINISHED_SEVENTH,
-            'sus2': ChordType.SUSPENDED_SECOND,
-            'sus4': ChordType.SUSPENDED_FOURTH,
+        # Build chord using interval patterns
+        root_note = f"{root}{octave}"
+        
+        # Define chord intervals (in semitones from root)
+        chord_intervals = {
+            'maj': [0, 4, 7],  # Major triad
+            'min': [0, 3, 7],  # Minor triad
+            'dim': [0, 3, 6],  # Diminished triad
+            'aug': [0, 4, 8],  # Augmented triad
+            'maj7': [0, 4, 7, 11],  # Major seventh
+            'min7': [0, 3, 7, 10],  # Minor seventh
+            'dom7': [0, 4, 7, 10],  # Dominant seventh
+            '7': [0, 4, 7, 10],  # Dominant seventh (alternate)
+            'dim7': [0, 3, 6, 9],  # Diminished seventh
+            'sus2': [0, 2, 7],  # Suspended second
+            'sus4': [0, 5, 7],  # Suspended fourth
         }
         
-        chord_type = chord_type_map.get(chord_type_str, ChordType.MAJOR)
+        intervals = chord_intervals.get(chord_type, [0, 4, 7])
         
-        # Create the chord
-        root_note = Note.from_name(note_name, octave, duration, velocity)
-        chord = Chord(root=root_note.pitch, chord_type=chord_type)
+        # Create notes for the chord
+        root_pitch_note = note.Note(root_note)
+        root_midi = root_pitch_note.pitch.midi
         
-        # Convert chord pitches to Note objects
-        return [
-            Note(pitch=pitch, duration=duration, velocity=velocity)
-            for pitch in chord.get_notes()
-        ]
+        chord_notes = []
+        for interval in intervals:
+            n = note.Note(midi=root_midi + interval)
+            chord_notes.append(n)
+        
+        # Create chord from notes
+        c = chord.Chord(chord_notes)
+        c.quarterLength = duration_ql
+        
+        # Set velocity for all notes in chord
+        for n in c.notes:
+            n.volume.velocity = velocity_val
+        
+        return c
     
-    def parse_motif(self, motif_str: str, name: Optional[str] = None) -> Motif:
+    def parse_motif(self, motif_str: str) -> stream.Part:
         """
-        Parse a motif string into a Motif object.
+        Parse a motif string into a music21 Part (sequence of notes).
         
         Format: notes separated by spaces or commas
         Example: "C4:1.0 D4:0.5 E4:0.5 F4:2.0"
         
         Args:
             motif_str: String representation of a motif
-            name: Optional name for the motif
             
         Returns:
-            Motif object
+            music21 Part containing the notes
         """
-        # Split by spaces or commas
         note_strings = re.split(r'[,\s]+', motif_str.strip())
-        notes = [self.parse_note(ns) for ns in note_strings if ns]
+        part = stream.Part()
         
-        return Motif(notes=notes, name=name)
+        for note_str in note_strings:
+            if note_str:
+                part.append(self.parse_note(note_str))
+        
+        return part
     
-    def parse_phrase(self, phrase_dict: Dict[str, Any]) -> Phrase:
+    def parse_phrase(self, phrase_dict: Dict[str, Any]) -> stream.Part:
         """
-        Parse a phrase dictionary into a Phrase object.
+        Parse a phrase dictionary into a music21 Part.
         
         Expected format:
         {
@@ -154,22 +164,30 @@ class MusicParser:
             phrase_dict: Dictionary representation of a phrase
             
         Returns:
-            Phrase object
+            music21 Part containing all motifs
         """
-        motifs = []
+        phrase_part = stream.Part()
+        
+        if 'name' in phrase_dict:
+            phrase_part.partName = phrase_dict['name']
+        
         for motif_data in phrase_dict.get('motifs', []):
             if isinstance(motif_data, str):
-                motifs.append(self.parse_motif(motif_data))
+                motif_part = self.parse_motif(motif_data)
+                # Append all notes from motif to phrase
+                for element in motif_part.notesAndRests:
+                    phrase_part.append(copy.deepcopy(element))
             elif isinstance(motif_data, dict):
                 motif_str = motif_data.get('notes', '')
-                motif_name = motif_data.get('name')
-                motifs.append(self.parse_motif(motif_str, motif_name))
+                motif_part = self.parse_motif(motif_str)
+                for element in motif_part.notesAndRests:
+                    phrase_part.append(copy.deepcopy(element))
         
-        return Phrase(motifs=motifs, name=phrase_dict.get('name'))
+        return phrase_part
     
-    def parse_section(self, section_dict: Dict[str, Any]) -> Section:
+    def parse_section(self, section_dict: Dict[str, Any]) -> stream.Part:
         """
-        Parse a section dictionary into a Section object.
+        Parse a section dictionary into a music21 Part.
         
         Expected format:
         {
@@ -182,22 +200,32 @@ class MusicParser:
             section_dict: Dictionary representation of a section
             
         Returns:
-            Section object
+            music21 Part containing all phrases
         """
-        phrases = []
+        section_part = stream.Part()
+        
+        if 'name' in section_dict:
+            section_part.partName = section_dict['name']
+        
         for phrase_data in section_dict.get('phrases', []):
             if isinstance(phrase_data, dict):
-                phrases.append(self.parse_phrase(phrase_data))
+                phrase_part = self.parse_phrase(phrase_data)
+                for element in phrase_part.notesAndRests:
+                    section_part.append(copy.deepcopy(element))
         
-        return Section(
-            phrases=phrases,
-            name=section_dict.get('name'),
-            repeat=section_dict.get('repeat', False)
-        )
+        # Handle repeats by duplicating content
+        if section_dict.get('repeat', False):
+            # Store original elements
+            original_elements = [copy.deepcopy(e) for e in section_part.notesAndRests]
+            # Append them again for repeat
+            for element in original_elements:
+                section_part.append(element)
+        
+        return section_part
     
-    def parse_composition(self, composition_dict: Dict[str, Any]) -> Composition:
+    def parse_composition(self, composition_dict: Dict[str, Any]) -> stream.Score:
         """
-        Parse a composition dictionary into a Composition object.
+        Parse a composition dictionary into a music21 Score.
         
         Expected format:
         {
@@ -206,7 +234,6 @@ class MusicParser:
             "tempo": 120,
             "time_signature": [4, 4],
             "key_signature": "C major",
-            "form": "Sonata",
             "sections": [...]
         }
         
@@ -214,36 +241,43 @@ class MusicParser:
             composition_dict: Dictionary representation of a composition
             
         Returns:
-            Composition object
+            music21 Score object ready to export as MIDI
         """
-        # Parse tempo
-        tempo_value = composition_dict.get('tempo', self.default_tempo)
-        tempo = Tempo(bpm=tempo_value)
+        score = stream.Score()
         
-        # Parse time signature
-        ts_data = composition_dict.get('time_signature', [4, 4])
-        time_signature = TimeSignature(numerator=ts_data[0], denominator=ts_data[1])
+        # Set metadata
+        if 'title' in composition_dict or 'composer' in composition_dict:
+            score.metadata = metadata.Metadata()
+            if 'title' in composition_dict:
+                score.metadata.title = composition_dict['title']
+            if 'composer' in composition_dict:
+                score.metadata.composer = composition_dict['composer']
         
-        # Parse sections
-        sections = []
+        # Create main part for the composition
+        main_part = stream.Part()
+        
+        # Add tempo
+        tempo_val = composition_dict.get('tempo', self.default_tempo)
+        main_part.insert(0, tempo.MetronomeMark(number=tempo_val))
+        
+        # Add time signature
+        ts_data = composition_dict.get('time_signature', self.default_time_signature)
+        main_part.insert(0, meter.TimeSignature(f'{ts_data[0]}/{ts_data[1]}'))
+        
+        # Parse all sections and add their notes
         for section_data in composition_dict.get('sections', []):
             if isinstance(section_data, dict):
-                sections.append(self.parse_section(section_data))
+                section_part = self.parse_section(section_data)
+                for element in section_part.notesAndRests:
+                    main_part.append(copy.deepcopy(element))
         
-        return Composition(
-            title=composition_dict.get('title', 'Untitled'),
-            sections=sections,
-            tempo=tempo,
-            time_signature=time_signature,
-            key_signature=composition_dict.get('key_signature'),
-            composer=composition_dict.get('composer'),
-            form=composition_dict.get('form'),
-            metadata=composition_dict.get('metadata', {})
-        )
+        score.append(main_part)
+        
+        return score
     
-    def parse_simple_melody(self, melody_str: str, title: str = "Simple Melody") -> Composition:
+    def parse_simple_melody(self, melody_str: str, title: str = "Simple Melody") -> stream.Score:
         """
-        Parse a simple melody string into a Composition object.
+        Parse a simple melody string into a music21 Score.
         
         This is a convenience method for quickly creating compositions from simple note sequences.
         
@@ -255,15 +289,19 @@ class MusicParser:
             title: Title for the composition
             
         Returns:
-            Composition object
+            music21 Score object
         """
-        motif = self.parse_motif(melody_str)
-        phrase = Phrase(motifs=[motif], name="Main theme")
-        section = Section(phrases=[phrase], name="Main section")
+        score = stream.Score()
+        score.metadata = metadata.Metadata()
+        score.metadata.title = title
         
-        return Composition(
-            title=title,
-            sections=[section],
-            tempo=Tempo(bpm=self.default_tempo),
-            time_signature=self.default_time_signature
-        )
+        part = stream.Part()
+        part.insert(0, tempo.MetronomeMark(number=self.default_tempo))
+        part.insert(0, meter.TimeSignature(f'{self.default_time_signature[0]}/{self.default_time_signature[1]}'))
+        
+        motif_part = self.parse_motif(melody_str)
+        for element in motif_part.notesAndRests:
+            part.append(copy.deepcopy(element))
+        
+        score.append(part)
+        return score

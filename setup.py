@@ -5,9 +5,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pianist",
-    version="0.1.0",
+    version="0.2.0",
     author="Tyler Forest Hauser",
-    description="A framework for converting AI model responses into functional MIDI files",
+    description="A framework for converting AI model responses into MIDI files using music21",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tylerforesthauser/pianist",
@@ -22,9 +22,10 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     python_requires=">=3.8",
     install_requires=[
-        "midiutil>=1.2.1",
+        "music21>=9.0.0",
     ],
 )
