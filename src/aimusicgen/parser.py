@@ -9,23 +9,12 @@ from json_repair import repair_json
 from .schema import Composition, validate_composition_dict
 
 
-_FENCED_JSON_RE = re.compile(
-    r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE | re.MULTILINE
+_FENCED_BLOCK_RE = re.compile(
+    r"```(?:json)?\s*([\s\S]*?)\s*```", re.IGNORECASE | re.MULTILINE
 )
 
 
-def _extract_candidate_json(text: str) -> str:
-    """
-    Extract the most likely JSON object from an LLM response.
-
-    Strategy:
-    - Prefer fenced ```json blocks
-    - Otherwise, take the first top-level {...} block by brace matching
-    """
-    m = _FENCED_JSON_RE.search(text)
-    if m:
-        return m.group(1).strip()
-
+def _extract_first_json_object(text: str) -> str:
     start = text.find("{")
     if start == -1:
         raise ValueError("No JSON object found (missing '{').")
@@ -57,6 +46,23 @@ def _extract_candidate_json(text: str) -> str:
                 return text[start : i + 1].strip()
 
     raise ValueError("Unterminated JSON object (brace matching failed).")
+
+
+def _extract_candidate_json(text: str) -> str:
+    """
+    Extract the most likely JSON object from an LLM response.
+
+    Strategy:
+    - Prefer fenced ```json blocks
+    - Otherwise, take the first top-level {...} block by brace matching
+    """
+    m = _FENCED_BLOCK_RE.search(text)
+    if m:
+        fenced = m.group(1)
+        # Avoid regex heuristics for braces (nested objects are common); use brace matching.
+        return _extract_first_json_object(fenced)
+
+    return _extract_first_json_object(text)
 
 
 def _loads_lenient(candidate: str) -> dict[str, Any]:

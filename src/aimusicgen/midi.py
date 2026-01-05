@@ -58,9 +58,10 @@ def render_midi(composition: Composition, out_path: str | Path) -> Path:
 
         for ev in track.events:
             start_tick = _beats_to_ticks(ev.start, composition.ppq)
-            end_tick = _beats_to_ticks(ev.start + ev.duration, composition.ppq)
-            if end_tick < start_tick:
-                raise ValueError("Event end tick is before start tick.")
+            # Convert duration separately and enforce minimum 1 tick to avoid zero-duration
+            # events caused by rounding (e.g. very small beat durations).
+            dur_ticks = max(1, _beats_to_ticks(ev.duration, composition.ppq))
+            end_tick = start_tick + dur_ticks
 
             if isinstance(ev, NoteEvent):
                 for pitch in ev.pitches:
