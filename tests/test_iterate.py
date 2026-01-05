@@ -69,6 +69,7 @@ def test_midi_import_to_composition(tmp_path: Path) -> None:
 
     # Transpose helper should move the chord.
     comp2 = transpose_composition(comp, 2)
+    assert notes[0].pitches == [60, 64]  # original is unchanged
     tr2 = comp2.tracks[0]
     notes2 = [e for e in tr2.events if isinstance(e, NoteEvent)]
     assert notes2[0].pitches == [62, 66]

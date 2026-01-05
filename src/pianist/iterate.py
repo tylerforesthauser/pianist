@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import DefaultDict, Iterable
+from typing import DefaultDict
 
 import mido
 
@@ -126,8 +126,6 @@ def composition_from_midi(path: Path) -> Composition:
                 channel_program.setdefault(ch, int(msg.program))
                 if track_name and ch not in channel_name:
                     channel_name[ch] = track_name
-                elif track_name and tr_idx == 0 and ch not in channel_name:
-                    channel_name[ch] = track_name
 
             elif msg.type == "note_on" and int(msg.velocity) > 0:
                 active_notes[(ch, int(msg.note))].append((abs_tick, int(msg.velocity)))
@@ -245,7 +243,7 @@ def composition_from_midi(path: Path) -> Composition:
             pedal_events.append(PedalEvent(start=start, duration=duration, value=p.value))
 
         events = sorted(
-            [*note_events, *pedal_events, *tempo_events],
+            [*note_events, *pedal_events],
             key=lambda e: (float(getattr(e, "start", 0.0)), getattr(e, "type", "")),
         )
 
@@ -260,6 +258,13 @@ def composition_from_midi(path: Path) -> Composition:
 
     if not tracks:
         tracks = [Track()]
+
+    # Tempo events are global; store them once (renderer collects from all tracks).
+    if tempo_events:
+        tracks[0].events.extend(tempo_events)
+        tracks[0].events.sort(
+            key=lambda e: (float(getattr(e, "start", 0.0)), getattr(e, "type", ""))
+        )
 
     return Composition(
         title=_safe_title_from_path(path),
@@ -280,10 +285,12 @@ def transpose_composition(comp: Composition, semitones: int) -> Composition:
     if semitones == 0:
         return comp
 
+    out = comp.model_copy(deep=True)
+
     def _clamp(p: int) -> int:
         return max(0, min(127, p))
 
-    for tr in comp.tracks:
+    for tr in out.tracks:
         for ev in tr.events:
             if isinstance(ev, NoteEvent):
                 ev.pitches = [_clamp(int(p) + semitones) for p in ev.pitches]
@@ -293,7 +300,7 @@ def transpose_composition(comp: Composition, semitones: int) -> Composition:
                 if ev.groups is not None:
                     for g in ev.groups:
                         g.pitches = [_clamp(int(p) + semitones) for p in g.pitches]
-    return comp
+    return out
 
 
 def iteration_prompt_template(comp: Composition, instructions: str | None = None) -> str:
