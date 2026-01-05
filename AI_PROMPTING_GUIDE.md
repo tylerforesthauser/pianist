@@ -19,6 +19,52 @@ For best reliability, split prompting into:
 
 This typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
 
+## Iterating on Existing Works (JSON or MIDI)
+
+Pianist supports an iteration workflow where you can start from either:
+- An existing **Pianist composition JSON** (or raw model output that contains such JSON), or
+- A **MIDI file** (`.mid`/`.midi`)
+
+The goal is to produce a **clean, schema-valid JSON seed** you can edit by hand or feed back into an AI model to revise/extend.
+
+### Step 1: Import your starting point into a JSON seed
+
+Use `pianist iterate` to normalize either JSON or MIDI into a canonical, tweak-friendly JSON file:
+
+```bash
+# MIDI -> JSON seed
+./pianist iterate --in "existing.mid" --out "seed.json"
+
+# JSON/LLM output -> canonical JSON seed
+./pianist iterate --in "some_model_output.txt" --out "seed.json"
+```
+
+Optional quick tweak (without using an AI model):
+
+```bash
+# Transpose all notes up by 2 semitones
+./pianist iterate --in "seed.json" --transpose 2 --out "seed_transposed.json"
+```
+
+### Step 2: Ask the model to revise the seed (recommended prompting pattern)
+
+Keep your **System prompt** mostly the same, but change your **User prompt** to:
+- Provide the *existing seed JSON*
+- Specify *requested changes*
+- Require the model to output a **complete new JSON object**, not a diff
+
+Tip: Pianist can generate a ready-to-paste iteration prompt file:
+
+```bash
+./pianist iterate --in "seed.json" --prompt-out "iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
+```
+
+Then paste that prompt into your model and render the result:
+
+```bash
+./pianist render --in "updated_seed.json" --out "updated.mid"
+```
+
 ## System Prompt Template
 
 The system prompt is usually fixed and provides the model with the schema requirements and compositional principles. Use this template:
@@ -48,6 +94,7 @@ Hard requirements:
                EITHER: bpm: number (instant tempo change at start beat)
                OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change from start_bpm to end_bpm over duration beats)
                optional: section/phrase }
+    - section marker (optional but useful): { type:"section", start: beats>=0, label: string, optional: phrase }
 
 Pitch format:
 - Use MIDI numbers (0–127) OR scientific pitch strings ("C4", "F#3", "Bb2").
@@ -496,6 +543,7 @@ Musical elements:
   - `type: "tempo"` with `start` (beats), and EITHER:
     - `bpm` (instant tempo change), OR
     - `start_bpm`, `end_bpm`, `duration` (gradual tempo change)
+  - `type: "section"` with `start` (beats) and `label` (string) for section markers (ignored during rendering, useful for iteration/editing)
 
 Optional annotation fields (do not affect rendering): `motif`, `section`, `phrase`.
 
