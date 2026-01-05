@@ -18,10 +18,6 @@ source venv/bin/activate
 
 # Install pianist in development mode
 python3 -m pip install -e ".[dev]"
-
-# If you encounter ModuleNotFoundError after installation (Python 3.14+),
-# run the fix script to ensure .pth files are processed correctly:
-python3 fix_entry_point.py
 ```
 
 ## CLI
@@ -72,10 +68,10 @@ The prompting guide also recommends using a **system prompt** (format/schema inv
 
 ### ModuleNotFoundError after installation (Python 3.14+)
 
-If you encounter `ModuleNotFoundError: No module named 'pianist'` after installing in editable mode, this is due to a Python 3.14 issue where `.pth` files aren't processed correctly in entry point scripts. Run the fix script:
+The package includes automatic handling for Python 3.14+ compatibility issues with editable installs. If you still encounter `ModuleNotFoundError: No module named 'pianist'` after installing in editable mode, you can run the fallback fix script:
 
 ```bash
 python3 fix_entry_point.py
 ```
 
-This will automatically fix the entry point script to ensure `.pth` files are processed correctly.
+Note: This should not be necessary as the fix is now built into the entry point wrapper.
