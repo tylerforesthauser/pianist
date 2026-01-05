@@ -15,7 +15,6 @@ from .schema import (
     TempoEvent,
     TimeSignature,
     Track,
-    validate_composition_dict,
 )
 
 
@@ -54,16 +53,6 @@ def composition_to_canonical_json(comp: Composition) -> str:
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
 
-def composition_from_json_text(text: str) -> Composition:
-    """
-    Load JSON text that is already a Composition (not free-form LLM output).
-    """
-    data = json.loads(text)
-    if not isinstance(data, dict):
-        raise ValueError("Top-level JSON must be an object.")
-    return validate_composition_dict(data)
-
-
 def composition_from_midi(path: Path) -> Composition:
     """
     Best-effort MIDI -> Composition import.
@@ -87,6 +76,9 @@ def composition_from_midi(path: Path) -> Composition:
     channel_program: dict[int, int] = {}
     channel_name: dict[int, str] = {}
 
+    # For global metadata, prefer the earliest tick; if ties, keep the first seen.
+    ts_tick: int | None = None
+
     # Track absolute ticks independently (MIDI uses per-track delta times).
     for tr_idx, tr in enumerate(mid.tracks):
         abs_tick = 0
@@ -102,12 +94,14 @@ def composition_from_midi(path: Path) -> Composition:
                 if msg.type == "track_name":
                     track_name = str(msg.name)
                 elif msg.type == "time_signature":
-                    # Use the earliest time signature we see.
-                    if abs_tick == 0 or (ts.numerator, ts.denominator) == (4, 4):
+                    # Prefer the earliest time signature; if multiple occur at the same
+                    # tick (common at tick 0 across tracks), keep the first seen.
+                    if ts_tick is None or abs_tick < ts_tick:
                         ts = TimeSignature(
                             numerator=int(msg.numerator),
                             denominator=int(msg.denominator),
                         )
+                        ts_tick = abs_tick
                 elif msg.type == "key_signature":
                     if key_signature is None:
                         key_signature = str(msg.key)

@@ -87,3 +87,63 @@ def test_cli_iterate_from_midi_emits_valid_json(tmp_path: Path) -> None:
     data = json.loads(out_json.read_text(encoding="utf-8"))
     validate_composition_dict(data)
 
+
+def test_cli_iterate_supports_transpose_and_prompt_out(tmp_path: Path) -> None:
+    midi_path = tmp_path / "in.mid"
+    _write_test_midi(midi_path)
+
+    out_json = tmp_path / "seed.json"
+    prompt_path = tmp_path / "prompt.txt"
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            str(midi_path),
+            "--out",
+            str(out_json),
+            "--transpose",
+            "2",
+            "--prompt-out",
+            str(prompt_path),
+            "--instructions",
+            "Make it more lyrical and add an 8-beat coda.",
+        ]
+    )
+    assert rc == 0
+    assert out_json.exists()
+    assert prompt_path.exists()
+
+    # JSON output is valid and transposed.
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    comp = validate_composition_dict(data)
+    note = next(
+        e for e in comp.tracks[0].events if isinstance(e, NoteEvent) and e.pitches == [62, 66]
+    )
+    assert note is not None
+
+    # Prompt includes requested instructions and seed marker text.
+    prompt = prompt_path.read_text(encoding="utf-8")
+    assert "REQUESTED CHANGES" in prompt
+    assert "Make it more lyrical and add an 8-beat coda." in prompt
+
+
+def test_cli_iterate_accepts_json_input_and_empty_events(tmp_path: Path) -> None:
+    # A minimal, valid composition with no events.
+    seed = {
+        "title": "Empty Seed",
+        "bpm": 120,
+        "time_signature": {"numerator": 4, "denominator": 4},
+        "ppq": 480,
+        "tracks": [{"name": "Piano", "program": 0, "channel": 0, "events": []}],
+    }
+    seed_path = tmp_path / "seed.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+
+    out_json = tmp_path / "seed_out.json"
+    rc = main(["iterate", "--in", str(seed_path), "--out", str(out_json)])
+    assert rc == 0
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    comp = validate_composition_dict(data)
+    assert comp.title == "Empty Seed"
+    assert comp.tracks[0].events == []
+
