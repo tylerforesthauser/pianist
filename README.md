@@ -118,7 +118,7 @@ The parser supports flexible notation for describing notes:
 - `"C4:1.0"` - Default velocity (64)
 - `"C4"` - Default duration (1.0) and velocity (64)
 - `"60:1.0:64"` - MIDI pitch number format
-- Supports sharps (`C#4`), flats (`D-4`), and Unicode symbols
+- Supports sharps (`C#4`), flats (`Db4`), and Unicode symbols
 
 ### Chord Formats
 - `"C4maj:2.0:80"` - Root note, chord type, duration, velocity

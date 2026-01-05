@@ -69,7 +69,8 @@ score.write('midi', fp='output.mid')
 
 # Full access to music21 features
 transposed = score.transpose(2)
-inverted = score.parts[0].invert()
+# Note: music21 doesn't have a simple invert() method
+# For melodic inversion, use interval-based transformations
 ```
 
 ## Benefits

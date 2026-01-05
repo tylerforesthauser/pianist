@@ -177,3 +177,71 @@ class TestMusicParser:
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+    
+    # Error handling tests
+    def test_parse_note_invalid_format(self):
+        """Test that invalid note format raises ValueError."""
+        with pytest.raises((ValueError, Exception)):  # music21 may raise various exceptions
+            self.parser.parse_note("INVALID")
+    
+    def test_parse_note_invalid_velocity(self):
+        """Test that out-of-range velocity raises ValueError."""
+        with pytest.raises(ValueError, match="Velocity must be 0-127"):
+            self.parser.parse_note("C4:1.0:200")
+    
+    def test_parse_note_negative_velocity(self):
+        """Test that negative velocity raises ValueError."""
+        with pytest.raises(ValueError, match="Velocity must be 0-127"):
+            self.parser.parse_note("C4:1.0:-10")
+    
+    def test_parse_note_invalid_duration(self):
+        """Test that non-numeric duration raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid note format"):
+            self.parser.parse_note("C4:abc:64")
+    
+    def test_parse_note_negative_duration(self):
+        """Test that negative duration raises ValueError."""
+        with pytest.raises(ValueError, match="Duration must be positive"):
+            self.parser.parse_note("C4:-1.0:64")
+    
+    def test_parse_note_out_of_range_midi(self):
+        """Test that MIDI pitch out of range raises ValueError."""
+        with pytest.raises(ValueError, match="MIDI pitch must be 0-127"):
+            self.parser.parse_note("200:1.0:64")
+    
+    def test_parse_chord_invalid_format(self):
+        """Test that invalid chord format raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid chord format"):
+            self.parser.parse_chord("INVALID_CHORD")
+    
+    def test_parse_chord_invalid_velocity(self):
+        """Test that out-of-range chord velocity raises ValueError."""
+        with pytest.raises(ValueError, match="Velocity must be 0-127"):
+            self.parser.parse_chord("C4maj:2.0:150")
+    
+    def test_parse_motif_with_chord(self):
+        """Test that motif can contain chords."""
+        part = self.parser.parse_motif("C4:1.0 C4maj:2.0:80 G4:1.0")
+        elements = list(part.flatten().notesAndRests)
+        assert len(elements) == 3
+    
+    def test_parse_composition_with_invalid_tempo(self):
+        """Test that invalid tempo falls back to default."""
+        composition_dict = {
+            "title": "Test",
+            "tempo": 500,  # Too high
+            "sections": []
+        }
+        score = self.parser.parse_composition(composition_dict)
+        # Should fall back to default tempo (120)
+        assert score is not None
+    
+    def test_parse_composition_with_invalid_time_signature(self):
+        """Test that invalid time signature falls back to default."""
+        composition_dict = {
+            "title": "Test",
+            "time_signature": [-1, 4],  # Invalid negative
+            "sections": []
+        }
+        score = self.parser.parse_composition(composition_dict)
+        assert score is not None

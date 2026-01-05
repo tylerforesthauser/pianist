@@ -231,5 +231,5 @@ print(f"Duration: {score.duration.quarterLength} quarter notes")
 
 - See `examples/` directory for working code examples
 - Check `README.md` for API reference
-- Music theory concepts in `pianist/music_theory.py`
-- Composition structures in `pianist/composition.py`
+- Music theory concepts: see [music21 theory documentation](https://web.mit.edu/music21/doc/moduleReference/moduleTheory.html)
+- Composition structures: see [music21 stream documentation](https://web.mit.edu/music21/doc/moduleReference/moduleStream.html)

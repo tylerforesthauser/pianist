@@ -28,7 +28,7 @@ The framework now consists of:
 - **Music theory primitives**: Note, Chord, Scale classes
 - **Composition structures**: Stream, Part, Score
 - **MIDI export**: Built-in `.write('midi')` functionality
-- **Transformations**: transpose(), invert(), retrograde(), etc.
+- **Transformations**: transpose(), retrograde(), augmentOrDiminish(), etc.
 - **Analysis**: Duration calculations, pitch analysis, etc.
 
 ### Tests

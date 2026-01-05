@@ -39,26 +39,40 @@ class MusicParser:
             
         Returns:
             music21 Note object
+            
+        Raises:
+            ValueError: If the note string format is invalid
         """
-        parts = note_str.strip().split(':')
-        first_part = parts[0].strip()
-        
-        # Parse duration and velocity
-        duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
-        velocity_val = int(parts[2]) if len(parts) > 2 else 64
-        
-        # Create note
-        if first_part.isdigit():
-            # MIDI pitch format
-            n = note.Note(midi=int(first_part))
-        else:
-            # Note name format (music21 handles this natively)
-            n = note.Note(first_part)
-        
-        n.quarterLength = duration_ql
-        n.volume.velocity = velocity_val
-        
-        return n
+        try:
+            parts = note_str.strip().split(':')
+            first_part = parts[0].strip()
+            
+            # Parse duration and velocity with validation
+            duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
+            if duration_ql <= 0:
+                raise ValueError(f"Duration must be positive, got {duration_ql}")
+            
+            velocity_val = int(parts[2]) if len(parts) > 2 else 64
+            if not 0 <= velocity_val <= 127:
+                raise ValueError(f"Velocity must be 0-127, got {velocity_val}")
+            
+            # Create note
+            if first_part.isdigit():
+                # MIDI pitch format
+                midi_pitch = int(first_part)
+                if not 0 <= midi_pitch <= 127:
+                    raise ValueError(f"MIDI pitch must be 0-127, got {midi_pitch}")
+                n = note.Note(midi=midi_pitch)
+            else:
+                # Note name format (music21 handles this natively)
+                n = note.Note(first_part)
+            
+            n.quarterLength = duration_ql
+            n.volume.velocity = velocity_val
+            
+            return n
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid note format '{note_str}': {str(e)}")
     
     def parse_chord(self, chord_str: str) -> chord.Chord:
         """
@@ -69,84 +83,109 @@ class MusicParser:
         - "Cmaj" - Chord with defaults
         - "C4maj7" - Seventh chords
         
+        Supported accidentals: # (sharp), b (flat), ♯ (sharp), ♭ (flat)
+        
         Args:
             chord_str: String representation of a chord
             
         Returns:
             music21 Chord object
+            
+        Raises:
+            ValueError: If the chord string format is invalid
         """
-        parts = chord_str.strip().split(':')
-        chord_part = parts[0]
-        duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
-        velocity_val = int(parts[2]) if len(parts) > 2 else 64
-        
-        # Extract note name, octave, and chord type
-        match = re.match(r'([A-Ga-g][#b-]?)(\d+)?(maj7|min7|dom7|dim7|maj|min|dim|aug|sus2|sus4|7)?', chord_part)
-        if not match:
-            raise ValueError(f"Invalid chord format: {chord_str}")
-        
-        root = match.group(1)
-        octave = match.group(2) if match.group(2) else '4'
-        chord_type = match.group(3) if match.group(3) else 'maj'
-        
-        # Build chord using interval patterns
-        root_note = f"{root}{octave}"
-        
-        # Define chord intervals (in semitones from root)
-        chord_intervals = {
-            'maj': [0, 4, 7],  # Major triad
-            'min': [0, 3, 7],  # Minor triad
-            'dim': [0, 3, 6],  # Diminished triad
-            'aug': [0, 4, 8],  # Augmented triad
-            'maj7': [0, 4, 7, 11],  # Major seventh
-            'min7': [0, 3, 7, 10],  # Minor seventh
-            'dom7': [0, 4, 7, 10],  # Dominant seventh
-            '7': [0, 4, 7, 10],  # Dominant seventh (alternate)
-            'dim7': [0, 3, 6, 9],  # Diminished seventh
-            'sus2': [0, 2, 7],  # Suspended second
-            'sus4': [0, 5, 7],  # Suspended fourth
-        }
-        
-        intervals = chord_intervals.get(chord_type, [0, 4, 7])
-        
-        # Create notes for the chord
-        root_pitch_note = note.Note(root_note)
-        root_midi = root_pitch_note.pitch.midi
-        
-        chord_notes = []
-        for interval in intervals:
-            n = note.Note(midi=root_midi + interval)
-            chord_notes.append(n)
-        
-        # Create chord from notes
-        c = chord.Chord(chord_notes)
-        c.quarterLength = duration_ql
-        
-        # Set velocity for all notes in chord
-        for n in c.notes:
-            n.volume.velocity = velocity_val
-        
-        return c
+        try:
+            parts = chord_str.strip().split(':')
+            chord_part = parts[0]
+            duration_ql = float(parts[1]) if len(parts) > 1 else 1.0
+            if duration_ql <= 0:
+                raise ValueError(f"Duration must be positive, got {duration_ql}")
+            
+            velocity_val = int(parts[2]) if len(parts) > 2 else 64
+            if not 0 <= velocity_val <= 127:
+                raise ValueError(f"Velocity must be 0-127, got {velocity_val}")
+            
+            # Extract note name, octave, and chord type
+            # Support # (sharp), b (flat), and Unicode symbols
+            match = re.match(r'([A-Ga-g][#b♯♭]?)(\d+)?(maj7|min7|dom7|dim7|maj|min|dim|aug|sus2|sus4|7)?', chord_part)
+            if not match:
+                raise ValueError(f"Invalid chord format: {chord_str}")
+            
+            root = match.group(1)
+            octave = match.group(2) if match.group(2) else '4'
+            chord_type = match.group(3) if match.group(3) else 'maj'
+            
+            # Build chord using interval patterns
+            root_note = f"{root}{octave}"
+            
+            # Define chord intervals (in semitones from root)
+            chord_intervals = {
+                'maj': [0, 4, 7],  # Major triad
+                'min': [0, 3, 7],  # Minor triad
+                'dim': [0, 3, 6],  # Diminished triad
+                'aug': [0, 4, 8],  # Augmented triad
+                'maj7': [0, 4, 7, 11],  # Major seventh
+                'min7': [0, 3, 7, 10],  # Minor seventh
+                'dom7': [0, 4, 7, 10],  # Dominant seventh
+                '7': [0, 4, 7, 10],  # Dominant seventh (alternate)
+                'dim7': [0, 3, 6, 9],  # Diminished seventh
+                'sus2': [0, 2, 7],  # Suspended second
+                'sus4': [0, 5, 7],  # Suspended fourth
+            }
+            
+            intervals = chord_intervals.get(chord_type, [0, 4, 7])
+            
+            # Create notes for the chord
+            root_pitch_note = note.Note(root_note)
+            root_midi = root_pitch_note.pitch.midi
+            
+            chord_notes = []
+            for interval in intervals:
+                n = note.Note(midi=root_midi + interval)
+                chord_notes.append(n)
+            
+            # Create chord from notes
+            c = chord.Chord(chord_notes)
+            c.quarterLength = duration_ql
+            
+            # Set velocity for all notes in chord
+            for n in c.notes:
+                n.volume.velocity = velocity_val
+            
+            return c
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid chord format '{chord_str}': {str(e)}")
     
     def parse_motif(self, motif_str: str) -> stream.Part:
         """
-        Parse a motif string into a music21 Part (sequence of notes).
+        Parse a motif string into a music21 Part (sequence of notes and/or chords).
         
-        Format: notes separated by spaces or commas
-        Example: "C4:1.0 D4:0.5 E4:0.5 F4:2.0"
+        Format: note/chord tokens separated by spaces or commas
+        Examples:
+            "C4:1.0 D4:0.5 E4:0.5 F4:2.0"  (notes only)
+            "C4maj:2.0:80 G4:1.0"  (with chords)
         
         Args:
             motif_str: String representation of a motif
             
         Returns:
-            music21 Part containing the notes
+            music21 Part containing the parsed elements
         """
         note_strings = re.split(r'[,\s]+', motif_str.strip())
         part = stream.Part()
         
         for note_str in note_strings:
-            if note_str:
-                part.append(self.parse_note(note_str))
+            if not note_str:
+                continue
+            # Check if it looks like a chord (contains chord quality indicators)
+            is_chord = re.search(r'(maj|min|dim|aug|sus)', note_str, re.IGNORECASE)
+            
+            if is_chord:
+                element = self.parse_chord(note_str)
+            else:
+                # Try to parse as note
+                element = self.parse_note(note_str)
+            part.append(element)
         
         return part
     
@@ -174,7 +213,8 @@ class MusicParser:
         for motif_data in phrase_dict.get('motifs', []):
             if isinstance(motif_data, str):
                 motif_part = self.parse_motif(motif_data)
-                # Append all notes from motif to phrase
+                # Use deepcopy to avoid music21 stream containment issues
+                # Music21 objects can only belong to one stream at a time
                 for element in motif_part.notesAndRests:
                     phrase_part.append(copy.deepcopy(element))
             elif isinstance(motif_data, dict):
@@ -256,15 +296,33 @@ class MusicParser:
         # Create main part for the composition
         main_part = stream.Part()
         
-        # Add tempo
+        # Add tempo with validation
         tempo_val = composition_dict.get('tempo', self.default_tempo)
+        try:
+            tempo_val = int(tempo_val)
+            if tempo_val < 20 or tempo_val > 300:
+                tempo_val = self.default_tempo
+        except (TypeError, ValueError):
+            tempo_val = self.default_tempo
         main_part.insert(0, tempo.MetronomeMark(number=tempo_val))
         
-        # Add time signature
+        # Add time signature with validation
         ts_data = composition_dict.get('time_signature', self.default_time_signature)
-        main_part.insert(0, meter.TimeSignature(f'{ts_data[0]}/{ts_data[1]}'))
+        try:
+            if isinstance(ts_data, (list, tuple)) and len(ts_data) == 2:
+                numerator = int(ts_data[0])
+                denominator = int(ts_data[1])
+                if numerator > 0 and denominator > 0:
+                    main_part.insert(0, meter.TimeSignature(f'{numerator}/{denominator}'))
+                else:
+                    main_part.insert(0, meter.TimeSignature(f'{self.default_time_signature[0]}/{self.default_time_signature[1]}'))
+            else:
+                main_part.insert(0, meter.TimeSignature(f'{self.default_time_signature[0]}/{self.default_time_signature[1]}'))
+        except (TypeError, ValueError):
+            main_part.insert(0, meter.TimeSignature(f'{self.default_time_signature[0]}/{self.default_time_signature[1]}'))
         
         # Parse all sections and add their notes
+        # Use deepcopy to avoid music21 stream containment issues
         for section_data in composition_dict.get('sections', []):
             if isinstance(section_data, dict):
                 section_part = self.parse_section(section_data)
