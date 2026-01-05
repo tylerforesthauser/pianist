@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
-from music21 import chord, instrument, meter, metadata, note, stream, tempo
+from music21 import chord, instrument, meter, metadata, midi, note, stream, tempo
 
 from ..schema import Composition, NoteEvent, PedalEvent
 
@@ -58,11 +58,10 @@ def to_music21_score(composition: Composition) -> stream.Score:
                     c.duration.quarterLength = dur
                     part.insert(start, c)
             elif isinstance(ev, PedalEvent):
-                # music21 control-change insertion is fiddly; for v1 we simply
-                # ignore pedal events in the music21 backend.
-                #
-                # (Pedal is fully supported via the deterministic mido backend.)
-                continue
+                # Store pedal events to add to MIDI stream later.
+                # We'll handle these in render_midi_music21 after score creation.
+                # For now, we skip adding them to the stream (they'll be added to MIDI).
+                pass
             else:
                 raise TypeError(f"Unsupported event type: {type(ev)}")
 
@@ -78,6 +77,73 @@ def render_midi_music21(composition: Composition, out_path: str | Path) -> Path:
     """
     out_path = Path(out_path)
     score = to_music21_score(composition)
-    score.write("midi", fp=str(out_path))
+    
+    # Convert score to MIDI file format
+    mf = midi.translate.streamToMidiFile(score)
+    
+    # Add pedal control change events to the appropriate tracks
+    # Note: track 0 is usually the conductor/metadata track, so we offset by 1
+    for track_idx, track in enumerate(composition.tracks):
+        # music21 creates tracks: [conductor, track1, track2, ...]
+        midi_track_idx = track_idx + 1
+        if midi_track_idx >= len(mf.tracks):
+            continue
+        
+        midi_track = mf.tracks[midi_track_idx]
+        
+        # Collect all pedal events for this track
+        pedal_events = [
+            ev for ev in track.events if isinstance(ev, PedalEvent)
+        ]
+        
+        # Convert all existing events to absolute time, add pedal events, then convert back to delta
+        # First, convert existing delta times to absolute times
+        absolute_time = 0
+        for existing_event in midi_track.events:
+            absolute_time += existing_event.time
+            existing_event.time = absolute_time
+        
+        # Now add pedal events with absolute times
+        for pedal_ev in pedal_events:
+            pedal_start_ticks = int(round(pedal_ev.start * composition.ppq))
+            pedal_end_ticks = int(round((pedal_ev.start + pedal_ev.duration) * composition.ppq))
+            
+            # Create control change event for pedal on (CC 64)
+            # parameter1 = controller number (64), parameter2 = value
+            cc_on_event = midi.MidiEvent(
+                track=midi_track,
+                type=midi.ChannelVoiceMessages.CONTROLLER_CHANGE,
+                time=pedal_start_ticks,
+                channel=track.channel,
+            )
+            cc_on_event.parameter1 = 64  # Sustain pedal controller number
+            cc_on_event.parameter2 = pedal_ev.value
+            midi_track.events.append(cc_on_event)
+            
+            # Create control change event for pedal off (CC 64, value 0)
+            cc_off_event = midi.MidiEvent(
+                track=midi_track,
+                type=midi.ChannelVoiceMessages.CONTROLLER_CHANGE,
+                time=pedal_end_ticks,
+                channel=track.channel,
+            )
+            cc_off_event.parameter1 = 64  # Sustain pedal controller number
+            cc_off_event.parameter2 = 0
+            midi_track.events.append(cc_off_event)
+        
+        # Sort all events by absolute time
+        midi_track.events.sort(key=lambda e: e.time)
+        
+        # Convert back to delta times
+        last_time = 0
+        for event in midi_track.events:
+            current_time = event.time
+            event.time = current_time - last_time
+            last_time = current_time
+    
+    # Write the modified MIDI file
+    mf.open(out_path, "wb")
+    mf.write()
+    mf.close()
     return out_path
 
