@@ -24,8 +24,8 @@ pianist render --backend mido    --in examples/model_output.txt --out out.mid
 ```
 
 Notes:
-- `music21` is the default backend and enables downstream transformations/analysis.
-- `mido` is kept as a deterministic fallback/regression backend (it also supports sustain pedal).
+- `music21` is the default backend and enables downstream transformations/analysis (it currently ignores sustain pedal events).
+- `mido` is kept as a deterministic fallback/regression backend and is the only backend that currently supports sustain pedal events.
 
 ## Python API
 

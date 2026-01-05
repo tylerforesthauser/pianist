@@ -127,21 +127,21 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
         # - note_on next
         # - pedal-off after note_on (so same-tick note_on isn't preceded by a pedal release)
         # - other control/meta messages last
-        def _sort_key(x: _AbsMsg) -> tuple[int, int, int]:
+        def _sort_key(x: _AbsMsg) -> tuple[int, int]:
             msg = x.msg
             if isinstance(msg, mido.Message) and msg.type == "note_off":
-                return (x.tick, 0, 0)
+                return (x.tick, 0)
             elif isinstance(msg, mido.Message) and msg.type == "note_on":
-                return (x.tick, 1, 0)
+                return (x.tick, 1)
             elif (
                 isinstance(msg, mido.Message)
                 and msg.type == "control_change"
                 and msg.control == 64
                 and msg.value == 0
             ):
-                return (x.tick, 2, 0)
+                return (x.tick, 2)
             else:
-                return (x.tick, 3, 0)
+                return (x.tick, 3)
 
         abs_msgs.sort(key=_sort_key)
 

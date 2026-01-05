@@ -9,7 +9,14 @@ def test_parser_accepts_fenced_json() -> None:
     text = """here you go
 
 ```json
-{ "title": "x", "bpm": 120, "time_signature": {"numerator": 4, "denominator": 4}, "tracks": [{"events": []}] }
+{
+  "title": "x",
+  "bpm": 120,
+  "time_signature": {"numerator": 4, "denominator": 4},
+  "tracks": [
+    {"events": [{"type": "note", "start": 0, "duration": 1, "pitches": ["C4"]}]}
+  ]
+}
 ```
 """
     comp = parse_composition_from_text(text)

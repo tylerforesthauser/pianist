@@ -12,7 +12,12 @@ from .renderers.music21_renderer import render_midi_music21
 def _read_text(path: Path | None) -> str:
     if path is None:
         return sys.stdin.read()
-    return path.read_text(encoding="utf-8")
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Input file not found: {path}") from e
+    except PermissionError as e:
+        raise PermissionError(f"Input file not readable: {path}") from e
 
 
 def main(argv: list[str] | None = None) -> int:
