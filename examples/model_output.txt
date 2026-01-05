@@ -13,21 +13,96 @@ Here is your composition:
       "program": 0,
       "channel": 0,
       "events": [
-        { "type": "note", "start": 0, "duration": 1, "pitches": ["C4"], "velocity": 78, "hand": "rh", "motif": "A", "section": "A" },
-        { "type": "note", "start": 1, "duration": 1, "pitches": ["E4"], "velocity": 82, "hand": "rh", "motif": "A", "section": "A" },
-        { "type": "note", "start": 2, "duration": 1, "pitches": ["G4"], "velocity": 86, "hand": "rh", "motif": "A", "section": "A" },
-        { "type": "note", "start": 3, "duration": 1, "pitches": ["E4"], "velocity": 80, "hand": "rh", "motif": "A", "section": "A" },
+        {
+          "type": "note",
+          "start": 0,
+          "duration": 1,
+          "velocity": 78,
+          "motif": "A",
+          "section": "A",
+          "groups": [
+            { "hand": "rh", "voice": 1, "pitches": ["C4"] },
+            { "hand": "lh", "voice": 2, "pitches": ["C3", "G3"] }
+          ]
+        },
+        {
+          "type": "note",
+          "start": 1,
+          "duration": 1,
+          "velocity": 82,
+          "motif": "A",
+          "section": "A",
+          "groups": [{ "hand": "rh", "voice": 1, "pitches": ["E4"] }]
+        },
+        {
+          "type": "note",
+          "start": 2,
+          "duration": 1,
+          "velocity": 86,
+          "motif": "A",
+          "section": "A",
+          "groups": [{ "hand": "rh", "voice": 1, "pitches": ["G4"] }]
+        },
+        {
+          "type": "note",
+          "start": 2,
+          "duration": 2,
+          "velocity": 60,
+          "section": "A",
+          "groups": [{ "hand": "lh", "voice": 2, "pitches": ["F3", "C4"] }]
+        },
+        {
+          "type": "note",
+          "start": 3,
+          "duration": 1,
+          "velocity": 80,
+          "motif": "A",
+          "section": "A",
+          "groups": [{ "hand": "rh", "voice": 1, "pitches": ["E4"] }]
+        },
 
-        { "type": "note", "start": 0, "duration": 2, "pitches": ["C3", "G3"], "velocity": 60, "hand": "lh", "section": "A" },
-        { "type": "note", "start": 2, "duration": 2, "pitches": ["F3", "C4"], "velocity": 60, "hand": "lh", "section": "A" },
-
-        { "type": "note", "start": 4, "duration": 1, "pitches": ["D4"], "velocity": 82, "hand": "rh", "motif": "A'", "section": "B" },
-        { "type": "note", "start": 5, "duration": 1, "pitches": ["F4"], "velocity": 86, "hand": "rh", "motif": "A'", "section": "B" },
-        { "type": "note", "start": 6, "duration": 1, "pitches": ["A4"], "velocity": 90, "hand": "rh", "motif": "A'", "section": "B" },
-        { "type": "note", "start": 7, "duration": 1, "pitches": ["F4"], "velocity": 84, "hand": "rh", "motif": "A'", "section": "B" },
-
-        { "type": "note", "start": 4, "duration": 2, "pitches": ["D3", "A3"], "velocity": 60, "hand": "lh", "section": "B" },
-        { "type": "note", "start": 6, "duration": 2, "pitches": ["G3", "D4"], "velocity": 60, "hand": "lh", "section": "B" },
+        {
+          "type": "note",
+          "start": 4,
+          "duration": 1,
+          "velocity": 82,
+          "motif": "A'",
+          "section": "B",
+          "groups": [
+            { "hand": "rh", "voice": 1, "pitches": ["D4"] },
+            { "hand": "lh", "voice": 2, "pitches": ["D3", "A3"] }
+          ]
+        },
+        {
+          "type": "note",
+          "start": 5,
+          "duration": 1,
+          "velocity": 86,
+          "motif": "A'",
+          "section": "B",
+          "groups": [{ "hand": "rh", "voice": 1, "pitches": ["F4"] }]
+        },
+        {
+          "type": "note",
+          "start": 6,
+          "duration": 1,
+          "velocity": 90,
+          "motif": "A'",
+          "section": "B",
+          "groups": [
+            { "hand": "rh", "voice": 1, "pitches": ["A4"] },
+            { "hand": "lh", "voice": 2, "pitches": ["G3", "D4"] }
+          ]
+        },
+        {
+          "type": "note",
+          "start": 7,
+          "duration": 1,
+          "velocity": 84,
+          "motif": "A'",
+          "section": "B",
+          "groups": [{ "hand": "rh", "voice": 1, "pitches": ["F4"] }]
+        },
 
         { "type": "pedal", "start": 0, "duration": 8, "value": 127 }
       ]

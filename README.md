@@ -42,3 +42,5 @@ render_midi_music21(composition, "out.mid")
 ## Prompting
 
 See `AI_PROMPTING_GUIDE.md` for a schema-aligned prompt template that encourages motif development and musical form.
+
+For piano output, Pianist supports a **single Piano track** where each note (or sub-chord) can be annotated with explicit `hand` (`"lh"`/`"rh"`) and optional `voice` (1–4) via `note` events using `groups` or `notes`.
