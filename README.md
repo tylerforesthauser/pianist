@@ -1,1 +1,43 @@
 # pianist
+
+Convert AI-generated composition specs (JSON) into MIDI.
+
+## Install
+
+```bash
+python3 -m pip install -e ".[dev]"
+```
+
+## CLI
+
+Render a MIDI file from raw model output (supports fenced ```json blocks and minor JSON mistakes):
+
+```bash
+pianist render --in examples/model_output.txt --out out.mid
+```
+
+Choose a backend:
+
+```bash
+pianist render --backend music21 --in examples/model_output.txt --out out.mid
+pianist render --backend mido    --in examples/model_output.txt --out out.mid
+```
+
+Notes:
+- `music21` is the default backend and enables downstream transformations/analysis.
+- `mido` is kept as a deterministic fallback/regression backend (it also supports sustain pedal).
+
+## Python API
+
+```python
+from pianist import parse_composition_from_text
+from pianist.renderers import render_midi_music21
+
+text = open("examples/model_output.txt", "r", encoding="utf-8").read()
+composition = parse_composition_from_text(text)
+render_midi_music21(composition, "out.mid")
+```
+
+## Prompting
+
+See `AI_PROMPTING_GUIDE.md` for a schema-aligned prompt template that encourages motif development and musical form.
