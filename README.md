@@ -18,10 +18,6 @@ source venv/bin/activate
 
 # Install pianist in development mode
 python3 -m pip install -e ".[dev]"
-
-# If you encounter ModuleNotFoundError after installation (Python 3.14+),
-# run the fix script to ensure .pth files are processed correctly:
-python3 fix_entry_point.py
 ```
 
 ## CLI
@@ -67,15 +63,3 @@ For piano output, Pianist supports a **single Piano track** where each note (or 
 Pianist supports tempo changes within compositions, including instant tempo changes and gradual tempo changes (ritardando/accelerando) via `TempoEvent` objects.
 
 The prompting guide also recommends using a **system prompt** (format/schema invariants) plus a **user prompt** (musical brief) for better schema adherence.
-
-## Troubleshooting
-
-### ModuleNotFoundError after installation (Python 3.14+)
-
-If you encounter `ModuleNotFoundError: No module named 'pianist'` after installing in editable mode, this is due to a Python 3.14 issue where `.pth` files aren't processed correctly in entry point scripts. Run the fix script:
-
-```bash
-python3 fix_entry_point.py
-```
-
-This will automatically fix the entry point script to ensure `.pth` files are processed correctly.
