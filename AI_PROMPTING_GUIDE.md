@@ -10,8 +10,6 @@ For best reliability, split prompting into:
 
 This typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
 
-**Note**: While Pianist's parser can extract JSON from fenced ```json blocks, instruct the model to output **raw JSON only** for the most reliable results.
-
 ## Prompt Templates
 
 ### System Prompt
@@ -20,20 +18,21 @@ This typically improves **schema adherence** and reduces output drift compared t
 You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. Output MUST be valid JSON only.
 
 Hard requirements:
-- Output ONLY a single JSON object. No markdown. No explanations.
+- Output ONLY a single JSON object. No markdown. No explanations. No fenced code blocks.
 - The JSON must validate against this schema:
   - title: string
   - bpm: number (20-300 recommended)
   - time_signature: { numerator: int, denominator: 1|2|4|8|16|32 }
   - key_signature: optional string (e.g., "C", "Gm", "F#", "Bb")
   - ppq: int (suggest 480)
-  - tracks: [{ name, program, channel, events }]
+  - tracks: [{ name, program (0=piano), channel, events }]
+  - At least one track is required. Default to a single Piano track (program: 0) if not specified.
   - events:
     - note: { type:"note", start: beats>=0, duration: beats>0, velocity: 1-127,
               pitch content in ONE of:
-                - groups: [{ hand:"lh|rh", voice?: 1..4, pitches:[ "C4" | 60 | ... ] }, ...]
-                - notes:  [{ hand:"lh|rh", voice?: 1..4, pitch:  "C4" | 60 }, ...]
-                - legacy pitches/pitch (allowed but not recommended)
+                - groups: [{ hand:"lh|rh", voice?: 1..4, pitches:[ "C4" | 60 | ... ] }, ...] (PREFERRED: enables hand/voice labeling)
+                - notes:  [{ hand:"lh|rh", voice?: 1..4, pitch:  "C4" | 60 }, ...] (PREFERRED: enables hand/voice labeling)
+                - legacy pitches/pitch (allowed but not recommended: lacks hand/voice labels)
               optional: motif/section/phrase }
     - pedal: { type:"pedal", start, duration, value 0-127 }
 
@@ -56,50 +55,52 @@ Music theory and compositional principles (CRITICAL):
 - Register and spacing: Use appropriate spacing between hands (avoid excessive gaps or overlaps). Utilize the full range of the piano effectively, with clear bass and treble separation.
 
 Output quality:
-- Prefer events sorted by start time.
+- Prefer events sorted by start time (not required, but reduces mistakes).
+- For chords, use `groups: [{hand:"rh", pitches:["C4","E4","G4"]}]` at the same `start` time.
 - Ensure all harmonies are complete and properly voiced.
 - Maintain consistent key centers within sections unless intentionally modulating.
+- Use the `section` annotation field liberally to mark formal divisions—it helps organize thinking even if it doesn't affect playback.
 ```
 
 ### User Prompt Template
 
+**Note:** Replace all `{{VARIABLE}}` placeholders with your specific values. The first section below requires customization; other sections are guidelines you can adjust as needed.
+
 ```
 Compose a piano piece. Requirements:
 
-[COMPOSITION SPECIFICATIONS]
-- Title: [Your title here, e.g., "Morning Sketch", "Sonata in C Minor"]
-- Form: [Choose: binary, ternary/ABA, rondo, sonata, theme and variations, or free-form]
-- Length: [Specify: ~32-64 beats for short pieces, ~100-500+ beats for substantial works]
-- Key: [e.g., "C", "Gm", "F#", "Bb"]
-- Tempo: [BPM, e.g., 84, 120, 160]
-- Time signature: [e.g., 4/4, 3/4, 6/8]
-- Style/Character: [e.g., lyrical, dramatic, playful, contemplative]
+=== COMPOSITION SPECIFICATIONS (REQUIRED - CUSTOMIZE THESE) ===
+- Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
+- Form: {{binary}} | {{ternary/ABA}} | {{rondo}} | {{sonata}} | {{theme and variations}} | {{free-form}}
+- Length: {{~64 beats}} or {{~200 beats}} (Typical ranges: binary/ternary 32-128, sonata 150-300+, multi-movement 200-500+)
+- Key: {{"C"}} | {{"Gm"}} | {{"F#"}} | {{"Bb"}}
+- Tempo: {{84}} | {{120}} | {{160}} (BPM)
+- Time signature: {{4/4}} | {{3/4}} | {{6/8}}
+- Style/Character: {{lyrical}} | {{dramatic}} | {{playful}} | {{contemplative}}
 
-[MUSICAL GOALS]
+=== MUSICAL GOALS ===
 - Introduce a short motif early, then develop it throughout (transpose, invert, augment, diminish, fragment, sequence).
 - Use dynamics via velocity (p → mf → f and back) to shape phrases and larger sections.
 - Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation").
 - Create contrast between sections (keys, textures, moods, registers) and use transitions to connect them.
-- For longer works, organize material by the chosen formal structure.
+- For longer works, plan the overall structure first, then fill in details section by section.
+- Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest.
 
-[HARMONY AND VOICE LEADING]
-- Use functional harmony: establish clear tonic-dominant relationships, use proper cadences (authentic V→I, half cadences ending on V, plagal IV→I, deceptive V→vi).
+=== HARMONY AND VOICE LEADING ===
+- Establish clear tonic-dominant relationships and use proper cadences (authentic V→I, half cadences ending on V, plagal IV→I, deceptive V→vi).
 - Maintain smooth voice leading: prefer stepwise motion, resolve leading tones and chordal sevenths properly, avoid parallel fifths/octaves.
 - Vary harmonic rhythm appropriately: faster changes in active sections, slower in lyrical passages.
 - When modulating, use pivot chords or prepare modulations clearly; return to home key for structural closure.
 
-[MELODY AND COUNTERPOINT]
+=== MELODY AND COUNTERPOINT ===
 - Create melodic lines with clear direction and contour. Use non-chord tones (passing, neighbor, suspension) for interest while maintaining harmonic clarity.
 - If using multiple voices, maintain independence with contrary motion where appropriate, proper spacing, and avoid voice crossing.
 
-[TEXTURE AND VOICING]
+=== TEXTURE AND VOICING ===
 - Left hand: provide harmonic foundation (bass line + chord tones in appropriate register).
 - Right hand: carry melody with supporting harmony when needed.
 - Balance melody and accompaniment; vary texture between sections.
-
-[REPRESENTATION]
-- Use a single Piano track.
-- Use `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
+- Use a single Piano track with `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
 ```
 
 ## Schema Reference
@@ -187,7 +188,7 @@ For piano writing, keep a **single Piano track** and label each generated note (
 
 ## Formal Structures Reference
 
-Use these classical forms as **creative frameworks**, not rigid templates. Adapt them to your musical vision.
+This section provides reference information about classical musical forms to help you choose what to request in your prompts. These forms are **creative frameworks**, not rigid templates—you can adapt them to your musical vision.
 
 ### Common Forms
 
@@ -208,19 +209,12 @@ Use these classical forms as **creative frameworks**, not rigid templates. Adapt
 - **Ballade**: Narrative character, free-form or through-composed, may be extended (200+ beats).
 - **Étude**: Focus on technical challenge, often ternary or binary form.
 
-### Creating Longer Works (100-500+ beats)
+### Planning Longer Works (100-500+ beats)
 
-1. Use formal structures (sonata, multi-movement, extended variations).
-2. Develop motifs extensively: introduce 2-3 contrasting motifs, develop through sequences/modulations, combine in counterpoint.
-3. Plan section lengths: binary/ternary (32-128 beats), sonata (150-300+), multi-movement (200-500+).
-4. Use the `section` field to mark formal divisions clearly.
-5. Create contrast and return: different keys, textures, moods; use transitions; return to earlier material.
-6. Build to climaxes: use dynamics to shape larger arcs, create tension and release.
-
-## Tips
-
-- Keep events **sorted by `start`** (not required, but reduces mistakes).
-- For chords, use `groups: [{hand:"rh", pitches:["C4","E4","G4"]}]` at the same `start`.
-- Prefer simple rhythmic grids first (quarters/eighths), then add syncopation.
-- For longer works, plan the overall structure first, then fill in details section by section.
-- Use the `section` annotation field liberally to mark formal divisions—it helps organize thinking even if it doesn't affect playback.
+When requesting longer compositions, consider:
+- **Formal structures**: Sonata form, multi-movement works, or extended theme and variations naturally create longer pieces.
+- **Motif development**: Request 2-3 contrasting motifs that can be developed through sequences, modulations, and counterpoint.
+- **Section lengths**: Binary/ternary forms typically yield 32-128 beats; sonata form 150-300+; multi-movement works 200-500+.
+- **Section marking**: The model will use the `section` field to mark formal divisions (e.g., "exposition", "development", "recapitulation").
+- **Contrast and return**: Request different keys, textures, and moods between sections, with transitions and returns to earlier material.
+- **Dynamic arcs**: Request that dynamics shape larger arcs, building to climaxes and creating tension and release.
