@@ -3,7 +3,7 @@ Generate OpenAPI schema from Pydantic models for structured output.
 
 This script generates a JSON Schema/OpenAPI schema that can be used with
 AI models that support structured output (e.g., OpenAI function calling,
-Anthropic structured outputs, etc.).
+Anthropic structured outputs, Gemini structured outputs, etc.).
 """
 
 from __future__ import annotations
@@ -12,6 +12,63 @@ import json
 from pathlib import Path
 
 from pianist.schema import Composition
+
+
+def make_gemini_compatible(schema: dict) -> dict:
+    """
+    Convert a JSON Schema to be compatible with Gemini's structured output.
+    
+    Gemini supports a subset of JSON Schema and doesn't support:
+    - OpenAPI-specific features like `discriminator`
+    - Some advanced JSON Schema features
+    
+    This function:
+    1. Removes `discriminator` fields (OpenAPI-specific)
+    2. Converts `$defs` to `definitions` for better compatibility (Draft 7)
+    3. Updates all `$ref` references accordingly
+    
+    Args:
+        schema: The JSON Schema dictionary to convert
+        
+    Returns:
+        A Gemini-compatible JSON Schema dictionary
+    """
+    # Convert to JSON string and back to get a deep copy
+    schema_str = json.dumps(schema)
+    result = json.loads(schema_str)
+    
+    # Convert $defs to definitions for better compatibility
+    if "$defs" in result:
+        result["definitions"] = result.pop("$defs")
+        defs_key = "definitions"
+        old_ref_prefix = "#/$defs/"
+        new_ref_prefix = "#/definitions/"
+    else:
+        defs_key = "$defs"
+        old_ref_prefix = "#/$defs/"
+        new_ref_prefix = "#/$defs/"
+    
+    def remove_discriminator_and_update_refs(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
+        """Recursively process the schema to remove discriminators and update refs."""
+        if isinstance(obj, dict):
+            # Remove discriminator fields (OpenAPI-specific, not supported by Gemini)
+            if "discriminator" in obj:
+                obj = {k: v for k, v in obj.items() if k != "discriminator"}
+            
+            # Update $ref references if we converted $defs to definitions
+            if "$ref" in obj and isinstance(obj["$ref"], str):
+                if obj["$ref"].startswith(old_ref_prefix):
+                    obj["$ref"] = obj["$ref"].replace(old_ref_prefix, new_ref_prefix)
+            
+            # Recursively process all values
+            return {k: remove_discriminator_and_update_refs(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [remove_discriminator_and_update_refs(item) for item in obj]
+        else:
+            return obj
+    
+    result = remove_discriminator_and_update_refs(result)
+    return result
 
 
 def generate_openapi_schema() -> dict:
@@ -57,6 +114,17 @@ def generate_json_schema_only() -> dict:
     return Composition.model_json_schema(mode="serialization")
 
 
+def generate_gemini_compatible_schema() -> dict:
+    """
+    Generate a JSON Schema that is compatible with Gemini's structured output.
+    
+    This removes OpenAPI-specific features and converts to Draft 7 format
+    for maximum compatibility with Gemini's JSON Schema subset.
+    """
+    schema = generate_json_schema_only()
+    return make_gemini_compatible(schema)
+
+
 def main() -> None:
     """Generate and save both OpenAPI and JSON Schema formats."""
     # Get the project root (parent of src/)
@@ -65,6 +133,7 @@ def main() -> None:
     # Generate schemas
     openapi_schema = generate_openapi_schema()
     json_schema = generate_json_schema_only()
+    gemini_schema = generate_gemini_compatible_schema()
     
     # Save OpenAPI schema
     openapi_path = project_root / "schema.openapi.json"
@@ -72,17 +141,23 @@ def main() -> None:
         json.dump(openapi_schema, f, indent=2)
     print(f"Generated OpenAPI schema: {openapi_path}")
     
-    # Save JSON Schema
+    # Save standard JSON Schema
     json_schema_path = project_root / "schema.json"
     with open(json_schema_path, "w") as f:
         json.dump(json_schema, f, indent=2)
     print(f"Generated JSON Schema: {json_schema_path}")
     
-    # Also print the JSON Schema for direct use
+    # Save Gemini-compatible schema
+    gemini_schema_path = project_root / "schema.gemini.json"
+    with open(gemini_schema_path, "w") as f:
+        json.dump(gemini_schema, f, indent=2)
+    print(f"Generated Gemini-compatible JSON Schema: {gemini_schema_path}")
+    
+    # Also print the Gemini-compatible schema for direct use
     print("\n" + "=" * 80)
-    print("JSON Schema (for direct use with structured output):")
+    print("Gemini-compatible JSON Schema (for direct use with Gemini structured output):")
     print("=" * 80)
-    print(json.dumps(json_schema, indent=2))
+    print(json.dumps(gemini_schema, indent=2))
 
 
 if __name__ == "__main__":
