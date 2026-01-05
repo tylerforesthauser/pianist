@@ -28,6 +28,22 @@ Render a MIDI file from raw model output (supports fenced JSON code blocks and m
 ./pianist render --in examples/model_output.txt --out out.mid
 ```
 
+Iterate on an existing work by importing either a Pianist JSON (or raw LLM output text) **or a MIDI file**, emitting a clean JSON seed you can tweak and re-render:
+
+```bash
+# From MIDI -> Pianist JSON seed
+./pianist iterate --in existing.mid --out seed.json
+
+# Quick tweak example: transpose up a whole step
+./pianist iterate --in seed.json --transpose 2 --out seed_transposed.json
+
+# Generate a ready-to-paste LLM prompt (includes the seed JSON)
+./pianist iterate --in seed.json --prompt-out iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
+
+# Then render the updated JSON back to MIDI
+./pianist render --in seed_transposed.json --out out.mid
+```
+
 **Alternative:** You can also use the Python module directly:
 
 ```bash

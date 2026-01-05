@@ -6,6 +6,12 @@ import traceback
 from pathlib import Path
 
 from .parser import parse_composition_from_text
+from .iterate import (
+    composition_from_midi,
+    composition_to_canonical_json,
+    iteration_prompt_template,
+    transpose_composition,
+)
 from .renderers.mido_renderer import render_midi_mido
 
 try:
@@ -60,6 +66,49 @@ def main(argv: list[str] | None = None) -> int:
         help="Print a full traceback on errors.",
     )
 
+    iterate = sub.add_parser(
+        "iterate",
+        help="Import an existing JSON/MIDI and emit a clean, tweakable composition JSON seed.",
+    )
+    iterate.add_argument(
+        "--in",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input composition: a Pianist JSON (or raw LLM output text) OR a .mid/.midi file.",
+    )
+    iterate.add_argument(
+        "--out",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output JSON path. If omitted, prints to stdout.",
+    )
+    iterate.add_argument(
+        "--transpose",
+        type=int,
+        default=0,
+        help="Transpose all notes by this many semitones (can be negative).",
+    )
+    iterate.add_argument(
+        "--prompt-out",
+        dest="prompt_out_path",
+        type=Path,
+        default=None,
+        help="Optional: write a ready-to-paste LLM prompt that includes the seed JSON.",
+    )
+    iterate.add_argument(
+        "--instructions",
+        type=str,
+        default=None,
+        help="Optional: embed requested changes into the generated prompt template.",
+    )
+    iterate.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print a full traceback on errors.",
+    )
+
     if generate_openapi_schema is not None:
         schema_cmd = sub.add_parser(
             "generate-schema",
@@ -91,6 +140,37 @@ def main(argv: list[str] | None = None) -> int:
             sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
             return 1
         sys.stdout.write(str(out) + "\n")
+        return 0
+
+    if args.cmd == "iterate":
+        try:
+            suffix = args.in_path.suffix.lower()
+            if suffix in (".mid", ".midi"):
+                comp = composition_from_midi(args.in_path)
+            else:
+                # Treat as model output / JSON text file (parse_composition_from_text is lenient).
+                text = _read_text(args.in_path)
+                comp = parse_composition_from_text(text)
+
+            if args.transpose:
+                comp = transpose_composition(comp, args.transpose)
+
+            out_json = composition_to_canonical_json(comp)
+
+            if args.out_path is None:
+                sys.stdout.write(out_json)
+            else:
+                args.out_path.write_text(out_json, encoding="utf-8")
+                sys.stdout.write(str(args.out_path) + "\n")
+
+            if args.prompt_out_path is not None:
+                prompt = iteration_prompt_template(comp, instructions=args.instructions)
+                args.prompt_out_path.write_text(prompt, encoding="utf-8")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
         return 0
 
     if args.cmd == "generate-schema":
