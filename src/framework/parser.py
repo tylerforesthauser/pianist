@@ -46,5 +46,16 @@ class CompositionParser:
                 time_signature=data.get("time_signature", "4/4"),
                 tracks=tracks
             )
-        except (KeyError, ValueError) as e:
-            raise ValueError(f"Invalid composition structure: {e}")
+        except (KeyError, ValueError, TypeError) as e:
+            # Preserve the original exception type and include a snippet of the problematic data
+            data_snippet = ""
+            try:
+                data_snippet = json.dumps(data, ensure_ascii=False)[:200]
+            except Exception:
+                # Fallback if data cannot be serialized to JSON
+                data_snippet = str(data)[:200]
+            
+            raise ValueError(
+                f"Invalid composition structure ({e.__class__.__name__}): {e}. "
+                f"Problematic data (truncated): {data_snippet}"
+            ) from e

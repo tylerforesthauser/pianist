@@ -33,7 +33,7 @@ python main.py "Test" --mock
 - `src/framework/schema.py`: Data structures for music (Composition, Track, Note).
 - `src/framework/prompts.py`: System prompts encoding music theory knowledge.
 - `src/framework/midi.py`: MIDI file generation engine.
-- `src/framework/parser.py`: Robust JSON parsing for AI outputs.
+- `src/framework/parser.py`: JSON parsing with markdown code block cleanup for AI outputs.
 - `src/framework/agent.py`: Interface for AI agents (includes OpenAI implementation).
 
 ## Extending

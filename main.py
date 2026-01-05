@@ -1,8 +1,12 @@
 import argparse
 import os
 import sys
+import logging
 from src.framework.agent import MockMusicAgent, OpenAIMusicAgent, MusicAgent
 from src.framework.midi import MidiConverter
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 def main():
     parser = argparse.ArgumentParser(description="AI Music Generation Framework")

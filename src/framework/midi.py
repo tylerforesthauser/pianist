@@ -1,8 +1,16 @@
 import pretty_midi
+import logging
 from .schema import Composition
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class MidiConverter:
     def convert(self, composition: Composition, output_file: str):
+        # Validate tempo
+        if composition.tempo <= 0:
+            raise ValueError(f"Invalid tempo: {composition.tempo}. Tempo must be positive.")
+
         # Create a PrettyMIDI object
         # initial_tempo is optional in constructor, but we can set it via the tempo map if needed.
         # However, pretty_midi init allows creating an empty object.
@@ -39,7 +47,7 @@ class MidiConverter:
                     
                     instrument.notes.append(note)
                 except ValueError as e:
-                    print(f"Warning: Skipping invalid note {note_data.pitch}: {e}")
+                    logger.warning(f"Skipping invalid note {note_data.pitch}: {e}")
                     continue
             
             # Add the instrument to the PrettyMIDI object
@@ -47,4 +55,4 @@ class MidiConverter:
             
         # Write out the MIDI data
         pm.write(output_file)
-        print(f"MIDI file saved to {output_file}")
+        logger.info(f"MIDI file saved to {output_file}")
