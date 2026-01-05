@@ -13,7 +13,7 @@ Note: while Pianist’s parser can extract JSON from fenced ```json blocks and o
 
 ## Musical goals (what to ask the model to do)
 - **Form**: use a clear formal structure (binary, ternary/ABA, rondo, sonata-ish, theme & variations, dance/character pieces, or multi-movement works).
-- **Longer pieces**: for lengthier compositions (100+ beats), consider sonata form, extended variations, or multi-movement structures (see the Formal Structures section below).
+- **Length**: for substantial works, aim for ~100–500+ beats and use the chosen form to organize material (see the Formal Structures section below).
 - **Motif development**: introduce a short motif early, then develop it via transposition, inversion, augmentation/diminution, fragmentation, and sequence.
 - **Dynamics**: use `velocity` to shape phrases (p → mf → f and back), with local accents and larger-scale crescendi/decrescendi.
 - **Sections**: mark formal sections using the `section` field (e.g. `"exposition"`, `"A"`, `"development"`, `"B"`) for clarity.
@@ -144,9 +144,12 @@ Output quality:
 Compose a piano piece. Requirements:
 
 Musical goals:
-- Use a clear form (ABA recommended).
-- Introduce a short motif in A, then develop it (transpose/invert/augment) in B.
-- Use dynamics via velocity (p -> mf -> f and back).
+- Use a clear formal structure (ABA/ternary recommended).
+- For longer pieces, aim for ~100–500+ beats and organize material by form.
+- Introduce a short motif early, then develop it (transpose/invert/augment/fragment/sequence) throughout.
+- Use dynamics via velocity (p -> mf -> f and back) to shape phrases and larger sections.
+- Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B").
+- Create contrast between sections (keys, textures, moods) and use transitions to connect them.
 - Keep timing consistent: start/duration in beats; allow chords by multiple pitches.
 
 Representation:
