@@ -28,6 +28,20 @@ composition = parse_composition_from_text(text)
 render_midi_mido(composition, "out.mid")
 ```
 
+## Schema Generation for Structured Output
+
+Generate OpenAPI/JSON Schema files for use with AI models that support structured output:
+
+```bash
+pianist generate-schema
+```
+
+This generates:
+- `schema.json` - JSON Schema (most commonly used with AI models)
+- `schema.openapi.json` - Full OpenAPI 3.1.0 specification
+
+See `SCHEMA_GENERATION.md` for detailed usage instructions with various AI models (OpenAI, Anthropic, etc.).
+
 ## Prompting
 
 See `AI_PROMPTING_GUIDE.md` for a schema-aligned prompt template that encourages motif development and musical form.
