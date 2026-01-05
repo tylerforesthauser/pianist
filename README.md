@@ -4,7 +4,19 @@ Convert AI-generated composition specs (JSON) into MIDI.
 
 ## Install
 
+It's recommended to use a Python virtual environment to isolate dependencies:
+
 ```bash
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
+# Install pianist in development mode
 python3 -m pip install -e ".[dev]"
 ```
 
