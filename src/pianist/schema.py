@@ -8,6 +8,8 @@ from .notes import note_name_to_midi
 
 
 Beat = Annotated[float, Field(ge=0)]
+Hand = Literal["lh", "rh"]
+Voice = Annotated[int, Field(ge=1, le=4)]
 
 
 class TimeSignature(BaseModel):
@@ -15,11 +17,62 @@ class TimeSignature(BaseModel):
     denominator: Literal[1, 2, 4, 8, 16, 32] = 4
 
 
+def _coerce_pitch_to_midi(p: int | str) -> int:
+    if isinstance(p, int):
+        midi = p
+    elif isinstance(p, str):
+        midi = note_name_to_midi(p)
+    else:
+        raise TypeError(f"Invalid pitch type: {type(p)}")
+    if not 0 <= midi <= 127:
+        raise ValueError(f"Pitch out of range: {midi}")
+    return midi
+
+
+class LabeledNote(BaseModel):
+    """
+    A single note with explicit hand/voice labels.
+
+    This is an annotation structure; rendering only uses MIDI pitches + timing.
+    """
+
+    pitch: int | str
+    hand: Hand
+    voice: Voice | None = None
+
+    @field_validator("pitch")
+    @classmethod
+    def _coerce_pitch(cls, v: int | str) -> int:
+        return _coerce_pitch_to_midi(v)
+
+
+class NoteGroup(BaseModel):
+    """
+    A sub-chord within a NoteEvent: multiple pitches sharing the same hand/voice.
+    """
+
+    pitches: list[int | str]
+    hand: Hand
+    voice: Voice | None = None
+
+    @field_validator("pitches")
+    @classmethod
+    def _coerce_pitches(cls, v: list[int | str]) -> list[int]:
+        out = [_coerce_pitch_to_midi(p) for p in v]
+        if not out:
+            raise ValueError("pitches must not be empty.")
+        return out
+
+
 class NoteEvent(BaseModel):
     """
     A note or chord that starts at `start` (in beats) and lasts `duration` (in beats).
 
-    - Use `pitches` for chords, e.g. ["C4", "E4", "G4"].
+    Provide pitch content in exactly ONE of these forms:
+    - Legacy: `pitch` (single) or `pitches` (chord)
+    - New (preferred): `notes` (per-note hand/voice labels)
+    - New (preferred): `groups` (per-sub-chord hand/voice labels)
+
     - Velocity defaults to a moderate piano dynamic.
     """
 
@@ -27,14 +80,19 @@ class NoteEvent(BaseModel):
     start: Beat
     duration: Annotated[float, Field(gt=0)]
 
-    # Accept either `pitch` (single) or `pitches` (chord).
+    # Legacy pitch fields.
     pitch: int | str | None = None
     pitches: list[int | str] | None = None
+
+    # Preferred labeled representations.
+    notes: list[LabeledNote] | None = None
+    groups: list[NoteGroup] | None = None
 
     velocity: int = Field(default=80, ge=1, le=127)
 
     # Optional annotation fields (do not affect rendering).
-    hand: Literal["lh", "rh"] | None = None
+    # NOTE: `hand` here is legacy and applies to the whole event. Prefer `notes`/`groups`.
+    hand: Hand | None = None
     motif: str | None = None
     section: str | None = None
     phrase: str | None = None
@@ -44,34 +102,112 @@ class NoteEvent(BaseModel):
     def _normalize_pitch_fields(cls, data: Any) -> Any:
         if not isinstance(data, dict):
             return data
+
         pitch = data.get("pitch")
         pitches = data.get("pitches")
-        if pitch is None and pitches is None:
-            raise ValueError("Either 'pitch' or 'pitches' must be provided.")
+        notes = data.get("notes")
+        groups = data.get("groups")
+
+        has_legacy = pitch is not None or pitches is not None
+        has_notes = notes is not None
+        has_groups = groups is not None
+
+        if not (has_legacy or has_notes or has_groups):
+            raise ValueError(
+                "One of 'pitch', 'pitches', 'notes', or 'groups' must be provided."
+            )
+
+        if sum([has_legacy, has_notes, has_groups]) > 1:
+            raise ValueError(
+                "Provide only one of legacy 'pitch'/'pitches', 'notes', or 'groups'."
+            )
+
         if pitch is not None and pitches is not None:
             raise ValueError("Provide either 'pitch' or 'pitches', not both.")
+
+        data = dict(data)
         if pitch is not None:
-            data = dict(data)
             data["pitches"] = [pitch]
             data.pop("pitch", None)
+        elif notes is not None:
+            if not isinstance(notes, list):
+                raise ValueError("Field 'notes' must be a list.")
+            if not notes:
+                raise ValueError("'notes' must not be empty.")
+
+            # Normalize to the internal `pitches` list for rendering convenience.
+            # This runs before Pydantic parses nested models, so items may be dicts.
+            pitches_from_notes: list[int | str] = []
+            for idx, n in enumerate(notes):
+                if isinstance(n, dict):
+                    if "pitch" not in n:
+                        raise ValueError(
+                            f"Note at index {idx} is missing required 'pitch' field."
+                        )
+                    pitch_value = n.get("pitch")
+                else:
+                    if not hasattr(n, "pitch"):
+                        raise ValueError(
+                            f"Note at index {idx} is missing required 'pitch' attribute."
+                        )
+                    pitch_value = getattr(n, "pitch")
+
+                if pitch_value is None:
+                    raise ValueError(
+                        f"Note at index {idx} has 'pitch' set to None; a pitch value is required."
+                    )
+                pitches_from_notes.append(pitch_value)
+
+            data["pitches"] = pitches_from_notes
+        elif groups is not None:
+            if not isinstance(groups, list):
+                raise ValueError("Field 'groups' must be a list.")
+            if not groups:
+                raise ValueError("'groups' must not be empty.")
+
+            flattened: list[int | str] = []
+            for idx, g in enumerate(groups):
+                if isinstance(g, dict):
+                    if "pitches" not in g:
+                        raise ValueError(
+                            f"Group at index {idx} is missing required 'pitches' field."
+                        )
+                    group_pitches = g.get("pitches")
+                else:
+                    if not hasattr(g, "pitches"):
+                        raise ValueError(
+                            f"Group at index {idx} is missing required 'pitches' attribute."
+                        )
+                    group_pitches = getattr(g, "pitches")
+
+                if group_pitches is None:
+                    raise ValueError(
+                        f"Group at index {idx} has 'pitches' set to None; pitches are required."
+                    )
+                if not isinstance(group_pitches, list):
+                    raise ValueError(
+                        f"Group at index {idx} has invalid 'pitches' type {type(group_pitches)}; expected a list."
+                    )
+                flattened.extend(group_pitches)
+            data["pitches"] = flattened
+
         return data
+
+    @model_validator(mode="after")
+    def _disallow_legacy_hand_with_labeled_pitch_structures(self) -> "NoteEvent":
+        if self.hand is not None and (self.notes is not None or self.groups is not None):
+            raise ValueError(
+                "When using 'notes' or 'groups', omit event-level 'hand' "
+                "and label hand per note/group."
+            )
+        return self
 
     @field_validator("pitches")
     @classmethod
     def _coerce_pitches(cls, v: list[int | str] | None) -> list[int]:
         if v is None:
             raise ValueError("Missing pitch information.")
-        out: list[int] = []
-        for p in v:
-            if isinstance(p, int):
-                midi = p
-            elif isinstance(p, str):
-                midi = note_name_to_midi(p)
-            else:
-                raise TypeError(f"Invalid pitch type: {type(p)}")
-            if not 0 <= midi <= 127:
-                raise ValueError(f"Pitch out of range: {midi}")
-            out.append(midi)
+        out = [_coerce_pitch_to_midi(p) for p in v]
         if not out:
             raise ValueError("pitches must not be empty.")
         return out
