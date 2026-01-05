@@ -3,26 +3,22 @@ echo "🎹 Pianist Framework - Running All Examples"
 echo "==========================================="
 echo ""
 
-cd examples
+cd examples || { echo "Error: 'examples' directory not found. Exiting."; exit 1; }
 
 echo "1️⃣  Simple Melody Example"
-python example_01_simple_melody.py
+python example_01_simple_melody.py || exit 1
 echo ""
 
 echo "2️⃣  Motif Transformations Example"
-python example_02_motif_transformations.py
+python example_02_motif_transformations.py || exit 1
 echo ""
 
 echo "3️⃣  AI Parsing Example"
-python example_03_ai_parsing.py
+python example_03_ai_parsing.py || exit 1
 echo ""
 
-echo "4️⃣  Chord Progression Example"
-python example_04_chords.py
-echo ""
-
-echo "5️⃣  Quick Methods Example"
-python example_05_quick_methods.py
+echo "4️⃣  Music21 Integration Example"
+python example_04_music21_integration.py || exit 1
 echo ""
 
 echo "==========================================="

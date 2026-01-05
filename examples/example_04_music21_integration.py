@@ -3,7 +3,7 @@ Example: Using music21 directly alongside our parser for advanced features.
 """
 
 from pianist import MusicParser
-from music21 import stream, scale, chord as m21_chord
+from music21 import stream, chord as m21_chord
 
 # Parse a simple melody with our parser
 parser = MusicParser()

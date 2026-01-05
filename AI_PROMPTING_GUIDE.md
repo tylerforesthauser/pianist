@@ -194,22 +194,20 @@ Once you have the JSON response from your AI model:
 
 ```python
 import json
-from pianist import MusicParser, MIDIGenerator
+from pianist import MusicParser
 
 # Load AI response
 ai_response = json.loads(ai_output_text)
 
-# Parse into composition
+# Parse into composition using music21
 parser = MusicParser()
-composition = parser.parse_composition(ai_response)
+score = parser.parse_composition(ai_response)
 
-# Generate MIDI file
-generator = MIDIGenerator(composition)
-generator.generate("output.mid")
+# Generate MIDI file using music21's built-in export
+score.write('midi', fp='output.mid')
 
-print(f"Generated: {composition.title}")
-print(f"Duration: {composition.duration_in_seconds():.1f} seconds")
-print(f"Sections: {len(composition.sections)}")
+print(f"Generated: {score.metadata.title}")
+print(f"Duration: {score.duration.quarterLength} quarter notes")
 ```
 
 ## Common Issues and Solutions

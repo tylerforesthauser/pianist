@@ -5,7 +5,7 @@ This package provides tools for parsing AI-generated music descriptions and conv
 them into playable MIDI files, built on top of the music21 library.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Re-export music21 core classes for convenience
 from music21 import note, chord, scale, tempo, meter, stream

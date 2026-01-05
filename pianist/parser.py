@@ -7,7 +7,7 @@ into music21 Stream objects that can be exported as MIDI files.
 
 import re
 import copy
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any
 from music21 import note, chord, stream, tempo, meter, metadata
 
 
