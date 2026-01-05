@@ -111,7 +111,7 @@ For piano writing, keep a **single Piano track** and label each generated note (
 
 ### System prompt (copy/paste)
 ```
-You are a music composition generator. Output MUST be valid JSON only.
+You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. Output MUST be valid JSON only.
 
 Hard requirements:
 - Output ONLY a single JSON object. No markdown. No explanations.
@@ -137,8 +137,22 @@ Pitch format:
 Time units:
 - start/duration are in beats, where 1 beat == a quarter note.
 
+Music theory and compositional principles (CRITICAL):
+- Functional harmony: Use proper chord progressions following tonal function (I, ii, iii, IV, V, vi, vii°). Establish clear tonic-dominant relationships. Use secondary dominants (V/V, V/vi, etc.) and borrowed chords (modal mixture) for color.
+- Voice leading: Maintain smooth, stepwise motion when possible. Avoid parallel fifths and octaves. Resolve leading tones upward (ti→do) and sevenths downward. Keep common tones between chords when possible.
+- Cadences: Use authentic cadences (V→I) at phrase endings, half cadences (→V) for continuation, plagal cadences (IV→I) for closure, and deceptive cadences (V→vi) for surprise.
+- Dissonance and resolution: Properly prepare and resolve dissonances (suspensions, appoggiaturas, passing tones). Use non-chord tones (passing, neighbor, escape, anticipation) to create melodic interest while maintaining harmonic clarity.
+- Harmonic rhythm: Vary chord change frequency—faster in active sections, slower in lyrical passages. Avoid changing chords on every beat unless creating specific effects.
+- Modulation: When modulating, use pivot chords, common-tone modulations, or direct modulations with proper preparation. Return to the home key for structural closure.
+- Counterpoint: When multiple voices are present, maintain independence while respecting harmonic function. Use contrary motion, avoid voice crossing, and maintain appropriate spacing between voices.
+- Form and structure: Adhere to established formal principles (binary, ternary, sonata, etc.). Use clear phrase structure (typically 4, 8, or 16 beats), with antecedent-consequent relationships. Create larger-scale coherence through motivic development and key relationships.
+- Texture: Balance melody and accompaniment. Left hand typically provides harmonic foundation (bass + chord tones), right hand carries melody. Vary texture between sections (homophonic, polyphonic, monophonic).
+- Register and spacing: Use appropriate spacing between hands (avoid excessive gaps or overlaps). Utilize the full range of the piano effectively, with clear bass and treble separation.
+
 Output quality:
 - Prefer events sorted by start time.
+- Ensure all harmonies are complete and properly voiced.
+- Maintain consistent key centers within sections unless intentionally modulating.
 ```
 
 ### User prompt (copy/paste)
@@ -146,13 +160,28 @@ Output quality:
 Compose a piano piece. Requirements:
 
 Musical goals:
-- Use a clear formal structure (ABA/ternary recommended).
+- Use a clear formal structure (ABA/ternary recommended, or sonata, rondo, theme and variations for longer works).
 - For longer pieces, aim for ~100–500+ beats and organize material by form.
 - Introduce a short motif early, then develop it (transpose/invert/augment/fragment/sequence) throughout.
 - Use dynamics via velocity (p -> mf -> f and back) to shape phrases and larger sections.
 - Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B").
 - Create contrast between sections (keys, textures, moods) and use transitions to connect them.
 - Keep timing consistent: start/duration in beats; allow chords by multiple pitches.
+
+Harmony and voice leading:
+- Use functional harmony: establish clear tonic-dominant relationships, use proper cadences (authentic V→I, half cadences →V, plagal IV→I, deceptive V→vi).
+- Maintain smooth voice leading: prefer stepwise motion, resolve leading tones and chordal sevenths properly, avoid parallel fifths/octaves.
+- Vary harmonic rhythm appropriately: faster changes in active sections, slower in lyrical passages.
+- When modulating, use pivot chords or prepare modulations clearly; return to home key for structural closure.
+
+Melody and counterpoint:
+- Create melodic lines with clear direction and contour. Use non-chord tones (passing, neighbor, suspension) for interest while maintaining harmonic clarity.
+- If using multiple voices, maintain independence with contrary motion where appropriate, proper spacing, and avoid voice crossing.
+
+Texture and voicing:
+- Left hand: provide harmonic foundation (bass line + chord tones in appropriate register).
+- Right hand: carry melody with supporting harmony when needed.
+- Balance melody and accompaniment; vary texture between sections.
 
 Representation:
 - Use a single Piano track.
