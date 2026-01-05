@@ -143,12 +143,13 @@ Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
 ### Tips for Choosing Parameters
 
 #### Form
-- **binary**: Simple two-section structure (A-B). Good for short pieces (32-64 beats). The B section typically contrasts with A and may modulate.
-- **ternary/ABA**: Three-part form with a return. Classic structure for character pieces (48-128 beats). The middle section provides contrast.
-- **rondo**: Recurring main theme (A) alternates with contrasting episodes (B, C). Good for lively, dance-like pieces. Patterns: ABACA (5-part) or ABACABA (7-part).
-- **sonata**: Large-scale form (150-300+ beats) with exposition, development, and recapitulation. Best for dramatic, substantial works with thematic development.
-- **theme and variations**: A theme followed by multiple variations. Great for exploring different textures, moods, and techniques. Can be any length.
-- **free-form**: No strict formal structure. Use for programmatic pieces, improvisatory styles, or when you want maximum flexibility.
+- **binary (A-B)**: Simple two-section structure. Good for short pieces (32-64 beats). The B section typically contrasts with A and may modulate, then returns to tonic.
+- **ternary (A-B-A)**: Three-part form with a return. Classic structure for character pieces (48-128 beats). The middle section (B) provides contrast and is typically 1.5-2x the length of A. The return of A is often varied or ornamented.
+- **rondo**: Recurring main theme (A) alternates with contrasting episodes (B, C). Good for lively, dance-like pieces. Common patterns: ABACA (5-part) or ABACABA (7-part). Each episode explores different keys, textures, or moods.
+- **sonata form**: Large-scale form (150-300+ beats) with three main sections: **Exposition** (first theme in tonic, second theme in dominant), **Development** (fragments, modulations, tension), **Recapitulation** (both themes in tonic). Best for dramatic, substantial works with thematic development.
+- **theme and variations**: A clear theme (16-32 beats) followed by 3-8+ variations that transform it through ornamentation, mode changes, tempo, texture, harmony, etc. Great for exploring different moods and techniques. Can be any length.
+- **multi-movement works**: Complete works with 3-4 movements, each with contrasting characters. Common patterns: fast-slow-dance-fast, or dramatic-lyrical-scherzo-finale. Each movement can use its own form (sonata, ternary, rondo, etc.). Total length typically 300-500+ beats.
+- **free-form**: No strict formal structure. Use for programmatic pieces, improvisatory styles, or when you want maximum flexibility. Can be through-composed with multiple contrasting sections.
 
 #### Key
 - **Major keys** (C, G, D, F, Bb, etc.): Generally brighter, more optimistic, or energetic. Good for: joyful, triumphant, playful, or serene pieces.
@@ -193,7 +194,14 @@ The AI model will automatically generate the appropriate tempo events in the JSO
 - **majestic**: Grand, noble, with full textures and strong presence.
 - **delicate**: Light, refined, with soft dynamics and careful voicing.
 - **passionate**: Intense, emotional, with strong dynamics and expressive lines.
-- **Tip**: You can combine multiple descriptors (e.g., "playful and energetic" or "contemplative and melancholic") or use your own words to describe the mood you want.
+
+**Character pieces** (specific genres that combine form and style):
+- **Nocturne**: Slow-moderate tempo, lyrical and song-like, often ternary form with ornamented return. Typically contemplative or melancholic.
+- **Ballade**: Narrative character, free-form or through-composed, may be extended (200+ beats). Often dramatic with multiple contrasting sections.
+- **Étude**: Focus on technical challenge or specific technique, often ternary or binary form. Can be energetic, virtuosic, or lyrical.
+- **Suite**: Collection of dance movements (allemande, courante, sarabande, gigue), each typically in binary or ternary form. Each movement has its own character.
+
+- **Tip**: You can combine multiple descriptors (e.g., "playful and energetic" or "contemplative and melancholic") or use your own words to describe the mood you want. Character pieces like "nocturne" or "ballade" can serve as both form and style descriptors.
 
 ### Example Prompts for Shorter Works (32-128 beats)
 
@@ -601,26 +609,3 @@ For piano writing, keep a **single Piano track** and label each generated note (
   ]
 }
 ```
-
-### Formal Structures Reference
-
-This section provides reference information about classical musical forms to help you choose what to request in your prompts. These forms are **creative frameworks**, not rigid templates—you can adapt them to your musical vision.
-
-#### Common Forms
-
-- **Binary (A-B)**: Two contrasting sections, typically 16-32 beats each. B section may modulate, returns to tonic.
-- **Ternary (A-B-A)**: Main theme, contrasting middle section, return of A (often varied). B is typically 1.5-2x length of A.
-- **Rondo (A-B-A-C-A)**: Recurring theme (A) alternates with contrasting episodes (B, C). Patterns: ABACA (5-part) or ABACABA (7-part).
-- **Sonata Form**: Exposition (first theme in tonic, second theme in dominant), Development (fragments, modulations, tension), Recapitulation (both themes in tonic). Typically 150-300+ beats.
-- **Theme and Variations**: Clear theme (16-32 beats) followed by 3-8+ variations transforming it through ornamentation, mode changes, tempo, texture, harmony, etc.
-
-#### Multi-Movement Works
-
-- **Sonata**: 3-4 movements (fast-slow-dance-fast) with contrasting characters.
-- **Suite**: Collection of dance movements (allemande, courante, sarabande, gigue), each in binary/ternary form.
-
-#### Character Pieces
-
-- **Nocturne**: Slow-moderate, lyrical, song-like, often ternary with ornamented return.
-- **Ballade**: Narrative character, free-form or through-composed, may be extended (200+ beats).
-- **Étude**: Focus on technical challenge, often ternary or binary form.
