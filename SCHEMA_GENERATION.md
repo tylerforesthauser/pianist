@@ -35,8 +35,10 @@ python3 -m pip install -e ".[dev]"
 The recommended way to generate schemas is using the CLI command:
 
 ```bash
-pianist generate-schema
+python -m pianist generate-schema
 ```
+
+**Note:** Use `python -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
 By default, this generates:
 - `schema.openapi.json` - Full OpenAPI specification
@@ -45,7 +47,7 @@ By default, this generates:
 To generate all three schema formats (including the Gemini-compatible schema):
 
 ```bash
-pianist generate-schema --format all
+python -m pianist generate-schema --format all
 ```
 
 This will generate:
@@ -57,13 +59,13 @@ You can also generate individual formats:
 
 ```bash
 # Generate only OpenAPI schema
-pianist generate-schema --format openapi
+python -m pianist generate-schema --format openapi
 
 # Generate only JSON schema
-pianist generate-schema --format json
+python -m pianist generate-schema --format json
 
 # Generate only Gemini-compatible schema
-pianist generate-schema --format gemini
+python -m pianist generate-schema --format gemini
 ```
 
 Alternatively, you can use the Python module directly:
@@ -216,9 +218,9 @@ Whenever you modify the Pydantic models in `schema.py`, regenerate the schema fi
 
 ```bash
 # Generate standard schemas (openapi + json)
-pianist generate-schema
+python -m pianist generate-schema
 
 # Or generate all schemas including Gemini-compatible
-pianist generate-schema --format all
+python -m pianist generate-schema --format all
 ```
 
