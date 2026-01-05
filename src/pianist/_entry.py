@@ -7,7 +7,6 @@ importing the main module.
 from __future__ import annotations
 
 import site
-import sys
 
 # Ensure .pth files are processed for editable installs (Python 3.14+ fix)
 # This must be called before importing the main module
