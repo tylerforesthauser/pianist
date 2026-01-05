@@ -122,16 +122,26 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
             else:
                 raise TypeError(f"Unsupported event type: {type(ev)}")
 
-        # Stable ordering: tick asc, note_off before note_on at same tick to avoid stuck notes.
-        def _sort_key(x: _AbsMsg) -> tuple[int, int]:
+        # Stable ordering at the same tick:
+        # - note_off first (avoid stuck notes)
+        # - note_on next
+        # - pedal-off after note_on (so same-tick note_on isn't preceded by a pedal release)
+        # - other control/meta messages last
+        def _sort_key(x: _AbsMsg) -> tuple[int, int, int]:
             msg = x.msg
             if isinstance(msg, mido.Message) and msg.type == "note_off":
-                prio = 0
+                return (x.tick, 0, 0)
             elif isinstance(msg, mido.Message) and msg.type == "note_on":
-                prio = 1
+                return (x.tick, 1, 0)
+            elif (
+                isinstance(msg, mido.Message)
+                and msg.type == "control_change"
+                and msg.control == 64
+                and msg.value == 0
+            ):
+                return (x.tick, 2, 0)
             else:
-                prio = 2
-            return (x.tick, prio)
+                return (x.tick, 3, 0)
 
         abs_msgs.sort(key=_sort_key)
 

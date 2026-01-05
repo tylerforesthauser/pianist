@@ -113,7 +113,7 @@ class Composition(BaseModel):
     """
 
     title: str = "Untitled"
-    bpm: Annotated[float, Field(gt=1, lt=400)] = 120.0
+    bpm: Annotated[float, Field(ge=20, lt=400)] = 120.0
     time_signature: TimeSignature = Field(default_factory=TimeSignature)
     key_signature: str | None = None
     ppq: int = Field(default=480, ge=24, le=9600)

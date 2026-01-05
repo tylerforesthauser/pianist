@@ -10,7 +10,7 @@ python3 -m pip install -e ".[dev]"
 
 ## CLI
 
-Render a MIDI file from raw model output (supports fenced ```json blocks and minor JSON mistakes):
+Render a MIDI file from raw model output (supports fenced JSON code blocks and minor JSON mistakes):
 
 ```bash
 pianist render --in examples/model_output.txt --out out.mid
@@ -30,10 +30,11 @@ Notes:
 ## Python API
 
 ```python
+from pathlib import Path
 from pianist import parse_composition_from_text
 from pianist.renderers import render_midi_music21
 
-text = open("examples/model_output.txt", "r", encoding="utf-8").read()
+text = Path("examples/model_output.txt").read_text(encoding="utf-8")
 composition = parse_composition_from_text(text)
 render_midi_music21(composition, "out.mid")
 ```
