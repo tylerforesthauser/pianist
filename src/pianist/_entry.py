@@ -11,10 +11,7 @@ import sys
 
 # Ensure .pth files are processed for editable installs (Python 3.14+ fix)
 # This must be called before importing the main module
-if sys.version_info >= (3, 14):
-    site.main()
+# site.main() is idempotent and safe to call unconditionally
+site.main()
 
 from pianist.cli import main
-
-if __name__ == "__main__":
-    raise SystemExit(main())
