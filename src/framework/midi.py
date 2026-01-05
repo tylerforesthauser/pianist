@@ -28,6 +28,20 @@ class MidiConverter:
             
             for note_data in track_data.notes:
                 try:
+                    # Validate duration
+                    if note_data.duration <= 0:
+                        logger.warning(f"Skipping note {note_data.pitch} with invalid duration: {note_data.duration}")
+                        continue
+
+                    # Validate and clamp velocity
+                    velocity = note_data.velocity
+                    if not 0 <= velocity <= 127:
+                        logger.warning(
+                            f"Clamping velocity {velocity} for note {note_data.pitch} "
+                            f"to valid MIDI range [0, 127]"
+                        )
+                        velocity = max(0, min(127, int(velocity)))
+
                     # Retrieve the MIDI note number for the pitch name
                     # pretty_midi.note_name_to_number handles "C4", "F#3", etc.
                     note_number = pretty_midi.note_name_to_number(note_data.pitch)
@@ -39,7 +53,7 @@ class MidiConverter:
                     
                     # Create a Note instance
                     note = pretty_midi.Note(
-                        velocity=note_data.velocity,
+                        velocity=velocity,
                         pitch=note_number,
                         start=start_time_sec,
                         end=end_time_sec

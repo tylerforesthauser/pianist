@@ -7,7 +7,7 @@ class CompositionParser:
     def parse(json_data: str | Dict[str, Any]) -> Composition:
         if isinstance(json_data, str):
             try:
-                # specific clean up for LLM output which often includes markdown code blocks
+                # specific cleanup for LLM output which often includes markdown code blocks
                 clean_json = json_data.strip()
                 if clean_json.startswith("```json"):
                     clean_json = clean_json[7:]
