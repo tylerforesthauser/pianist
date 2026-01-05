@@ -13,7 +13,7 @@ Voice = Annotated[int, Field(ge=1, le=4)]
 
 
 class TimeSignature(BaseModel):
-    numerator: int = Field(ge=1, le=32)
+    numerator: int = Field(default=4, ge=1, le=32)
     denominator: Literal[1, 2, 4, 8, 16, 32] = 4
 
 

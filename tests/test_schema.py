@@ -140,15 +140,18 @@ def test_schema_errors_on_empty_pitches_list() -> None:
         )
     assert "pitches must not be empty" in str(exc.value)
 
-    with pytest.raises(ValueError):
-        validate_composition_dict(
-            {
-                "title": "x",
-                "bpm": 120,
-                "time_signature": {"numerator": 4, "denominator": 4},
-                "tracks": [{"events": [{"type": "pedal", "start": 0, "duration": 0}]}],
-            }
-        )
+    # Pedal events explicitly allow duration=0 for instantaneous pedal press/release.
+    comp = validate_composition_dict(
+        {
+            "title": "x",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [{"events": [{"type": "pedal", "start": 0, "duration": 0}]}],
+        }
+    )
+    pedal = comp.tracks[0].events[0]
+    assert pedal.type == "pedal"
+    assert pedal.duration == 0
 
 
 def test_schema_accepts_labeled_notes_and_coerces_pitches() -> None:

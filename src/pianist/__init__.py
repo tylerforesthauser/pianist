@@ -17,6 +17,11 @@ __all__ = [
     "validate_composition_dict",
     # parsing
     "parse_composition_from_text",
+    # iteration helpers
+    "composition_from_midi",
+    "composition_to_canonical_json",
+    "iteration_prompt_template",
+    "transpose_composition",
 ]
 
 __version__ = "0.1.0"
@@ -32,3 +37,9 @@ from .schema import (  # noqa: E402
     validate_composition_dict,
 )
 from .parser import parse_composition_from_text  # noqa: E402
+from .iterate import (  # noqa: E402
+    composition_from_midi,
+    composition_to_canonical_json,
+    iteration_prompt_template,
+    transpose_composition,
+)
