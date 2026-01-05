@@ -9,6 +9,8 @@ For best reliability, split prompting into:
 
 This typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
 
+Note: while Pianist’s parser can extract JSON from fenced ```json blocks and other surrounding text, you’ll get the most reliable results by instructing the model to output **raw JSON only**.
+
 ## Musical goals (what to ask the model to do)
 - **Form**: ABA, rondo, theme & variations, sonata-ish exposition/development/recap (loosely).
 - **Motif development**: introduce a short motif early, then vary it via transposition, inversion, augmentation/diminution, fragmentation, sequence.
