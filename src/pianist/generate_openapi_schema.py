@@ -57,6 +57,61 @@ def generate_json_schema_only() -> dict:
     return Composition.model_json_schema(mode="serialization")
 
 
+def make_gemini_compatible(schema: dict) -> dict:
+    """
+    Make a JSON Schema compatible with Gemini's structured output.
+    
+    Gemini supports a subset of JSON Schema and may not support:
+    - The `discriminator` keyword (used for discriminated unions)
+    
+    This function removes unsupported features while preserving functionality.
+    Since each event type already has a `type` field with a `const` value,
+    removing the discriminator is safe - the oneOf pattern will still work.
+    
+    Args:
+        schema: The JSON Schema dictionary to make compatible
+        
+    Returns:
+        A new schema dictionary with Gemini-incompatible features removed
+    """
+    if not isinstance(schema, dict):
+        return schema
+    
+    # Create a copy to avoid mutating the original
+    result = {}
+    
+    for key, value in schema.items():
+        if key == "discriminator":
+            # Remove discriminator - Gemini doesn't support it
+            # The oneOf pattern with type const fields will still work
+            continue
+        elif isinstance(value, dict):
+            result[key] = make_gemini_compatible(value)
+        elif isinstance(value, list):
+            result[key] = [
+                make_gemini_compatible(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            result[key] = value
+    
+    return result
+
+
+def generate_gemini_schema() -> dict:
+    """
+    Generate a JSON Schema compatible with Gemini's structured output.
+    
+    This removes features that Gemini doesn't support (like discriminator)
+    while preserving the schema's functionality.
+    
+    Returns:
+        A Gemini-compatible JSON Schema dictionary
+    """
+    base_schema = generate_json_schema_only()
+    return make_gemini_compatible(base_schema)
+
+
 def main() -> None:
     """Generate and save both OpenAPI and JSON Schema formats."""
     # Get the project root (parent of src/)
@@ -65,6 +120,7 @@ def main() -> None:
     # Generate schemas
     openapi_schema = generate_openapi_schema()
     json_schema = generate_json_schema_only()
+    gemini_schema = generate_gemini_schema()
     
     # Save OpenAPI schema
     openapi_path = project_root / "schema.openapi.json"
@@ -72,11 +128,17 @@ def main() -> None:
         json.dump(openapi_schema, f, indent=2)
     print(f"Generated OpenAPI schema: {openapi_path}")
     
-    # Save JSON Schema
+    # Save JSON Schema (standard, for other AI models)
     json_schema_path = project_root / "schema.json"
     with open(json_schema_path, "w") as f:
         json.dump(json_schema, f, indent=2)
     print(f"Generated JSON Schema: {json_schema_path}")
+    
+    # Save Gemini-compatible schema
+    gemini_schema_path = project_root / "schema.gemini.json"
+    with open(gemini_schema_path, "w") as f:
+        json.dump(gemini_schema, f, indent=2)
+    print(f"Generated Gemini-compatible schema: {gemini_schema_path}")
     
     # Also print the JSON Schema for direct use
     print("\n" + "=" * 80)

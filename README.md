@@ -54,6 +54,7 @@ pianist generate-schema
 
 This generates:
 - `schema.json` - JSON Schema (most commonly used with AI models)
+- `schema.gemini.json` - Gemini-compatible JSON Schema (removes unsupported features)
 - `schema.openapi.json` - Full OpenAPI 3.1.0 specification
 
 See `SCHEMA_GENERATION.md` for detailed usage instructions with various AI models (OpenAI, Anthropic, etc.).

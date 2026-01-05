@@ -4,10 +4,11 @@ This document explains how to generate OpenAPI/JSON Schema files for use with AI
 
 ## Overview
 
-The `generate_openapi_schema.py` script generates two schema formats from the Pydantic models:
+The `generate_openapi_schema.py` script generates three schema formats from the Pydantic models:
 
 1. **OpenAPI Schema** (`schema.openapi.json`): Full OpenAPI 3.1.0 specification
 2. **JSON Schema** (`schema.json`): Pure JSON Schema (often preferred by AI models)
+3. **Gemini Schema** (`schema.gemini.json`): JSON Schema compatible with Google Gemini's structured output
 
 ## Generating the Schemas
 
@@ -34,6 +35,7 @@ python -m src.pianist.generate_openapi_schema
 This will generate:
 - `schema.openapi.json` - Full OpenAPI specification
 - `schema.json` - JSON Schema only (most commonly used)
+- `schema.gemini.json` - Gemini-compatible JSON Schema (removes unsupported features like `discriminator`)
 
 ## Using with AI Models
 
@@ -90,6 +92,34 @@ message = client.messages.create(
 )
 ```
 
+### Google Gemini (Structured Outputs)
+
+Gemini supports a subset of JSON Schema and may not support advanced features like the `discriminator` keyword. Use the Gemini-compatible schema:
+
+```python
+from google import genai
+import json
+
+client = genai.Client()
+
+# Load the Gemini-compatible schema
+with open("schema.gemini.json", "r") as f:
+    schema = json.load(f)
+
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="Create a piano piece in C major, 64 beats long.",
+    config={
+        "response_mime_type": "application/json",
+        "response_json_schema": schema,
+    },
+)
+
+composition = json.loads(response.text)
+```
+
+**Note:** The Gemini-compatible schema (`schema.gemini.json`) removes the `discriminator` keyword while preserving functionality. Each event type already has a `type` field with a `const` value, so the `oneOf` pattern works correctly without the discriminator.
+
 ### Other Models
 
 Most AI models that support structured output accept JSON Schema in a similar format. The `schema.json` file can be loaded and used directly:
@@ -122,7 +152,8 @@ All constraints from the Pydantic models (field types, ranges, required fields, 
 
 - The schema uses `mode="serialization"` to ensure it matches how data is serialized to JSON
 - Field validators and model validators are represented as constraints in the schema
-- Discriminated unions (like the Event type) are properly represented using `oneOf` with discriminator
+- Discriminated unions (like the Event type) are properly represented using `oneOf` with discriminator in the standard schema
+- The Gemini-compatible schema removes the `discriminator` keyword (not supported by Gemini) but preserves functionality since each event type has a `type` field with a `const` value
 - Default values are included in the schema
 
 ## Updating the Schema

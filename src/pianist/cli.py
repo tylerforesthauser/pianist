@@ -9,11 +9,16 @@ from .parser import parse_composition_from_text
 from .renderers.mido_renderer import render_midi_mido
 
 try:
-    from .generate_openapi_schema import generate_json_schema_only, generate_openapi_schema
+    from .generate_openapi_schema import (
+        generate_gemini_schema,
+        generate_json_schema_only,
+        generate_openapi_schema,
+    )
 except ImportError:
     # Schema generation may not be available in all environments
     generate_openapi_schema = None
     generate_json_schema_only = None
+    generate_gemini_schema = None
 
 
 def _read_text(path: Path | None) -> str:
@@ -62,9 +67,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         schema_cmd.add_argument(
             "--format",
-            choices=["both", "openapi", "json"],
-            default="both",
-            help="Which schema format(s) to generate (default: both).",
+            choices=["all", "both", "openapi", "json", "gemini"],
+            default="all",
+            help="Which schema format(s) to generate. 'all' generates all formats, 'both' generates openapi and json (default: all).",
         )
         schema_cmd.add_argument(
             "--output-dir",
@@ -97,17 +102,26 @@ def main(argv: list[str] | None = None) -> int:
 
             output_dir = args.output_dir or Path(__file__).parent.parent.parent
 
-            if args.format in ("both", "openapi"):
+            if args.format in ("all", "both", "openapi"):
                 openapi_schema = generate_openapi_schema()
                 openapi_path = output_dir / "schema.openapi.json"
                 openapi_path.write_text(json.dumps(openapi_schema, indent=2))
                 sys.stdout.write(f"Generated OpenAPI schema: {openapi_path}\n")
 
-            if args.format in ("both", "json"):
+            if args.format in ("all", "both", "json"):
                 json_schema = generate_json_schema_only()
                 json_schema_path = output_dir / "schema.json"
                 json_schema_path.write_text(json.dumps(json_schema, indent=2))
                 sys.stdout.write(f"Generated JSON Schema: {json_schema_path}\n")
+
+            if args.format in ("all", "gemini"):
+                if generate_gemini_schema is None:
+                    sys.stderr.write("error: Gemini schema generation not available.\n")
+                    return 1
+                gemini_schema = generate_gemini_schema()
+                gemini_schema_path = output_dir / "schema.gemini.json"
+                gemini_schema_path.write_text(json.dumps(gemini_schema, indent=2))
+                sys.stdout.write(f"Generated Gemini-compatible schema: {gemini_schema_path}\n")
 
         except Exception as exc:
             if args.debug:
