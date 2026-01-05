@@ -12,6 +12,16 @@ def test_noteevent_normalizes_pitch_to_pitches() -> None:
     assert ev.pitches == [60]
 
 
+def test_noteevent_accepts_integer_midi_pitch() -> None:
+    ev = NoteEvent.model_validate({"type": "note", "start": 0, "duration": 1, "pitch": 60})
+    assert ev.pitches == [60]
+
+
+def test_noteevent_requires_pitch_information() -> None:
+    with pytest.raises(ValueError, match="Either 'pitch' or 'pitches' must be provided"):
+        NoteEvent.model_validate({"type": "note", "start": 0, "duration": 1})
+
+
 def test_noteevent_rejects_pitch_and_pitches_together() -> None:
     with pytest.raises(ValueError):
         NoteEvent.model_validate(

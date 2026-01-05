@@ -1,4 +1,6 @@
-# pianist
+# aimusicgen
+
+`aimusicgen` is the package inside this repository (repo name: `pianist`).
 
 A small framework to **turn AI model outputs into playable MIDI** (piano compositions).
 

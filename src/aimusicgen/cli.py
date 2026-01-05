@@ -40,9 +40,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "render":
-        text = _read_text(args.in_path)
-        comp = parse_composition_from_text(text)
-        out = render_midi(comp, args.out_path)
+        try:
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
+            out = render_midi(comp, args.out_path)
+        except Exception as exc:
+            sys.stderr.write(f"error: {exc}\n")
+            return 1
         sys.stdout.write(str(out) + "\n")
         return 0
 

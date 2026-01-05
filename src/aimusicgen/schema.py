@@ -45,7 +45,7 @@ class NoteEvent(BaseModel):
         pitch = data.get("pitch")
         pitches = data.get("pitches")
         if pitch is None and pitches is None:
-            return data
+            raise ValueError("Either 'pitch' or 'pitches' must be provided.")
         if pitch is not None and pitches is not None:
             raise ValueError("Provide either 'pitch' or 'pitches', not both.")
         if pitch is not None:
