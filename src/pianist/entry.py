@@ -15,3 +15,5 @@ import site
 site.main()
 
 from pianist.cli import main
+
+__all__ = ["main"]
