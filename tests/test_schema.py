@@ -123,6 +123,21 @@ def test_pedal_event_validation() -> None:
             }
         )
 
+
+def test_schema_errors_on_empty_pitches_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {"events": [{"type": "note", "start": 0, "duration": 1, "pitches": []}]}
+                ],
+            }
+        )
+    assert "pitches must not be empty" in str(exc.value)
+
     with pytest.raises(ValueError):
         validate_composition_dict(
             {

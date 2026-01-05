@@ -17,7 +17,16 @@ def test_note_name_to_midi_octave_boundary() -> None:
     assert note_name_to_midi("B#3") == 60
 
 
+def test_note_name_to_midi_negative_octave() -> None:
+    # Lowest possible C in MIDI space
+    assert note_name_to_midi("C-1") == 0
+
+
 def test_note_name_to_midi_invalid() -> None:
     with pytest.raises(ValueError):
         note_name_to_midi("H2")
+
+    # Out-of-range MIDI note
+    with pytest.raises(ValueError):
+        note_name_to_midi("C10")
 

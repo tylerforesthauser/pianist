@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import traceback
 from pathlib import Path
 
 from .parser import parse_composition_from_text
@@ -48,6 +49,11 @@ def main(argv: list[str] | None = None) -> int:
         default="music21",
         help="MIDI rendering backend (default: music21).",
     )
+    render.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print a full traceback on errors.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -60,7 +66,9 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 out = render_midi_mido(comp, args.out_path)
         except Exception as exc:
-            sys.stderr.write(f"error: {exc}\n")
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
             return 1
         sys.stdout.write(str(out) + "\n")
         return 0

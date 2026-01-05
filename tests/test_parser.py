@@ -35,7 +35,7 @@ def test_parser_repairs_common_llm_json_issues() -> None:
   "title": "x",
   "bpm": 120,
   "time_signature": {"numerator": 4, "denominator": 4},
-  "tracks": [{"events": []}],
+  "tracks": [{"events": [{"type": "note", "start": 0, "duration": 1, "pitches": ["C4"]}]}],
 }
 ```"""
     comp = parse_composition_from_text(text)
