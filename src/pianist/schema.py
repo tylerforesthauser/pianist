@@ -216,11 +216,13 @@ class NoteEvent(BaseModel):
 class PedalEvent(BaseModel):
     """
     Sustain pedal (CC 64) event. `value` defaults to 127.
+    
+    Duration can be 0 for instant pedal releases (value=0) or instant pedal presses.
     """
 
     type: Literal["pedal"] = "pedal"
     start: Beat
-    duration: Annotated[float, Field(gt=0)]
+    duration: Annotated[float, Field(ge=0)]
     value: int = Field(default=127, ge=0, le=127)
 
     # Optional annotation fields

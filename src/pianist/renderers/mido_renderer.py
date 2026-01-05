@@ -159,9 +159,19 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
         abs_msgs: list[_AbsMsg] = []
 
         for ev in track.events:
+            # Tempo events are collected above and handled separately
+            if isinstance(ev, TempoEvent):
+                continue
+
             start_tick = _beats_to_ticks(ev.start, composition.ppq)
-            # Enforce minimum 1 tick to avoid zero-duration events due to rounding.
-            dur_ticks = max(1, _beats_to_ticks(ev.duration, composition.ppq))
+            # For pedal events, allow duration=0 (instant release/press).
+            # For note events, enforce minimum 1 tick to avoid zero-duration events due to rounding.
+            if isinstance(ev, PedalEvent):
+                dur_ticks = _beats_to_ticks(ev.duration, composition.ppq)
+            elif isinstance(ev, NoteEvent):
+                dur_ticks = max(1, _beats_to_ticks(ev.duration, composition.ppq))
+            else:
+                raise TypeError(f"Unsupported event type: {type(ev)}")
             end_tick = start_tick + dur_ticks
 
             if isinstance(ev, NoteEvent):
