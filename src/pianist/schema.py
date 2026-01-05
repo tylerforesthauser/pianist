@@ -138,10 +138,28 @@ class NoteEvent(BaseModel):
 
             # Normalize to the internal `pitches` list for rendering convenience.
             # This runs before Pydantic parses nested models, so items may be dicts.
-            data["pitches"] = [
-                (n.get("pitch") if isinstance(n, dict) else getattr(n, "pitch", None))
-                for n in notes
-            ]
+            pitches_from_notes: list[int | str] = []
+            for idx, n in enumerate(notes):
+                if isinstance(n, dict):
+                    if "pitch" not in n:
+                        raise ValueError(
+                            f"Note at index {idx} is missing required 'pitch' field."
+                        )
+                    pitch_value = n.get("pitch")
+                else:
+                    if not hasattr(n, "pitch"):
+                        raise ValueError(
+                            f"Note at index {idx} is missing required 'pitch' attribute."
+                        )
+                    pitch_value = getattr(n, "pitch")
+
+                if pitch_value is None:
+                    raise ValueError(
+                        f"Note at index {idx} has 'pitch' set to None; a pitch value is required."
+                    )
+                pitches_from_notes.append(pitch_value)
+
+            data["pitches"] = pitches_from_notes
         elif groups is not None:
             if not isinstance(groups, list):
                 data["pitches"] = None
@@ -150,11 +168,29 @@ class NoteEvent(BaseModel):
                 raise ValueError("'groups' must not be empty.")
 
             flattened: list[int | str] = []
-            for g in groups:
+            for idx, g in enumerate(groups):
                 if isinstance(g, dict):
-                    flattened.extend(g.get("pitches") or [])
+                    if "pitches" not in g:
+                        raise ValueError(
+                            f"Group at index {idx} is missing required 'pitches' field."
+                        )
+                    group_pitches = g.get("pitches")
                 else:
-                    flattened.extend(getattr(g, "pitches", []) or [])
+                    if not hasattr(g, "pitches"):
+                        raise ValueError(
+                            f"Group at index {idx} is missing required 'pitches' attribute."
+                        )
+                    group_pitches = getattr(g, "pitches")
+
+                if group_pitches is None:
+                    raise ValueError(
+                        f"Group at index {idx} has 'pitches' set to None; pitches are required."
+                    )
+                if not isinstance(group_pitches, list):
+                    raise ValueError(
+                        f"Group at index {idx} has invalid 'pitches' type {type(group_pitches)}; expected a list."
+                    )
+                flattened.extend(group_pitches)
             data["pitches"] = flattened
 
         return data

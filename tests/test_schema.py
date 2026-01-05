@@ -413,3 +413,102 @@ def test_schema_rejects_invalid_voice_value_in_groups() -> None:
     msg = str(exc.value)
     assert "voice" in msg and "less than or equal to 4" in msg
 
+
+def test_schema_rejects_note_missing_pitch_in_notes_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "note",
+                                "start": 0,
+                                "duration": 1,
+                                "notes": [{"hand": "rh"}],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "Note at index 0 is missing required 'pitch'" in str(exc.value)
+
+
+def test_schema_rejects_group_missing_pitches_in_groups_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "note",
+                                "start": 0,
+                                "duration": 1,
+                                "groups": [{"hand": "rh"}],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "Group at index 0 is missing required 'pitches'" in str(exc.value)
+
+
+def test_schema_errors_when_note_missing_hand_in_notes_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "note",
+                                "start": 0,
+                                "duration": 1,
+                                "notes": [{"pitch": "C4"}],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    # Pydantic wording can vary; assert the key signal.
+    msg = str(exc.value)
+    assert "hand" in msg and ("Field required" in msg or "field required" in msg)
+
+
+def test_schema_errors_when_group_missing_hand_in_groups_list() -> None:
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "note",
+                                "start": 0,
+                                "duration": 1,
+                                "groups": [{"pitches": ["C4"]}],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    msg = str(exc.value)
+    assert "hand" in msg and ("Field required" in msg or "field required" in msg)
+
