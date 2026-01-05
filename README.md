@@ -16,27 +16,16 @@ Render a MIDI file from raw model output (supports fenced JSON code blocks and m
 pianist render --in examples/model_output.txt --out out.mid
 ```
 
-Choose a backend:
-
-```bash
-pianist render --backend music21 --in examples/model_output.txt --out out.mid
-pianist render --backend mido    --in examples/model_output.txt --out out.mid
-```
-
-Notes:
-- `music21` is the default backend and enables downstream transformations/analysis (it currently ignores sustain pedal events).
-- `mido` is kept as a deterministic fallback/regression backend and is the only backend that currently supports sustain pedal events.
-
 ## Python API
 
 ```python
 from pathlib import Path
 from pianist import parse_composition_from_text
-from pianist.renderers import render_midi_music21
+from pianist.renderers import render_midi_mido
 
 text = Path("examples/model_output.txt").read_text(encoding="utf-8")
 composition = parse_composition_from_text(text)
-render_midi_music21(composition, "out.mid")
+render_midi_mido(composition, "out.mid")
 ```
 
 ## Prompting

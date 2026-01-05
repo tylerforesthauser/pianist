@@ -7,7 +7,6 @@ from pathlib import Path
 
 from .parser import parse_composition_from_text
 from .renderers.mido_renderer import render_midi_mido
-from .renderers.music21_renderer import render_midi_music21
 
 
 def _read_text(path: Path | None) -> str:
@@ -44,12 +43,6 @@ def main(argv: list[str] | None = None) -> int:
         help="Output MIDI path (e.g. out.mid).",
     )
     render.add_argument(
-        "--backend",
-        choices=("music21", "mido"),
-        default="music21",
-        help="MIDI rendering backend (default: music21).",
-    )
-    render.add_argument(
         "--debug",
         action="store_true",
         help="Print a full traceback on errors.",
@@ -61,10 +54,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             text = _read_text(args.in_path)
             comp = parse_composition_from_text(text)
-            if args.backend == "music21":
-                out = render_midi_music21(comp, args.out_path)
-            else:
-                out = render_midi_mido(comp, args.out_path)
+            out = render_midi_mido(comp, args.out_path)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)

@@ -6,7 +6,6 @@ import mido
 
 from pianist.parser import parse_composition_from_text
 from pianist.renderers.mido_renderer import render_midi_mido
-from pianist.renderers.music21_renderer import render_midi_music21
 
 
 def _assert_valid_midi(path: Path) -> None:
@@ -23,20 +22,11 @@ def _assert_valid_midi(path: Path) -> None:
     assert note_msgs
 
 
-def test_parse_and_render_with_music21(tmp_path: Path) -> None:
+def test_parse_and_render(tmp_path: Path) -> None:
     text = (Path(__file__).parent.parent / "examples" / "model_output.txt").read_text(
         encoding="utf-8"
     )
     comp = parse_composition_from_text(text)
-    out = render_midi_music21(comp, tmp_path / "out_music21.mid")
-    _assert_valid_midi(out)
-
-
-def test_parse_and_render_with_mido(tmp_path: Path) -> None:
-    text = (Path(__file__).parent.parent / "examples" / "model_output.txt").read_text(
-        encoding="utf-8"
-    )
-    comp = parse_composition_from_text(text)
-    out = render_midi_mido(comp, tmp_path / "out_mido.mid")
+    out = render_midi_mido(comp, tmp_path / "out.mid")
     _assert_valid_midi(out)
 
