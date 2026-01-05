@@ -2,6 +2,15 @@
 
 Your model should output **one JSON object** that validates against Pianist's schema.
 
+## Overview
+
+This guide helps you create effective prompts for generating piano compositions. The key to success is splitting your prompt into two parts:
+
+- **System prompt**: Stable "rules of the game" (format + schema constraints). This is typically fixed and doesn't change.
+- **User prompt**: Your musical brief (style, form, length, key, tempo, etc.). This is where you specify what you want.
+
+This two-part approach typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
+
 ## Prompt Structure
 
 For best reliability, split prompting into:
@@ -10,9 +19,9 @@ For best reliability, split prompting into:
 
 This typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
 
-## Prompt Templates
+## System Prompt Template
 
-### System Prompt
+The system prompt is usually fixed and provides the model with the schema requirements and compositional principles. Use this template:
 
 ```
 You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. When the user provides a composition request (which may be a simple description or include specific parameters), interpret their intent and apply the compositional principles below to create a musically coherent piece. Output MUST be valid JSON only.
@@ -105,9 +114,11 @@ Output quality:
 - CRITICAL: Fill the entire requested length with continuous music. The last event's (start + duration) should be close to the requested length (e.g., if 250 beats requested, last event should end around beat 250, not beat 50 with 200 beats of silence).
 ```
 
-### User Prompt Template
+## Building Your User Prompt
 
-**Note:** Replace `{{VARIABLE}}` placeholders with your specific values. You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
+The user prompt is where you specify what you want. You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
+
+### User Prompt Template
 
 **Template structure:**
 
@@ -127,40 +138,6 @@ Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
 
 [DESCRIPTION - describe what you want in natural language]
 {{A gentle, flowing piece with a memorable melody that develops throughout.}}
-```
-
-**Example user prompts (various phrasings):**
-
-```
-Compose a piano piece:
-
-Title: "Echoes of Rain"
-Form: sonata
-Length: ~250 beats
-Key: C minor
-Tempo: 84
-Time signature: 4/4
-Style/Character: contemplative, melancholic
-
-A reflective sonata that begins quietly with a descending motif, builds to an emotional climax in the development, and returns to the opening material with greater depth.
-```
-
-```
-Title: "Spring Dance"
-Form: ternary
-Key: G major
-Tempo: 120
-Style/Character: playful, light
-
-A cheerful piece with a bouncy main theme, a contrasting middle section, and a return with added ornamentation.
-```
-
-```
-I'd like a gentle, flowing piano piece called "Morning Sketch" in C major. Something lyrical and contemplative, around 64 beats long, in ternary form.
-```
-
-```
-Create a dramatic sonata in C minor, about 250 beats, with contrasting themes and a development section that explores different keys. Tempo should be moderate, around 84 BPM.
 ```
 
 ### Tips for Choosing Parameters
@@ -218,9 +195,287 @@ The AI model will automatically generate the appropriate tempo events in the JSO
 - **passionate**: Intense, emotional, with strong dynamics and expressive lines.
 - **Tip**: You can combine multiple descriptors (e.g., "playful and energetic" or "contemplative and melancholic") or use your own words to describe the mood you want.
 
-## Schema Reference
+### Example Prompts for Shorter Works (32-128 beats)
 
-### High-Level Structure
+Here are examples of prompts for shorter compositions:
+
+```
+Compose a piano piece:
+
+Title: "Spring Dance"
+Form: ternary
+Key: G major
+Tempo: 120
+Style/Character: playful, light
+
+A cheerful piece with a bouncy main theme, a contrasting middle section, and a return with added ornamentation.
+```
+
+```
+I'd like a gentle, flowing piano piece called "Morning Sketch" in C major. Something lyrical and contemplative, around 64 beats long, in ternary form.
+```
+
+```
+Title: "Evening Prelude"
+Form: binary
+Length: ~48 beats
+Key: D minor
+Tempo: 72
+Style/Character: contemplative, melancholic
+
+A short, expressive piece with a memorable melody that develops through the two sections.
+```
+
+### Planning Longer Works (100-500+ beats)
+
+When requesting longer compositions, you'll need to provide more structure and planning. Here's how to approach it:
+
+#### Choosing the Right Form
+- **Sonata form** (150-300+ beats): Best for dramatic, substantial works with thematic development. Natural structure: exposition (60-80 beats), development (80-100 beats), recapitulation (60-80 beats).
+- **Theme and variations** (150-400+ beats): Flexible length depending on number of variations. Request 4-8 variations for substantial works. Each variation can explore different textures, keys, tempos, or moods.
+- **Extended rondo** (100-250+ beats): ABACABA pattern creates natural length. Each episode (B, C) can be substantial (30-50 beats), with returns to the main theme.
+- **Multi-movement works** (300-500+ beats): Request 3-4 movements with contrasting characters (e.g., "fast-slow-dance-fast" or "dramatic-lyrical-scherzo-finale").
+- **Extended ternary** (100-200 beats): Expand the middle section significantly (60-100 beats) and add transitions, creating a more substantial work.
+- **Free-form/through-composed** (200-500+ beats): For programmatic or narrative pieces, request multiple contrasting sections with clear transitions.
+
+#### Structuring Your Prompt
+1. **Specify overall length**: Give a target range (e.g., "approximately 250 beats" or "around 300-350 beats").
+2. **Outline the form**: Explicitly state the formal structure and expected section lengths.
+3. **Request motif development**: Ask for 2-3 contrasting motifs that will be developed throughout the piece.
+4. **Plan key relationships**: For sonata form, request modulation to the dominant in the exposition, distant keys in the development, and return to tonic in the recapitulation.
+5. **Request transitions**: Explicitly ask for connecting passages, modulatory bridges, or cadential extensions between sections.
+6. **Specify dynamic arcs**: Request that dynamics build to a climax (often in the development or middle section) and create tension and release across the entire work.
+
+#### Section-by-Section Planning
+- **For sonata form**: Request a clear first theme group (20-30 beats), transition to second theme (10-15 beats), second theme group (20-30 beats), closing material (10-15 beats), development with modulations (80-100 beats), and recapitulation with both themes in tonic (60-80 beats).
+- **For theme and variations**: Request a clear, memorable theme (16-32 beats), then specify the character of each variation (e.g., "first variation: faster tempo with ornamentation", "second variation: minor mode", "third variation: slower, more lyrical").
+- **For extended rondo**: Request a memorable main theme (16-24 beats) that returns, and substantial contrasting episodes (30-50 beats each) that explore different keys, textures, or moods.
+
+#### Motivic Development Strategies
+- Request that motifs be introduced early and developed through:
+  - **Transposition**: Moving the motif to different keys
+  - **Inversion**: Turning the motif upside down
+  - **Augmentation**: Slowing the motif down
+  - **Diminution**: Speeding the motif up
+  - **Fragmentation**: Breaking the motif into smaller pieces
+  - **Sequence**: Repeating the motif at different pitch levels
+  - **Counterpoint**: Combining motifs in different voices
+
+#### Key Relationships and Modulations
+- For longer works, request planned modulations:
+  - **Sonata form**: Tonic → Dominant (exposition), distant keys (development), return to Tonic (recapitulation)
+  - **Theme and variations**: Each variation can explore related keys (relative major/minor, parallel major/minor, or closely related keys)
+  - **Extended works**: Request a key scheme (e.g., "modulate to the subdominant in the middle section, then return to tonic")
+
+#### Dynamic Planning
+- Request that dynamics create larger-scale arcs:
+  - Build from quiet opening to a climactic middle section
+  - Use dynamic contrast between sections (e.g., quiet lyrical section vs. loud dramatic section)
+  - Request a gradual crescendo to the climax, then a gradual decrescendo
+  - Use dynamics to highlight returns of themes (e.g., "return the main theme with greater intensity")
+
+#### Ensuring Continuity
+- Explicitly request that the piece be continuous with no large gaps:
+  - "Fill the entire 250 beats with continuous music"
+  - "Use transitions and connecting passages between sections"
+  - "Avoid long silences—brief pauses (1-2 beats) between phrases are acceptable, but sections should flow continuously"
+  - "The last event should end close to the requested length"
+
+#### Example Section Lengths for Common Forms
+- **Sonata form (250 beats)**: Exposition ~70 beats, Development ~90 beats, Recapitulation ~70 beats, transitions ~20 beats
+- **Theme and variations (200 beats)**: Theme ~24 beats, 6 variations ~28 beats each, transitions ~8 beats
+- **Extended rondo (180 beats)**: Main theme (A) ~20 beats, episodes (B, C) ~40 beats each, returns (A) ~20 beats each
+- **Extended ternary (150 beats)**: A section ~40 beats, B section ~60 beats, A' section ~40 beats, transitions ~10 beats
+
+### Example Prompts for Longer Works (100-500+ beats)
+
+Here are detailed examples of prompts for compositions in the 100-500+ beat range:
+
+#### Example 1: Sonata Form (250 beats)
+
+```
+Compose a piano sonata:
+
+Title: "Sonata in C Minor - The Tempest"
+Form: sonata
+Length: approximately 250 beats
+Key: C minor
+Tempo: 84
+Time signature: 4/4
+Style/Character: dramatic, passionate, with moments of lyrical contrast
+
+Structure:
+- Exposition (approximately 70 beats): First theme group in C minor (20-25 beats), transition modulating to Eb major (10-15 beats), second theme group in Eb major (20-25 beats), closing material (10-15 beats)
+- Development (approximately 90 beats): Develop both themes through sequences, modulations to distant keys (Ab major, F minor, G minor), use fragmentation and counterpoint, build to a dramatic climax
+- Recapitulation (approximately 70 beats): Both themes return in C minor, second theme now in tonic, with some variation and expansion
+- Transitions: Use connecting passages and modulatory bridges between sections (approximately 20 beats total)
+
+Musical elements:
+- Introduce 2-3 contrasting motifs in the exposition that will be developed throughout
+- Use dynamics to build from a quiet, mysterious opening to a powerful climax in the development, then return with greater intensity in the recapitulation
+- Include a lyrical, contrasting second theme that provides relief from the dramatic first theme
+- Use proper voice leading and functional harmony throughout
+- Fill the entire 250 beats with continuous music—no large gaps or silences
+```
+
+#### Example 2: Theme and Variations (300 beats)
+
+```
+Create a piano composition:
+
+Title: "Variations on a Theme"
+Form: theme and variations
+Length: approximately 300 beats
+Key: G major (with variations exploring related keys)
+Tempo: 100
+Time signature: 4/4
+Style/Character: elegant, with each variation exploring different moods and textures
+
+Structure:
+- Theme (24 beats): A simple, memorable melody in G major, in binary form (A-B, 12 beats each)
+- Variation 1 (28 beats): Faster tempo (120 BPM), add ornamentation and running passages, maintain G major
+- Variation 2 (28 beats): Minor mode variation in G minor, more expressive and melancholic, tempo returns to 100
+- Variation 3 (28 beats): Slower tempo (80 BPM), more lyrical and contemplative, explore richer harmonies, return to G major
+- Variation 4 (28 beats): Lively and playful, use staccato and syncopation, modulate to D major
+- Variation 5 (28 beats): Adagio tempo (60 BPM), very expressive and lyrical, return to G major, use full piano range
+- Variation 6 (28 beats): Fast and brilliant (140 BPM), virtuosic passages, return to G major
+- Variation 7 (28 beats): Tempo giusto (100 BPM), combine elements from previous variations, return to the original theme character
+- Coda (28 beats): Extended conclusion that references the theme and brings the work to a satisfying close
+
+Musical elements:
+- Each variation should transform the theme while remaining recognizable
+- Use different textures: homophonic, polyphonic, melody with accompaniment
+- Explore different registers and hand distributions
+- Build dynamic intensity through the variations, with a peak in variation 6, then a reflective variation 7
+- Include smooth transitions between variations (2-4 beats each)
+- Ensure continuous music throughout—the last event should end around beat 300
+```
+
+#### Example 3: Extended Rondo (180 beats)
+
+```
+Compose a piano piece:
+
+Title: "Rondo Capriccioso"
+Form: extended rondo (ABACABA)
+Length: approximately 180 beats
+Key: A major
+Tempo: 120
+Time signature: 6/8
+Style/Character: light, dance-like, with contrasting episodes
+
+Structure:
+- Main theme (A): 20 beats, cheerful and memorable, in A major, appears at beats 0, 50, 120, and 160
+- Episode 1 (B): 30 beats, contrasting key (D major), more lyrical and flowing
+- Episode 2 (C): 30 beats, contrasting key (F# minor), more dramatic and expressive
+- Transitions: Brief connecting passages (2-4 beats) between sections
+
+Musical elements:
+- The main theme should be catchy and easily recognizable when it returns
+- Each episode should contrast in character: B more lyrical, C more dramatic
+- Use modulations to create interest: A major → D major → A major → F# minor → A major
+- Vary the returns of the main theme: first return can be identical, later returns can have slight variations or different dynamics
+- Build energy through the piece, with the final A section being the most energetic
+- Maintain the 6/8 dance-like character throughout
+- Fill all 180 beats with continuous music
+```
+
+#### Example 4: Extended Ternary with Development (150 beats)
+
+```
+I'd like a piano piece:
+
+Title: "Nocturne in Eb Major"
+Form: extended ternary (ABA')
+Length: approximately 150 beats
+Key: Eb major
+Tempo: 72
+Time signature: 4/4
+Style/Character: lyrical, contemplative, with a passionate middle section
+
+Structure:
+- A section (40 beats): Lyrical, song-like melody in Eb major, quiet dynamics (p to mp)
+- Transition (8 beats): Modulate to C minor, build tension
+- B section (60 beats): More dramatic and passionate, in C minor, explore the full range of the piano, build to a climax (f to ff), then gradually subside
+- Transition (8 beats): Return to Eb major, prepare for the return
+- A' section (40 beats): Return of the A theme with ornamentation and variation, slightly more expressive, end with a gentle coda
+
+Musical elements:
+- The A section should have a memorable, flowing melody
+- The B section should provide strong contrast: different key, different mood, different texture
+- Use dynamics to shape the overall arc: quiet opening, build to climax in B section, return with greater depth in A'
+- Include tempo flexibility: slight ritardando at phrase endings, especially in the final A' section
+- Use pedal throughout to create a rich, sustained sound
+- Ensure smooth transitions between sections—no abrupt changes
+- The piece should flow continuously from start to finish
+```
+
+#### Example 5: Multi-Movement Work (400 beats)
+
+```
+Compose a multi-movement piano work:
+
+Title: "Sonata in D Major"
+Form: multi-movement (4 movements)
+Length: approximately 400 beats total
+Key: D major (with movements in related keys)
+Style/Character: Classical style with contrasting movements
+
+Structure:
+- Movement 1: Allegro (120 beats, D major, 120 BPM, sonata form) - Energetic and brilliant
+- Movement 2: Adagio (80 beats, B minor, 60 BPM, ternary form) - Slow, expressive, and lyrical
+- Movement 3: Menuetto (60 beats, D major, 100 BPM, ternary form) - Dance-like, graceful
+- Movement 4: Presto (140 beats, D major, 160 BPM, rondo form) - Fast, lively, and virtuosic
+
+Musical elements:
+- Each movement should be complete and satisfying on its own, but also work as part of the whole
+- Create contrast between movements: fast-slow-dance-fast pattern
+- Movement 1: Use sonata form with clear themes, development, and recapitulation
+- Movement 2: Very expressive, use rich harmonies and full dynamic range
+- Movement 3: Light and dance-like, with a contrasting trio section
+- Movement 4: Brilliant and energetic, bring the work to an exciting conclusion
+- Transitions between movements can be brief (1-2 beats) or you can request seamless connections
+- Each movement should fill its specified length with continuous music
+```
+
+#### Example 6: Free-Form Extended Work (250 beats)
+
+```
+Create an extended piano composition:
+
+Title: "Ballade in F# Minor"
+Form: free-form, through-composed
+Length: approximately 250 beats
+Key: F# minor (with modulations)
+Tempo: 88
+Time signature: 4/4
+Style/Character: narrative, dramatic, with multiple contrasting sections
+
+Structure:
+- Introduction (20 beats): Mysterious opening, establish F# minor, quiet dynamics
+- Main theme (30 beats): Lyrical melody, develop the main musical idea
+- Transition 1 (10 beats): Modulate to A major
+- Contrasting section (40 beats): More energetic, in A major, different texture
+- Development (60 beats): Develop themes from previous sections, modulate through several keys (A major → D major → B minor), build to a dramatic climax
+- Transition 2 (15 beats): Return to F# minor, prepare for recapitulation
+- Recapitulation (50 beats): Return of main theme with variation and greater intensity, in F# minor
+- Coda (25 beats): Extended conclusion, reference earlier material, bring to a satisfying close
+
+Musical elements:
+- Create a narrative arc: mysterious beginning → lyrical theme → energetic contrast → dramatic development → return with resolution
+- Use 2-3 main motifs that appear and develop throughout
+- Build to a clear climax in the development section (around beat 120-140)
+- Use dynamics to shape the overall arc: p → mf → f → ff (climax) → mf → p
+- Include tempo changes: slight accelerando in the development, ritardando in the coda
+- Ensure smooth transitions between all sections
+- Fill all 250 beats with continuous music—no gaps or silences
+```
+
+## Reference Material
+
+### Schema Reference
+
+#### High-Level Structure
 
 - Top level: `title`, `bpm`, `time_signature`, optional `key_signature`, `ppq`, `tracks`
 - Each `track` has `name`, `program` (0=piano), `channel`, and `events`
@@ -236,7 +491,7 @@ The AI model will automatically generate the appropriate tempo events in the JSO
 
 Optional annotation fields (do not affect rendering): `motif`, `section`, `phrase`.
 
-### Pitch Format
+#### Pitch Format
 
 You may provide pitches as:
 - MIDI numbers (0–127), or
@@ -244,13 +499,13 @@ You may provide pitches as:
 
 Internally Pianist validates and converts pitches to MIDI numbers.
 
-### Hand/Voice Labeling
+#### Hand/Voice Labeling
 
 For piano writing, keep a **single Piano track** and label each generated note (or sub-chord) with:
 - `hand`: `"lh"` or `"rh"` (required in `notes` / `groups`)
 - `voice`: optional integer 1–4 (useful for downstream notation/analysis)
 
-## Example JSON
+### Example JSON
 
 ```json
 {
@@ -347,11 +602,11 @@ For piano writing, keep a **single Piano track** and label each generated note (
 }
 ```
 
-## Formal Structures Reference
+### Formal Structures Reference
 
 This section provides reference information about classical musical forms to help you choose what to request in your prompts. These forms are **creative frameworks**, not rigid templates—you can adapt them to your musical vision.
 
-### Common Forms
+#### Common Forms
 
 - **Binary (A-B)**: Two contrasting sections, typically 16-32 beats each. B section may modulate, returns to tonic.
 - **Ternary (A-B-A)**: Main theme, contrasting middle section, return of A (often varied). B is typically 1.5-2x length of A.
@@ -359,24 +614,13 @@ This section provides reference information about classical musical forms to hel
 - **Sonata Form**: Exposition (first theme in tonic, second theme in dominant), Development (fragments, modulations, tension), Recapitulation (both themes in tonic). Typically 150-300+ beats.
 - **Theme and Variations**: Clear theme (16-32 beats) followed by 3-8+ variations transforming it through ornamentation, mode changes, tempo, texture, harmony, etc.
 
-### Multi-Movement Works
+#### Multi-Movement Works
 
 - **Sonata**: 3-4 movements (fast-slow-dance-fast) with contrasting characters.
 - **Suite**: Collection of dance movements (allemande, courante, sarabande, gigue), each in binary/ternary form.
 
-### Character Pieces
+#### Character Pieces
 
 - **Nocturne**: Slow-moderate, lyrical, song-like, often ternary with ornamented return.
 - **Ballade**: Narrative character, free-form or through-composed, may be extended (200+ beats).
 - **Étude**: Focus on technical challenge, often ternary or binary form.
-
-### Planning Longer Works (100-500+ beats)
-
-When requesting longer compositions, consider:
-- **Formal structures**: Sonata form, multi-movement works, or extended theme and variations naturally create longer pieces.
-- **Motif development**: Request 2-3 contrasting motifs that can be developed through sequences, modulations, and counterpoint.
-- **Section lengths**: Binary/ternary forms typically yield 32-128 beats; sonata form 150-300+; multi-movement works 200-500+.
-- **Section marking**: The model will automatically use the `section` field to mark formal divisions (e.g., "exposition", "development", "recapitulation") in the output.
-- **Contrast and return**: Request different keys, textures, and moods between sections, with transitions and returns to earlier material.
-- **Dynamic arcs**: Request that dynamics shape larger arcs, building to climaxes and creating tension and release.
-- **Continuous music**: When you request a specific length (e.g., "250 beats"), the model will fill that entire duration with music. You can explicitly request transitions, extensions, and connecting passages between formal sections to ensure the piece flows continuously from start to finish.
