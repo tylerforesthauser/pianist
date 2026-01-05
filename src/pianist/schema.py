@@ -130,14 +130,31 @@ class NoteEvent(BaseModel):
             data["pitches"] = [pitch]
             data.pop("pitch", None)
         elif notes is not None:
+            if not isinstance(notes, list):
+                data["pitches"] = None
+                return data
+            if not notes:
+                raise ValueError("'notes' must not be empty.")
+
             # Normalize to the internal `pitches` list for rendering convenience.
-            data["pitches"] = [n.get("pitch") for n in notes] if isinstance(notes, list) else None
+            # This runs before Pydantic parses nested models, so items may be dicts.
+            data["pitches"] = [
+                (n.get("pitch") if isinstance(n, dict) else getattr(n, "pitch", None))
+                for n in notes
+            ]
         elif groups is not None:
+            if not isinstance(groups, list):
+                data["pitches"] = None
+                return data
+            if not groups:
+                raise ValueError("'groups' must not be empty.")
+
             flattened: list[int | str] = []
-            if isinstance(groups, list):
-                for g in groups:
-                    if isinstance(g, dict):
-                        flattened.extend(g.get("pitches") or [])
+            for g in groups:
+                if isinstance(g, dict):
+                    flattened.extend(g.get("pitches") or [])
+                else:
+                    flattened.extend(getattr(g, "pitches", []) or [])
             data["pitches"] = flattened
 
         return data
