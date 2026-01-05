@@ -12,10 +12,18 @@ This typically improves **schema adherence** and reduces output drift compared t
 Note: while Pianist’s parser can extract JSON from fenced ```json blocks and other surrounding text, you’ll get the most reliable results by instructing the model to output **raw JSON only**.
 
 ## Musical goals (what to ask the model to do)
-- **Form**: ABA, rondo, theme & variations, sonata-ish exposition/development/recap (loosely).
-- **Motif development**: introduce a short motif early, then vary it via transposition, inversion, augmentation/diminution, fragmentation, sequence.
-- **Harmony/texture**: right-hand melody + left-hand accompaniment, occasional chords, cadences.
-- **Dynamics**: use `velocity` to shape phrases (accent, crescendo, diminuendo).
+- **Form**: use a clear formal structure (binary, ternary/ABA, rondo, sonata-ish, theme & variations, dance/character pieces, or multi-movement works).
+- **Longer pieces**: for lengthier compositions (100+ beats), consider sonata form, extended variations, or multi-movement structures (see the Formal Structures section below).
+- **Motif development**: introduce a short motif early, then develop it via transposition, inversion, augmentation/diminution, fragmentation, and sequence.
+- **Dynamics**: use `velocity` to shape phrases (p → mf → f and back), with local accents and larger-scale crescendi/decrescendi.
+- **Sections**: mark formal sections using the `section` field (e.g. `"exposition"`, `"A"`, `"development"`, `"B"`) for clarity.
+- **Contrast + transitions**: create contrast between sections (key, texture, mood, register) and use transitions to connect them.
+- **Harmony/texture**: aim for right-hand melody + left-hand accompaniment as a default texture, with occasional chords/cadences.
+- **Timing**: keep timing consistent (start/duration in beats); allow chords via multiple pitches in a single event.
+
+Representation:
+- Use a single Piano track.
+- Use `groups` (preferred) or `notes` so every note is labeled with `hand` (`"lh"`/`"rh"`) and optional `voice` (1–4).
 
 ## Output schema (high level)
 
