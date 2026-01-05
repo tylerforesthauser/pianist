@@ -162,8 +162,7 @@ class NoteEvent(BaseModel):
             data["pitches"] = pitches_from_notes
         elif groups is not None:
             if not isinstance(groups, list):
-                data["pitches"] = None
-                return data
+                raise ValueError("Field 'groups' must be a list.")
             if not groups:
                 raise ValueError("'groups' must not be empty.")
 
