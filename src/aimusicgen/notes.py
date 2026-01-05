@@ -36,13 +36,13 @@ def note_name_to_midi(note: str) -> int:
     octave = int(m.group(3))
 
     semitone = _NOTE_BASE[letter]
+    # Important: accidentals can cross octave boundaries (e.g. B#3 == C4).
+    # So we do NOT modulo the semitone; we apply the offset directly.
     for acc in accidentals:
         if acc == "#":
             semitone += 1
         elif acc == "b":
             semitone -= 1
-
-    semitone %= 12
 
     midi = (octave + 1) * 12 + semitone
     if not 0 <= midi <= 127:
