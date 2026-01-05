@@ -25,10 +25,16 @@ python3 -m pip install -e ".[dev]"
 Render a MIDI file from raw model output (supports fenced JSON code blocks and minor JSON mistakes):
 
 ```bash
-python -m pianist render --in examples/model_output.txt --out out.mid
+./pianist render --in examples/model_output.txt --out out.mid
 ```
 
-**Note:** Use `python -m pianist` instead of `pianist` for maximum compatibility with editable installs.
+**Alternative:** You can also use the Python module directly:
+
+```bash
+python3 -m pianist render --in examples/model_output.txt --out out.mid
+```
+
+**Note:** Use `./pianist` (recommended) or `python3 -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
 ## Python API
 
@@ -47,7 +53,13 @@ render_midi_mido(composition, "out.mid")
 Generate OpenAPI/JSON Schema files for use with AI models that support structured output:
 
 ```bash
-python -m pianist generate-schema
+./pianist generate-schema
+```
+
+**Alternative:** You can also use the Python module directly:
+
+```bash
+python3 -m pianist generate-schema
 ```
 
 This generates:

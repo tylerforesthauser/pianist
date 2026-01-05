@@ -35,10 +35,16 @@ python3 -m pip install -e ".[dev]"
 The recommended way to generate schemas is using the CLI command:
 
 ```bash
-python -m pianist generate-schema
+./pianist generate-schema
 ```
 
-**Note:** Use `python -m pianist` instead of `pianist` for maximum compatibility with editable installs.
+**Alternative:** You can also use the Python module directly:
+
+```bash
+python3 -m pianist generate-schema
+```
+
+**Note:** Use `./pianist` (recommended) or `python3 -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
 By default, this generates:
 - `schema.openapi.json` - Full OpenAPI specification
@@ -47,7 +53,7 @@ By default, this generates:
 To generate all three schema formats (including the Gemini-compatible schema):
 
 ```bash
-python -m pianist generate-schema --format all
+./pianist generate-schema --format all
 ```
 
 This will generate:
@@ -59,13 +65,13 @@ You can also generate individual formats:
 
 ```bash
 # Generate only OpenAPI schema
-python -m pianist generate-schema --format openapi
+./pianist generate-schema --format openapi
 
 # Generate only JSON schema
-python -m pianist generate-schema --format json
+./pianist generate-schema --format json
 
 # Generate only Gemini-compatible schema
-python -m pianist generate-schema --format gemini
+./pianist generate-schema --format gemini
 ```
 
 Alternatively, you can use the Python module directly:
@@ -133,10 +139,11 @@ message = client.messages.create(
 
 ### Google Gemini (Structured Outputs)
 
-**Important**: Gemini supports only a subset of JSON Schema and does not support OpenAPI-specific features like `discriminator`. Use the **Gemini-compatible schema** (`schema.gemini.json`) for Gemini.
+**Important**: Gemini supports only a subset of JSON Schema and does not support OpenAPI-specific features like `discriminator` or the `default` keyword. Use the **Gemini-compatible schema** (`schema.gemini.json`) for Gemini.
 
 The Gemini-compatible schema:
 - Removes `discriminator` fields (OpenAPI-specific, not supported by Gemini)
+- Removes `default` fields (not supported by Gemini's JSON Schema subset)
 - Converts `$defs` to `definitions` for better compatibility (JSON Schema Draft 7)
 - Updates all `$ref` references accordingly
 
@@ -207,8 +214,9 @@ All constraints from the Pydantic models (field types, ranges, required fields, 
 Gemini's structured output supports a subset of JSON Schema. The main differences in the Gemini-compatible schema:
 
 1. **No `discriminator` fields**: Removed as they are OpenAPI-specific
-2. **`definitions` instead of `$defs`**: Uses JSON Schema Draft 7 format for better compatibility
-3. **Pure JSON Schema**: All OpenAPI-specific features are removed
+2. **No `default` fields**: Gemini doesn't support the `default` keyword in JSON Schema
+3. **`definitions` instead of `$defs`**: Uses JSON Schema Draft 7 format for better compatibility
+4. **Pure JSON Schema**: All OpenAPI-specific features are removed
 
 The `make_gemini_compatible()` function in `generate_openapi_schema.py` handles these conversions automatically.
 
@@ -218,9 +226,9 @@ Whenever you modify the Pydantic models in `schema.py`, regenerate the schema fi
 
 ```bash
 # Generate standard schemas (openapi + json)
-python -m pianist generate-schema
+./pianist generate-schema
 
 # Or generate all schemas including Gemini-compatible
-python -m pianist generate-schema --format all
+./pianist generate-schema --format all
 ```
 

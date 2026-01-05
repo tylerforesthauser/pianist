@@ -20,12 +20,14 @@ def make_gemini_compatible(schema: dict) -> dict:
     
     Gemini supports a subset of JSON Schema and doesn't support:
     - OpenAPI-specific features like `discriminator`
+    - The `default` keyword
     - Some advanced JSON Schema features
     
     This function:
     1. Removes `discriminator` fields (OpenAPI-specific)
-    2. Converts `$defs` to `definitions` for better compatibility (Draft 7)
-    3. Updates all `$ref` references accordingly
+    2. Removes `default` fields (not supported by Gemini)
+    3. Converts `$defs` to `definitions` for better compatibility (Draft 7)
+    4. Updates all `$ref` references accordingly
     
     Args:
         schema: The JSON Schema dictionary to convert
@@ -48,12 +50,13 @@ def make_gemini_compatible(schema: dict) -> dict:
         old_ref_prefix = "#/$defs/"
         new_ref_prefix = "#/$defs/"
     
-    def remove_discriminator_and_update_refs(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
-        """Recursively process the schema to remove discriminators and update refs."""
+    def remove_unsupported_fields_and_update_refs(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
+        """Recursively process the schema to remove unsupported fields and update refs."""
         if isinstance(obj, dict):
-            # Remove discriminator fields (OpenAPI-specific, not supported by Gemini)
-            if "discriminator" in obj:
-                obj = {k: v for k, v in obj.items() if k != "discriminator"}
+            # Remove fields not supported by Gemini
+            # - discriminator: OpenAPI-specific
+            # - default: not supported by Gemini's JSON Schema subset
+            obj = {k: v for k, v in obj.items() if k not in ("discriminator", "default")}
             
             # Update $ref references if we converted $defs to definitions
             if "$ref" in obj and isinstance(obj["$ref"], str):
@@ -61,13 +64,13 @@ def make_gemini_compatible(schema: dict) -> dict:
                     obj["$ref"] = obj["$ref"].replace(old_ref_prefix, new_ref_prefix)
             
             # Recursively process all values
-            return {k: remove_discriminator_and_update_refs(v) for k, v in obj.items()}
+            return {k: remove_unsupported_fields_and_update_refs(v) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [remove_discriminator_and_update_refs(item) for item in obj]
+            return [remove_unsupported_fields_and_update_refs(item) for item in obj]
         else:
             return obj
     
-    result = remove_discriminator_and_update_refs(result)
+    result = remove_unsupported_fields_and_update_refs(result)
     return result
 
 

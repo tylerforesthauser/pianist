@@ -1,14 +1,17 @@
-"""Allow running pianist as a module: python -m pianist"""
-from __future__ import annotations
+#!/usr/bin/env python3
+"""Launcher script for pianist CLI.
 
+This script ensures .pth files are processed before importing the package.
+Use this if 'python -m pianist' doesn't work.
+"""
 import site
 import sys
 from pathlib import Path
 
-# Ensure .pth files are processed
+# Process .pth files for editable installs
 site.main()
 
-# Manually process .pth files if needed (for -m flag compatibility)
+# Manually process .pth files
 try:
     import sysconfig
     site_packages = Path(sysconfig.get_path("purelib"))
@@ -24,14 +27,15 @@ except Exception:
 
 # Fallback: add src to path if needed
 try:
-    from .cli import main
+    from pianist.cli import main
 except (ImportError, ModuleNotFoundError):
-    # Find src directory
-    this_file = Path(__file__).resolve()
-    src_path = this_file.parent.parent
+    # Find the project root and add src to path
+    project_root = Path(__file__).parent
+    src_path = project_root / "src"
     if src_path.exists() and str(src_path) not in sys.path:
         sys.path.insert(0, str(src_path))
-    from .cli import main
+    from pianist.cli import main
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
+
