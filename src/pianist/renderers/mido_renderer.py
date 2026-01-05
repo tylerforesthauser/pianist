@@ -5,7 +5,7 @@ from pathlib import Path
 
 import mido
 
-from ..schema import Composition, NoteEvent, PedalEvent
+from ..schema import Composition, NoteEvent, PedalEvent, TempoEvent
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,34 @@ class _AbsMsg:
 def _beats_to_ticks(beats: float, ppq: int) -> int:
     # 1 beat == quarter note beat by convention in schema
     return int(round(beats * ppq))
+
+
+def _expand_gradual_tempo_change(
+    start: float,
+    start_bpm: float,
+    end_bpm: float,
+    duration: float,
+    ppq: int,
+) -> list[tuple[int, float]]:
+    """
+    Expand a gradual tempo change into discrete tempo change events.
+
+    Returns a list of (tick, bpm) tuples representing tempo changes.
+    Uses a step size of 0.5 beats for smooth approximation.
+    """
+    steps: list[tuple[int, float]] = []
+    step_size = 0.5  # beats between tempo changes
+    num_steps = max(1, int(round(duration / step_size)))
+
+    for i in range(num_steps + 1):
+        progress = i / num_steps if num_steps > 0 else 1.0
+        # Linear interpolation
+        current_bpm = start_bpm + (end_bpm - start_bpm) * progress
+        beat_position = start + (duration * progress)
+        tick = _beats_to_ticks(beat_position, ppq)
+        steps.append((tick, current_bpm))
+
+    return steps
 
 
 def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
@@ -38,8 +66,57 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
             time=0,
         )
     )
+
+    # Collect tempo events from all tracks first to find initial tempo override
+    tempo_changes: list[tuple[int, float]] = []  # (tick, bpm)
+    initial_tempo_override: float | None = None
+
+    for track in composition.tracks:
+        for ev in track.events:
+            if isinstance(ev, TempoEvent):
+                if ev.start == 0:
+                    # Tempo change at beat 0: override initial tempo
+                    if ev.bpm is not None:
+                        initial_tempo_override = ev.bpm
+                    elif ev.start_bpm is not None:
+                        initial_tempo_override = ev.start_bpm
+                    # Still process gradual changes starting at 0
+                    if ev.start_bpm is not None and ev.end_bpm is not None and ev.duration is not None:
+                        steps = _expand_gradual_tempo_change(
+                            ev.start,
+                            ev.start_bpm,
+                            ev.end_bpm,
+                            ev.duration,
+                            composition.ppq,
+                        )
+                        # Skip the first step if it's at tick 0 (we'll use initial_tempo_override)
+                        for tick, bpm in steps:
+                            if tick > 0:
+                                tempo_changes.append((tick, bpm))
+                    continue
+
+                if ev.bpm is not None:
+                    # Instant tempo change
+                    tick = _beats_to_ticks(ev.start, composition.ppq)
+                    tempo_changes.append((tick, ev.bpm))
+                else:
+                    # Gradual tempo change
+                    assert ev.start_bpm is not None
+                    assert ev.end_bpm is not None
+                    assert ev.duration is not None
+                    steps = _expand_gradual_tempo_change(
+                        ev.start,
+                        ev.start_bpm,
+                        ev.end_bpm,
+                        ev.duration,
+                        composition.ppq,
+                    )
+                    tempo_changes.extend(steps)
+
+    # Use initial tempo (from composition.bpm or override from tempo event at beat 0)
+    initial_bpm = initial_tempo_override if initial_tempo_override is not None else composition.bpm
     conductor.append(
-        mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(composition.bpm), time=0)
+        mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(initial_bpm), time=0)
     )
 
     if composition.key_signature:
@@ -47,6 +124,25 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
         conductor.append(
             mido.MetaMessage("key_signature", key=composition.key_signature, time=0)
         )
+
+    # Sort tempo changes by tick, then insert into conductor track
+    tempo_changes.sort(key=lambda x: x[0])
+
+    # Remove duplicates at the same tick (keep the last one)
+    if tempo_changes:
+        deduplicated: list[tuple[int, float]] = []
+        last_tick = -1
+        for tick, bpm in tempo_changes:
+            if tick == last_tick:
+                # Replace the previous entry at this tick
+                deduplicated[-1] = (tick, bpm)
+            else:
+                deduplicated.append((tick, bpm))
+                last_tick = tick
+        tempo_changes = deduplicated
+
+    # Store tempo changes to insert after we've processed all tracks
+    # (we'll insert them into conductor track at the end)
 
     # Note tracks
     for track in composition.tracks:
@@ -119,6 +215,10 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
                         ),
                     )
                 )
+            elif isinstance(ev, TempoEvent):
+                # Tempo events are collected above and handled separately
+                # Skip them here to avoid duplicate processing
+                pass
             else:
                 raise TypeError(f"Unsupported event type: {type(ev)}")
 
@@ -153,6 +253,58 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
             tr.append(msg)
 
         tr.append(mido.MetaMessage("end_of_track", time=0))
+
+    # Insert tempo changes into conductor track
+    if tempo_changes:
+        # Collect existing conductor track messages with their absolute ticks
+        existing_msgs: list[tuple[int, mido.MetaMessage]] = []
+        current_tick = 0
+        for msg in conductor:
+            if msg.type == "set_tempo" and current_tick == 0:
+                # Skip the initial tempo message (we'll keep it separately)
+                current_tick += msg.time
+                continue
+            if msg.type != "end_of_track":
+                current_tick += msg.time
+                existing_msgs.append((current_tick, msg))
+
+        # Combine tempo changes with existing messages
+        all_conductor_msgs: list[tuple[int, mido.MetaMessage]] = []
+        for tick, bpm in tempo_changes:
+            tempo_msg = mido.MetaMessage(
+                "set_tempo", tempo=mido.bpm2tempo(bpm), time=0
+            )
+            all_conductor_msgs.append((tick, tempo_msg))
+        all_conductor_msgs.extend(existing_msgs)
+        all_conductor_msgs.sort(key=lambda x: x[0])
+
+        # Rebuild conductor track with delta times
+        new_conductor = mido.MidiTrack()
+        new_conductor.append(mido.MetaMessage("track_name", name="Conductor", time=0))
+        new_conductor.append(
+            mido.MetaMessage(
+                "time_signature",
+                numerator=composition.time_signature.numerator,
+                denominator=composition.time_signature.denominator,
+                time=0,
+            )
+        )
+        new_conductor.append(
+            mido.MetaMessage("set_tempo", tempo=mido.bpm2tempo(initial_bpm), time=0)
+        )
+        if composition.key_signature:
+            new_conductor.append(
+                mido.MetaMessage("key_signature", key=composition.key_signature, time=0)
+            )
+
+        last_tick = 0
+        for tick, msg in all_conductor_msgs:
+            delta = tick - last_tick
+            last_tick = tick
+            new_conductor.append(msg.copy(time=delta))
+
+        new_conductor.append(mido.MetaMessage("end_of_track", time=0))
+        mid.tracks[0] = new_conductor
 
     mid.save(out_path)
     return out_path

@@ -35,12 +35,23 @@ Hard requirements:
                 - legacy pitches/pitch (allowed but not recommended: lacks hand/voice labels)
               optional: motif/section/phrase }
     - pedal: { type:"pedal", start, duration, value 0-127 }
+    - tempo: { type:"tempo", start: beats>=0,
+               EITHER: bpm: number (instant tempo change)
+               OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change)
+               optional: section/phrase }
 
 Pitch format:
 - Use MIDI numbers (0–127) OR scientific pitch strings ("C4", "F#3", "Bb2").
 
 Time units:
 - start/duration are in beats, where 1 beat == a quarter note.
+
+Time continuity:
+- Music must be continuous throughout the requested length. When a specific length is requested (e.g., "250 beats"), fill that entire duration with music, not silence.
+- Avoid large gaps or silences between sections. Brief pauses (1-2 beats) between phrases are acceptable, but sections should flow continuously.
+- Transitions between sections should be musical (e.g., connecting passages, cadential extensions, or brief modulatory bridges), not empty space.
+- If the user requests "about 250 beats", generate approximately 250 beats of actual music. The last event's start + duration should be close to the requested length.
+- Plan section lengths proportionally: for a 250-beat sonata, exposition might be 60-80 beats, development 80-100 beats, recapitulation 60-80 beats, with transitions filling any remaining space.
 
 Compositional approach:
 When interpreting the user's request, apply these principles to create musically coherent and well-structured compositions:
@@ -84,6 +95,7 @@ Output quality:
 - Ensure all harmonies are complete and properly voiced.
 - Maintain consistent key centers within sections unless intentionally modulating.
 - Use the `section` annotation field liberally to mark formal divisions—it helps organize thinking even if it doesn't affect playback.
+- CRITICAL: Fill the entire requested length with continuous music. The last event's (start + duration) should be close to the requested length (e.g., if 250 beats requested, last event should end around beat 250, not beat 50 with 200 beats of silence).
 ```
 
 ### User Prompt Template
@@ -170,6 +182,16 @@ Create a dramatic sonata in C minor, about 250 beats, with contrasting themes an
 - **Very fast (160+)**: Presto, vivace. Brilliant, virtuosic, or intensely energetic.
 - **Tip**: You can also use descriptive terms like "slow", "moderate", "fast", "lively", or "relaxed" instead of specific BPM values.
 
+#### Tempo Changes
+You can include tempo changes within a composition to create ritardando (slowing down) or accelerando (speeding up) effects:
+
+- **Instant tempo changes**: Use `{ type: "tempo", start: <beat>, bpm: <new_tempo> }` to change tempo immediately at a specific beat.
+- **Gradual tempo changes**: Use `{ type: "tempo", start: <beat>, start_bpm: <initial>, end_bpm: <final>, duration: <beats> }` to gradually change tempo over a duration. For example:
+  - Ritardando: `{ type: "tempo", start: 120, start_bpm: 120, end_bpm: 80, duration: 8 }` (slow down from 120 to 80 BPM over 8 beats)
+  - Accelerando: `{ type: "tempo", start: 60, start_bpm: 60, end_bpm: 120, duration: 16 }` (speed up from 60 to 120 BPM over 16 beats)
+
+Tempo events can be placed in any track and will be automatically collected and rendered in the conductor track. The system approximates gradual changes with discrete tempo steps for smooth playback.
+
 #### Time Signature
 - **4/4 (common time)**: Most versatile. Natural, balanced feel. Good for most styles.
 - **3/4 (waltz time)**: Triple meter with a waltz-like feel. Good for: waltzes, lyrical pieces, or pieces with a gentle, flowing character.
@@ -202,6 +224,9 @@ Create a dramatic sonata in C minor, about 250 beats, with contrasting themes an
     - **Preferred**: `notes` (per-note `hand`/`voice`)
     - Legacy: `pitches` / `pitch` (no per-note labeling)
   - `type: "pedal"` with `start`, `duration`, optional `value`
+  - `type: "tempo"` with `start` (beats), and EITHER:
+    - `bpm` (instant tempo change), OR
+    - `start_bpm`, `end_bpm`, `duration` (gradual tempo change)
 
 Optional annotation fields (do not affect rendering): `motif`, `section`, `phrase`.
 
@@ -266,7 +291,50 @@ For piano writing, keep a **single Piano track** and label each generated note (
             { "hand": "lh", "voice": 2, "pitches": ["F3", "C4"] }
           ]
         },
-        { "type": "pedal", "start": 0, "duration": 4, "value": 127, "section": "A" }
+        { "type": "pedal", "start": 0, "duration": 4, "value": 127, "section": "A" },
+        { "type": "tempo", "start": 120, "start_bpm": 84, "end_bpm": 60, "duration": 8, "section": "A" }
+      ]
+    }
+  ]
+}
+```
+
+**Example with tempo changes:**
+
+```json
+{
+  "title": "Dramatic Piece with Ritardando",
+  "bpm": 120,
+  "time_signature": { "numerator": 4, "denominator": 4 },
+  "key_signature": "C minor",
+  "ppq": 480,
+  "tracks": [
+    {
+      "name": "Piano",
+      "program": 0,
+      "channel": 0,
+      "events": [
+        {
+          "type": "note",
+          "start": 0,
+          "duration": 1,
+          "velocity": 80,
+          "groups": [{ "hand": "rh", "pitches": ["C4"] }]
+        },
+        {
+          "type": "tempo",
+          "start": 60,
+          "bpm": 100,
+          "section": "middle"
+        },
+        {
+          "type": "tempo",
+          "start": 120,
+          "start_bpm": 100,
+          "end_bpm": 60,
+          "duration": 16,
+          "section": "ending"
+        }
       ]
     }
   ]
@@ -305,3 +373,4 @@ When requesting longer compositions, consider:
 - **Section marking**: The model will use the `section` field to mark formal divisions (e.g., "exposition", "development", "recapitulation").
 - **Contrast and return**: Request different keys, textures, and moods between sections, with transitions and returns to earlier material.
 - **Dynamic arcs**: Request that dynamics shape larger arcs, building to climaxes and creating tension and release.
+- **Continuous music**: When requesting a specific length (e.g., "250 beats"), the model should fill that entire duration with music. Include transitions, extensions, and connecting passages between formal sections rather than leaving gaps. The piece should flow continuously from start to finish.

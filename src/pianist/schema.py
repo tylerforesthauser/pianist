@@ -228,7 +228,72 @@ class PedalEvent(BaseModel):
     phrase: str | None = None
 
 
-Event = Annotated[NoteEvent | PedalEvent, Field(discriminator="type")]
+class TempoEvent(BaseModel):
+    """
+    Tempo change event. Supports both instant and gradual tempo changes.
+
+    For instant tempo changes:
+    - Provide `bpm` (the new tempo at `start`)
+
+    For gradual tempo changes (ritardando/accelerando):
+    - Provide `start_bpm` and `end_bpm` (tempo at start and end of the change)
+    - Provide `duration` (how long the change takes in beats)
+    - The system will approximate the gradual change with discrete tempo steps
+
+    Note: Tempo events can be placed in any track; they will be collected and
+    rendered in the conductor track during MIDI generation.
+    """
+
+    type: Literal["tempo"] = "tempo"
+    start: Beat
+
+    # Instant tempo change: provide bpm only
+    bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
+
+    # Gradual tempo change: provide start_bpm, end_bpm, and duration
+    start_bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
+    end_bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
+    duration: Annotated[float, Field(gt=0)] | None = None
+
+    # Optional annotation fields
+    section: str | None = None
+    phrase: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_tempo_fields(self) -> "TempoEvent":
+        has_instant = self.bpm is not None
+        has_gradual = (
+            self.start_bpm is not None
+            or self.end_bpm is not None
+            or self.duration is not None
+        )
+
+        if not has_instant and not has_gradual:
+            raise ValueError(
+                "TempoEvent must specify either 'bpm' (instant change) or "
+                "'start_bpm'/'end_bpm'/'duration' (gradual change)."
+            )
+
+        if has_instant and has_gradual:
+            raise ValueError(
+                "TempoEvent cannot specify both instant ('bpm') and gradual "
+                "('start_bpm'/'end_bpm'/'duration') tempo changes."
+            )
+
+        if has_gradual:
+            if self.start_bpm is None:
+                raise ValueError("Gradual tempo change requires 'start_bpm'.")
+            if self.end_bpm is None:
+                raise ValueError("Gradual tempo change requires 'end_bpm'.")
+            if self.duration is None:
+                raise ValueError("Gradual tempo change requires 'duration'.")
+
+        return self
+
+
+Event = Annotated[
+    NoteEvent | PedalEvent | TempoEvent, Field(discriminator="type")
+]
 
 
 class Track(BaseModel):

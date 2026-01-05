@@ -536,3 +536,229 @@ def test_schema_errors_when_group_missing_hand_in_groups_list() -> None:
     msg = str(exc.value)
     assert "hand" in msg and ("Field required" in msg or "field required" in msg)
 
+
+def test_tempo_event_instant_change() -> None:
+    """Test that instant tempo changes are validated correctly."""
+    comp = validate_composition_dict(
+        {
+            "title": "x",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {
+                            "type": "tempo",
+                            "start": 60,
+                            "bpm": 100,
+                        }
+                    ]
+                }
+            ],
+        }
+    )
+    tempo_ev = comp.tracks[0].events[0]
+    assert tempo_ev.type == "tempo"
+    assert tempo_ev.start == 60
+    assert tempo_ev.bpm == 100
+    assert tempo_ev.start_bpm is None
+    assert tempo_ev.end_bpm is None
+
+
+def test_tempo_event_gradual_change() -> None:
+    """Test that gradual tempo changes are validated correctly."""
+    comp = validate_composition_dict(
+        {
+            "title": "x",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {
+                            "type": "tempo",
+                            "start": 120,
+                            "start_bpm": 100,
+                            "end_bpm": 60,
+                            "duration": 16,
+                        }
+                    ]
+                }
+            ],
+        }
+    )
+    tempo_ev = comp.tracks[0].events[0]
+    assert tempo_ev.type == "tempo"
+    assert tempo_ev.start == 120
+    assert tempo_ev.bpm is None
+    assert tempo_ev.start_bpm == 100
+    assert tempo_ev.end_bpm == 60
+    assert tempo_ev.duration == 16
+
+
+def test_tempo_event_requires_either_instant_or_gradual() -> None:
+    """Test that tempo events must specify either instant or gradual change."""
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "bpm" in str(exc.value) or "start_bpm" in str(exc.value)
+
+
+def test_tempo_event_cannot_have_both_instant_and_gradual() -> None:
+    """Test that tempo events cannot specify both instant and gradual changes."""
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "bpm": 100,
+                                "start_bpm": 100,
+                                "end_bpm": 80,
+                                "duration": 8,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "instant" in str(exc.value).lower() or "gradual" in str(exc.value).lower()
+
+
+def test_tempo_event_gradual_requires_all_fields() -> None:
+    """Test that gradual tempo changes require start_bpm, end_bpm, and duration."""
+    # Missing start_bpm
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "end_bpm": 80,
+                                "duration": 8,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "start_bpm" in str(exc.value)
+
+    # Missing end_bpm
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "start_bpm": 100,
+                                "duration": 8,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "end_bpm" in str(exc.value)
+
+    # Missing duration
+    with pytest.raises(ValueError) as exc:
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "start_bpm": 100,
+                                "end_bpm": 80,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+    assert "duration" in str(exc.value)
+
+
+def test_tempo_event_bpm_bounds() -> None:
+    """Test that tempo values are within valid bounds."""
+    # Too low
+    with pytest.raises(ValueError):
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "bpm": 10,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+
+    # Too high
+    with pytest.raises(ValueError):
+        validate_composition_dict(
+            {
+                "title": "x",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "tempo",
+                                "start": 60,
+                                "bpm": 500,
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+
