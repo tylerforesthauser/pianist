@@ -169,7 +169,7 @@ Musical goals:
 - Keep timing consistent: start/duration in beats; allow chords by multiple pitches.
 
 Harmony and voice leading:
-- Use functional harmony: establish clear tonic-dominant relationships, use proper cadences (authentic V→I, half cadences →V, plagal IV→I, deceptive V→vi).
+- Use functional harmony: establish clear tonic-dominant relationships, use proper cadences (authentic V→I, half cadences ending on V, plagal IV→I, deceptive V→vi).
 - Maintain smooth voice leading: prefer stepwise motion, resolve leading tones and chordal sevenths properly, avoid parallel fifths/octaves.
 - Vary harmonic rhythm appropriately: faster changes in active sections, slower in lyrical passages.
 - When modulating, use pivot chords or prepare modulations clearly; return to home key for structural closure.
