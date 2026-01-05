@@ -28,10 +28,6 @@ source venv/bin/activate
 
 # Install pianist in development mode
 python3 -m pip install -e ".[dev]"
-
-# If you encounter ModuleNotFoundError after installation (Python 3.14+),
-# run the fix script to ensure .pth files are processed correctly:
-python3 fix_entry_point.py
 ```
 
 ### Running the Generator
