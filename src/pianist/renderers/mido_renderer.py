@@ -5,7 +5,7 @@ from pathlib import Path
 
 import mido
 
-from ..schema import Composition, NoteEvent, PedalEvent, TempoEvent
+from ..schema import Composition, NoteEvent, PedalEvent, SectionEvent, TempoEvent
 
 
 @dataclass(frozen=True)
@@ -162,6 +162,9 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
             # Tempo events are collected above and handled separately
             if isinstance(ev, TempoEvent):
                 continue
+            # Section events are metadata markers, skip during rendering
+            if isinstance(ev, SectionEvent):
+                continue
 
             start_tick = _beats_to_ticks(ev.start, composition.ppq)
             # For pedal events, allow duration=0 (instant release/press).
@@ -228,6 +231,9 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
             elif isinstance(ev, TempoEvent):
                 # Tempo events are collected above and handled separately
                 # Skip them here to avoid duplicate processing
+                pass
+            elif isinstance(ev, SectionEvent):
+                # Section events are metadata markers, skip during rendering
                 pass
             else:
                 raise TypeError(f"Unsupported event type: {type(ev)}")

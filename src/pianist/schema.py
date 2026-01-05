@@ -49,19 +49,49 @@ class LabeledNote(BaseModel):
 class NoteGroup(BaseModel):
     """
     A sub-chord within a NoteEvent: multiple pitches sharing the same hand/voice.
+    
+    Supports both "pitches" (plural, list) and "pitch" (singular, single value).
     """
 
-    pitches: list[int | str]
+    # Support both pitch (singular) and pitches (plural)
+    pitch: int | str | None = None
+    pitches: list[int | str] | None = None
     hand: Hand
     voice: Voice | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_pitch_field(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        
+        # If "pitch" is provided, convert it to "pitches" list
+        if "pitch" in data and "pitches" not in data:
+            data = dict(data)
+            data["pitches"] = [data["pitch"]]
+            data.pop("pitch", None)
+        elif "pitch" in data and "pitches" in data:
+            # Both present - prefer pitches, but this shouldn't happen in practice
+            data = dict(data)
+            data.pop("pitch", None)
+        
+        return data
+
     @field_validator("pitches")
     @classmethod
-    def _coerce_pitches(cls, v: list[int | str]) -> list[int]:
+    def _coerce_pitches(cls, v: list[int | str] | None) -> list[int]:
+        if v is None:
+            raise ValueError("Either 'pitch' or 'pitches' must be provided.")
         out = [_coerce_pitch_to_midi(p) for p in v]
         if not out:
             raise ValueError("pitches must not be empty.")
         return out
+
+    @model_validator(mode="after")
+    def _ensure_pitches_present(self) -> "NoteGroup":
+        if self.pitches is None:
+            raise ValueError("Either 'pitch' or 'pitches' must be provided.")
+        return self
 
 
 class NoteEvent(BaseModel):
@@ -168,21 +198,31 @@ class NoteEvent(BaseModel):
             flattened: list[int | str] = []
             for idx, g in enumerate(groups):
                 if isinstance(g, dict):
-                    if "pitches" not in g:
+                    # Support both "pitches" (plural) and "pitch" (singular) for groups
+                    if "pitches" in g:
+                        group_pitches = g.get("pitches")
+                    elif "pitch" in g:
+                        # Convert singular "pitch" to list format
+                        group_pitches = [g.get("pitch")]
+                    else:
                         raise ValueError(
-                            f"Group at index {idx} is missing required 'pitches' field."
+                            f"Group at index {idx} is missing required 'pitches' or 'pitch' field."
                         )
-                    group_pitches = g.get("pitches")
                 else:
-                    if not hasattr(g, "pitches"):
+                    # For non-dict objects, check for both attributes
+                    if hasattr(g, "pitches"):
+                        group_pitches = getattr(g, "pitches")
+                    elif hasattr(g, "pitch"):
+                        # Convert singular "pitch" to list format
+                        group_pitches = [getattr(g, "pitch")]
+                    else:
                         raise ValueError(
-                            f"Group at index {idx} is missing required 'pitches' attribute."
+                            f"Group at index {idx} is missing required 'pitches' or 'pitch' attribute."
                         )
-                    group_pitches = getattr(g, "pitches")
 
                 if group_pitches is None:
                     raise ValueError(
-                        f"Group at index {idx} has 'pitches' set to None; pitches are required."
+                        f"Group at index {idx} has 'pitches'/'pitch' set to None; pitches are required."
                     )
                 if not isinstance(group_pitches, list):
                     raise ValueError(
@@ -293,8 +333,24 @@ class TempoEvent(BaseModel):
         return self
 
 
+class SectionEvent(BaseModel):
+    """
+    Section marker event for metadata/annotation purposes.
+    
+    These events are ignored during MIDI rendering but can be used to
+    organize and label sections of a composition.
+    """
+
+    type: Literal["section"] = "section"
+    start: Beat
+    label: str
+
+    # Optional annotation fields
+    phrase: str | None = None
+
+
 Event = Annotated[
-    NoteEvent | PedalEvent | TempoEvent, Field(discriminator="type")
+    NoteEvent | PedalEvent | TempoEvent | SectionEvent, Field(discriminator="type")
 ]
 
 
