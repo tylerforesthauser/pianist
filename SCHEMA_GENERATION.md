@@ -4,11 +4,10 @@ This document explains how to generate OpenAPI/JSON Schema files for use with AI
 
 ## Overview
 
-The `generate_openapi_schema.py` script generates three schema formats from the Pydantic models:
+The schema generation creates two schema formats from the Pydantic models:
 
-1. **OpenAPI Schema** (`schema.openapi.json`): Full OpenAPI 3.1.0 specification
-2. **JSON Schema** (`schema.json`): Pure JSON Schema (often preferred by AI models)
-3. **Gemini-compatible Schema** (`schema.gemini.json`): JSON Schema optimized for Google Gemini's structured output
+1. **OpenAPI Schema** (`schema.openapi.json`): Full OpenAPI 3.1.0 specification for general use
+2. **Gemini-compatible Schema** (`schema.gemini.json`): JSON Schema optimized for Google Gemini's structured output UI (all references inlined)
 
 ## Generating the Schemas
 
@@ -46,29 +45,15 @@ python3 -m pianist generate-schema
 
 **Note:** Use `./pianist` (recommended) or `python3 -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
-By default, this generates:
+By default, this generates both:
 - `schema.openapi.json` - Full OpenAPI specification
-- `schema.json` - JSON Schema only (most commonly used)
-
-To generate all three schema formats (including the Gemini-compatible schema):
-
-```bash
-./pianist generate-schema --format all
-```
-
-This will generate:
-- `schema.openapi.json` - Full OpenAPI specification
-- `schema.json` - JSON Schema only (most commonly used)
-- `schema.gemini.json` - Gemini-compatible JSON Schema (removes OpenAPI-specific features)
+- `schema.gemini.json` - Gemini-compatible schema (inlined, ready for UI)
 
 You can also generate individual formats:
 
 ```bash
 # Generate only OpenAPI schema
 ./pianist generate-schema --format openapi
-
-# Generate only JSON schema
-./pianist generate-schema --format json
 
 # Generate only Gemini-compatible schema
 ./pianist generate-schema --format gemini
@@ -80,18 +65,24 @@ Alternatively, you can use the Python module directly:
 python3 -m pianist.generate_openapi_schema
 ```
 
-This will generate all three schema formats.
+This will generate both schema formats.
 
 ## Using with AI Models
 
 ### OpenAI (Function Calling / Structured Outputs)
 
-For OpenAI's structured outputs, use the JSON Schema directly:
+For OpenAI's structured outputs, extract the JSON Schema from the OpenAPI schema:
 
 ```python
 from openai import OpenAI
+import json
 
 client = OpenAI()
+
+# Load the OpenAPI schema and extract the Composition schema
+with open("schema.openapi.json", "r") as f:
+    openapi_schema = json.load(f)
+    composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
 response = client.beta.chat.completions.parse(
     model="gpt-4o",
@@ -104,7 +95,7 @@ response = client.beta.chat.completions.parse(
         "json_schema": {
             "name": "composition",
             "strict": True,
-            "schema": <load schema.json here>,
+            "schema": composition_schema,
             "description": "A piano composition specification"
         }
     }
@@ -113,12 +104,18 @@ response = client.beta.chat.completions.parse(
 
 ### Anthropic (Structured Outputs)
 
-For Anthropic's structured outputs:
+For Anthropic's structured outputs, extract the JSON Schema from the OpenAPI schema:
 
 ```python
 from anthropic import Anthropic
+import json
 
 client = Anthropic()
+
+# Load the OpenAPI schema and extract the Composition schema
+with open("schema.openapi.json", "r") as f:
+    openapi_schema = json.load(f)
+    composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
 message = client.messages.create(
     model="claude-3-5-sonnet-20241022",
@@ -131,7 +128,7 @@ message = client.messages.create(
         "json_schema": {
             "name": "composition",
             "strict": True,
-            "schema": <load schema.json here>
+            "schema": composition_schema
         }
     }
 )
@@ -139,13 +136,17 @@ message = client.messages.create(
 
 ### Google Gemini (Structured Outputs)
 
-**Important**: Gemini supports only a subset of JSON Schema and does not support OpenAPI-specific features like `discriminator` or the `default` keyword. Use the **Gemini-compatible schema** (`schema.gemini.json`) for Gemini.
+**Important**: Use the **Gemini-compatible schema** (`schema.gemini.json`) for Gemini. This schema is optimized for Gemini's UI and has all `$ref` references inlined.
 
 The Gemini-compatible schema:
-- Removes `discriminator` fields (OpenAPI-specific, not supported by Gemini)
-- Removes `default` fields (not supported by Gemini's JSON Schema subset)
-- Converts `$defs` to `definitions` for better compatibility (JSON Schema Draft 7)
-- Updates all `$ref` references accordingly
+- Removes OpenAPI-specific features (`discriminator`, `default`, `title`, `const`)
+- Converts array type syntax to single types (Gemini UI doesn't support `["string", "null"]`)
+- Converts numeric enums to string enums
+- Replaces `oneOf` with common properties (`type` and `start` for events)
+- Inlines all `$ref` references for UI compatibility
+- Ensures all object types have non-empty properties
+
+**Note on discriminated unions**: The schema replaces `oneOf` for event types with a generic object type containing common properties (`type` and `start`). While this loses schema-level type discrimination, validation still occurs in the Python code to ensure only valid event types (NoteEvent, PedalEvent, TempoEvent) are accepted.
 
 Example usage with Gemini:
 
@@ -172,17 +173,20 @@ response = model.generate_content(
 )
 ```
 
+For Gemini's UI, paste the contents of `schema.gemini.json` directly into the schema field.
+
 ### Other Models
 
-Most AI models that support structured output accept JSON Schema in a similar format. The `schema.json` file can be loaded and used directly:
+Most AI models that support structured output accept JSON Schema. Extract the Composition schema from the OpenAPI schema:
 
 ```python
 import json
 
-with open("schema.json", "r") as f:
-    schema = json.load(f)
+with open("schema.openapi.json", "r") as f:
+    openapi_schema = json.load(f)
+    composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
-# Use schema with your AI model's structured output API
+# Use composition_schema with your AI model's structured output API
 ```
 
 ## Schema Contents
@@ -191,7 +195,7 @@ The generated schema includes:
 
 - **Composition**: Top-level structure with title, bpm, time_signature, tracks, etc.
 - **Track**: Track definition with name, channel, program, and events
-- **Event Types**: Discriminated union of:
+- **Event Types**: Union of:
   - `NoteEvent`: Notes with pitch, timing, velocity, and hand/voice labels
   - `PedalEvent`: Sustain pedal events
   - `TempoEvent`: Tempo changes (instant or gradual)
@@ -204,31 +208,15 @@ All constraints from the Pydantic models (field types, ranges, required fields, 
 
 - The schema uses `mode="serialization"` to ensure it matches how data is serialized to JSON
 - Field validators and model validators are represented as constraints in the schema
-- Discriminated unions (like the Event type) are represented using `oneOf`:
-  - Standard schema (`schema.json`): Uses `oneOf` with `discriminator` (OpenAPI-specific)
-  - Gemini schema (`schema.gemini.json`): Uses `oneOf` without `discriminator` (pure JSON Schema)
-- Default values are included in the schema
-
-## Gemini Compatibility
-
-Gemini's structured output supports a subset of JSON Schema. The main differences in the Gemini-compatible schema:
-
-1. **No `discriminator` fields**: Removed as they are OpenAPI-specific
-2. **No `default` fields**: Gemini doesn't support the `default` keyword in JSON Schema
-3. **`definitions` instead of `$defs`**: Uses JSON Schema Draft 7 format for better compatibility
-4. **Pure JSON Schema**: All OpenAPI-specific features are removed
-
-The `make_gemini_compatible()` function in `generate_openapi_schema.py` handles these conversions automatically.
+- Discriminated unions (like the Event type) are represented using `oneOf` in the standard schema
+- The Gemini schema replaces `oneOf` with common properties for UI compatibility
 
 ## Updating the Schema
 
 Whenever you modify the Pydantic models in `schema.py`, regenerate the schema files by running:
 
 ```bash
-# Generate standard schemas (openapi + json)
 ./pianist generate-schema
-
-# Or generate all schemas including Gemini-compatible
-./pianist generate-schema --format all
 ```
 
+This will regenerate both `schema.openapi.json` and `schema.gemini.json`.

@@ -16,61 +16,158 @@ from pianist.schema import Composition
 
 def make_gemini_compatible(schema: dict) -> dict:
     """
-    Convert a JSON Schema to be compatible with Gemini's structured output.
+    Convert a JSON Schema to be compatible with Gemini's structured output UI.
     
-    Gemini supports a subset of JSON Schema and doesn't support:
-    - OpenAPI-specific features like `discriminator`
-    - The `default` keyword
-    - Some advanced JSON Schema features
-    
-    This function:
-    1. Removes `discriminator` fields (OpenAPI-specific)
-    2. Removes `default` fields (not supported by Gemini)
-    3. Converts `$defs` to `definitions` for better compatibility (Draft 7)
-    4. Updates all `$ref` references accordingly
+    Gemini's UI has strict requirements:
+    - No OpenAPI-specific features (discriminator, default, title, const)
+    - No array type syntax (["string", "null"] must become "string")
+    - No numeric enums (must be strings)
+    - No oneOf (replaced with common properties)
+    - All object types must have non-empty properties
+    - All $ref references must be inlined
     
     Args:
         schema: The JSON Schema dictionary to convert
         
     Returns:
-        A Gemini-compatible JSON Schema dictionary
+        A Gemini-compatible JSON Schema dictionary with all references inlined
     """
-    # Convert to JSON string and back to get a deep copy
-    schema_str = json.dumps(schema)
-    result = json.loads(schema_str)
+    # Deep copy
+    result = json.loads(json.dumps(schema))
     
-    # Convert $defs to definitions for better compatibility
+    # Convert $defs to definitions for Draft 7 compatibility
     if "$defs" in result:
         result["definitions"] = result.pop("$defs")
-        defs_key = "definitions"
         old_ref_prefix = "#/$defs/"
         new_ref_prefix = "#/definitions/"
     else:
-        defs_key = "$defs"
         old_ref_prefix = "#/$defs/"
-        new_ref_prefix = "#/$defs/"
+        new_ref_prefix = "#/definitions/"
     
-    def remove_unsupported_fields_and_update_refs(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
-        """Recursively process the schema to remove unsupported fields and update refs."""
+    def convert_anyof_to_single_type(obj: dict) -> dict:
+        """Convert anyOf to single type, preferring most permissive type."""
+        if "anyOf" not in obj or not isinstance(obj.get("anyOf"), list):
+            return obj
+        
+        anyof_items = obj["anyOf"]
+        if not anyof_items:
+            return obj
+        
+        # Collect types (excluding null)
+        types = []
+        for item in anyof_items:
+            if isinstance(item, dict) and "type" in item and item["type"] != "null":
+                types.append(item["type"])
+        
+        if types:
+            # Choose most permissive type
+            type_priority = {"string": 0, "number": 1, "integer": 2, "array": 3, "object": 4, "boolean": 5}
+            sorted_types = sorted(types, key=lambda t: type_priority.get(t, 99))
+            obj = {k: v for k, v in obj.items() if k != "anyOf"}
+            obj["type"] = sorted_types[0]
+        
+        return obj
+    
+    def process_schema(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
+        """Recursively process schema to make it Gemini-compatible."""
         if isinstance(obj, dict):
-            # Remove fields not supported by Gemini
-            # - discriminator: OpenAPI-specific
-            # - default: not supported by Gemini's JSON Schema subset
-            obj = {k: v for k, v in obj.items() if k not in ("discriminator", "default")}
+            # Convert anyOf to single type
+            obj = convert_anyof_to_single_type(obj)
             
-            # Update $ref references if we converted $defs to definitions
+            # Convert array type syntax to single type
+            if "type" in obj and isinstance(obj["type"], list):
+                type_array = obj["type"]
+                non_null_types = [t for t in type_array if t != "null"]
+                if non_null_types:
+                    type_priority = {"string": 0, "number": 1, "integer": 2, "array": 3, "object": 4, "boolean": 5}
+                    sorted_types = sorted(non_null_types, key=lambda t: type_priority.get(t, 99))
+                    obj["type"] = sorted_types[0]
+                else:
+                    obj["type"] = "string"
+            
+            # Convert numeric enums to string enums
+            if "enum" in obj and isinstance(obj["enum"], list):
+                if obj["enum"] and all(isinstance(v, (int, float)) for v in obj["enum"]):
+                    obj["enum"] = [str(v) for v in obj["enum"]]
+                    if obj.get("type") in ("integer", "number"):
+                        obj["type"] = "string"
+            
+            # Remove unsupported fields
+            unsupported = ("discriminator", "default", "title", "exclusiveMaximum", 
+                          "exclusiveMinimum", "const", "anyOf")
+            obj = {k: v for k, v in obj.items() if k not in unsupported}
+            
+            # Replace oneOf with common properties (type and start for events)
+            if "oneOf" in obj:
+                new_obj = {k: v for k, v in obj.items() if k != "oneOf"}
+                if "type" not in new_obj:
+                    new_obj["type"] = "object"
+                if new_obj.get("type") == "object" and "properties" not in new_obj:
+                    new_obj["properties"] = {
+                        "type": {"type": "string"},
+                        "start": {"type": "number", "minimum": 0}
+                    }
+                    new_obj["required"] = ["type", "start"]
+                obj = new_obj
+            
+            # Ensure all object types have non-empty properties
+            if obj.get("type") == "object":
+                if "properties" not in obj or not obj["properties"]:
+                    obj["properties"] = {"type": {"type": "string"}}
+            
+            # Update $ref references
             if "$ref" in obj and isinstance(obj["$ref"], str):
                 if obj["$ref"].startswith(old_ref_prefix):
                     obj["$ref"] = obj["$ref"].replace(old_ref_prefix, new_ref_prefix)
             
             # Recursively process all values
-            return {k: remove_unsupported_fields_and_update_refs(v) for k, v in obj.items()}
+            return {k: process_schema(v) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [remove_unsupported_fields_and_update_refs(item) for item in obj]
+            return [process_schema(item) for item in obj]
         else:
             return obj
     
-    result = remove_unsupported_fields_and_update_refs(result)
+    result = process_schema(result)
+    
+    # Inline all $ref references
+    def inline_refs(schema: dict, definitions: dict) -> dict:
+        """Recursively inline all $ref references."""
+        def resolve(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
+            if isinstance(obj, dict):
+                if "$ref" in obj:
+                    ref_path = obj["$ref"]
+                    if ref_path.startswith("#/definitions/"):
+                        schema_name = ref_path.replace("#/definitions/", "")
+                        if schema_name in definitions:
+                            resolved = resolve(definitions[schema_name])
+                            if isinstance(resolved, dict):
+                                return {k: resolve(v) for k, v in resolved.items()}
+                            return resolved
+                    return obj
+                return {k: resolve(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [resolve(item) for item in obj]
+            else:
+                return obj
+        return resolve(schema)
+    
+    # Get definitions and inline
+    definitions = result.pop("definitions", {})
+    result = inline_refs(result, definitions)
+    
+    # Final pass to ensure all object types have properties after inlining
+    def ensure_properties(obj: dict | list | str | int | float | bool | None) -> dict | list | str | int | float | bool | None:
+        if isinstance(obj, dict):
+            if obj.get("type") == "object":
+                if "properties" not in obj or not obj["properties"]:
+                    obj["properties"] = {"type": {"type": "string"}}
+            return {k: ensure_properties(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [ensure_properties(item) for item in obj]
+        else:
+            return obj
+    
+    result = ensure_properties(result)
     return result
 
 
@@ -81,17 +178,9 @@ def generate_openapi_schema() -> dict:
     Returns a dictionary containing the OpenAPI schema that can be used
     with AI models supporting structured output.
     """
-    # Generate JSON Schema from Pydantic model
-    # Using mode="serialization" to get the schema as it would be serialized
-    json_schema = Composition.model_json_schema(
-        mode="serialization",
-        by_alias=False,  # Use field names as defined in the model
-    )
+    json_schema = Composition.model_json_schema(mode="serialization", by_alias=False)
     
-    # Create OpenAPI schema object
-    # For structured output, we typically need just the schema definition
-    # wrapped in an OpenAPI format
-    openapi_schema = {
+    return {
         "openapi": "3.1.0",
         "info": {
             "title": "Pianist Composition Schema",
@@ -104,39 +193,26 @@ def generate_openapi_schema() -> dict:
             },
         },
     }
+
+
+def generate_gemini_schema() -> dict:
+    """
+    Generate a Gemini-compatible schema with all references inlined.
     
-    return openapi_schema
-
-
-def generate_json_schema_only() -> dict:
+    This schema is optimized for Gemini's UI and has all $ref references
+    resolved, making it self-contained and ready to use.
     """
-    Generate just the JSON Schema (without OpenAPI wrapper).
-    
-    Some AI models prefer just the JSON Schema directly.
-    """
-    return Composition.model_json_schema(mode="serialization")
-
-
-def generate_gemini_compatible_schema() -> dict:
-    """
-    Generate a JSON Schema that is compatible with Gemini's structured output.
-    
-    This removes OpenAPI-specific features and converts to Draft 7 format
-    for maximum compatibility with Gemini's JSON Schema subset.
-    """
-    schema = generate_json_schema_only()
-    return make_gemini_compatible(schema)
+    json_schema = Composition.model_json_schema(mode="serialization", by_alias=False)
+    return make_gemini_compatible(json_schema)
 
 
 def main() -> None:
-    """Generate and save both OpenAPI and JSON Schema formats."""
-    # Get the project root (parent of src/)
+    """Generate and save both OpenAPI and Gemini-compatible schemas."""
     project_root = Path(__file__).parent.parent.parent
     
     # Generate schemas
     openapi_schema = generate_openapi_schema()
-    json_schema = generate_json_schema_only()
-    gemini_schema = generate_gemini_compatible_schema()
+    gemini_schema = generate_gemini_schema()
     
     # Save OpenAPI schema
     openapi_path = project_root / "schema.openapi.json"
@@ -144,25 +220,12 @@ def main() -> None:
         json.dump(openapi_schema, f, indent=2)
     print(f"Generated OpenAPI schema: {openapi_path}")
     
-    # Save standard JSON Schema
-    json_schema_path = project_root / "schema.json"
-    with open(json_schema_path, "w") as f:
-        json.dump(json_schema, f, indent=2)
-    print(f"Generated JSON Schema: {json_schema_path}")
-    
     # Save Gemini-compatible schema
-    gemini_schema_path = project_root / "schema.gemini.json"
-    with open(gemini_schema_path, "w") as f:
+    gemini_path = project_root / "schema.gemini.json"
+    with open(gemini_path, "w") as f:
         json.dump(gemini_schema, f, indent=2)
-    print(f"Generated Gemini-compatible JSON Schema: {gemini_schema_path}")
-    
-    # Also print the Gemini-compatible schema for direct use
-    print("\n" + "=" * 80)
-    print("Gemini-compatible JSON Schema (for direct use with Gemini structured output):")
-    print("=" * 80)
-    print(json.dumps(gemini_schema, indent=2))
+    print(f"Generated Gemini-compatible schema: {gemini_path}")
 
 
 if __name__ == "__main__":
     main()
-
