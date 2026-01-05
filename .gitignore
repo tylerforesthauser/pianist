@@ -201,6 +201,10 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Generated music artifacts
+*.mid
+*.midi
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

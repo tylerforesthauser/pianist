@@ -1,0 +1,57 @@
+Here is a short piano miniature in a loose ABA' form with a recurring motif:
+
+```json
+{
+  "title": "Miniature in C (Motif A)",
+  "bpm": 96,
+  "time_signature": { "numerator": 4, "denominator": 4 },
+  "key_signature": "C",
+  "ppq": 480,
+  "tracks": [
+    {
+      "name": "Piano",
+      "channel": 0,
+      "program": 0,
+      "events": [
+        { "type": "pedal", "start": 0, "duration": 4 },
+
+        // Motif A (broken chord + step)
+        { "type": "note", "start": 0.0, "duration": 0.5, "pitch": "C4", "velocity": 78, "hand": "lh", "motif": "A" },
+        { "type": "note", "start": 0.5, "duration": 0.5, "pitch": "G4", "velocity": 84, "hand": "rh", "motif": "A" },
+        { "type": "note", "start": 1.0, "duration": 0.5, "pitch": "E4", "velocity": 82, "hand": "rh", "motif": "A" },
+        { "type": "note", "start": 1.5, "duration": 0.5, "pitch": "D4", "velocity": 80, "hand": "rh", "motif": "A" },
+
+        // Cadence-ish support
+        { "type": "note", "start": 2.0, "duration": 1.0, "pitches": ["C3", "G3"], "velocity": 72, "hand": "lh" },
+        { "type": "note", "start": 2.0, "duration": 1.0, "pitches": ["C4", "E4", "G4"], "velocity": 76, "hand": "rh" },
+        { "type": "note", "start": 3.0, "duration": 1.0, "pitches": ["B2", "G3"], "velocity": 70, "hand": "lh" },
+        { "type": "note", "start": 3.0, "duration": 1.0, "pitches": ["D4", "F4", "G4"], "velocity": 74, "hand": "rh" },
+
+        { "type": "pedal", "start": 4, "duration": 4 },
+
+        // B section (motif transformed: sequence up, slightly brighter)
+        { "type": "note", "start": 4.0, "duration": 0.5, "pitch": "D4", "velocity": 80, "hand": "lh", "motif": "A'" },
+        { "type": "note", "start": 4.5, "duration": 0.5, "pitch": "A4", "velocity": 90, "hand": "rh", "motif": "A'" },
+        { "type": "note", "start": 5.0, "duration": 0.5, "pitch": "F4", "velocity": 86, "hand": "rh", "motif": "A'" },
+        { "type": "note", "start": 5.5, "duration": 0.5, "pitch": "E4", "velocity": 84, "hand": "rh", "motif": "A'" },
+
+        { "type": "note", "start": 6.0, "duration": 1.0, "pitches": ["D3", "A3"], "velocity": 74, "hand": "lh" },
+        { "type": "note", "start": 6.0, "duration": 1.0, "pitches": ["D4", "F4", "A4"], "velocity": 78, "hand": "rh" },
+        { "type": "note", "start": 7.0, "duration": 1.0, "pitches": ["C3", "G3"], "velocity": 72, "hand": "lh" },
+        { "type": "note", "start": 7.0, "duration": 1.0, "pitches": ["E4", "G4", "C5"], "velocity": 76, "hand": "rh" },
+
+        { "type": "pedal", "start": 8, "duration": 4 },
+
+        // Return (A, slightly varied)
+        { "type": "note", "start": 8.0, "duration": 0.5, "pitch": "C4", "velocity": 78, "hand": "lh", "motif": "A" },
+        { "type": "note", "start": 8.5, "duration": 0.5, "pitch": "G4", "velocity": 84, "hand": "rh", "motif": "A" },
+        { "type": "note", "start": 9.0, "duration": 0.5, "pitch": "E4", "velocity": 82, "hand": "rh", "motif": "A" },
+        { "type": "note", "start": 9.5, "duration": 0.5, "pitch": "C4", "velocity": 80, "hand": "rh", "motif": "A (var)" },
+
+        { "type": "note", "start": 10.0, "duration": 2.0, "pitches": ["C3", "G3"], "velocity": 70, "hand": "lh" },
+        { "type": "note", "start": 10.0, "duration": 2.0, "pitches": ["C4", "E4", "G4", "C5"], "velocity": 76, "hand": "rh" }
+      ]
+    }
+  ]
+}
+```

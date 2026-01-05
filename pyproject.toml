@@ -13,6 +13,7 @@ authors = [{ name = "pianist contributors" }]
 dependencies = [
   "mido>=1.3.2",
   "pydantic>=2.6.0",
+  "json-repair>=0.30.0",
 ]
 
 [project.optional-dependencies]
