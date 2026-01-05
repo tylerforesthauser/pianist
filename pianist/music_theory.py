@@ -47,8 +47,8 @@ class Note:
     @classmethod
     def from_name(cls, name: str, octave: int, duration: float = 1.0, velocity: int = 64) -> 'Note':
         """Create a Note from note name (e.g., 'C', 'C#', 'Db') and octave."""
-        # Parse note name
-        name = name.upper().replace('♯', '#').replace('♭', 'B')
+        # Normalize note name: replace Unicode symbols and convert to uppercase
+        name = name.replace('♯', '#').replace('♭', 'b').upper()
         
         # Map note names to semitones
         note_map = {
