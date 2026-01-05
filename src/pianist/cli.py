@@ -17,9 +17,15 @@ except ImportError:
 
 def _read_text(path: Path | None) -> str:
     if path is None:
-        return sys.stdin.read()
+        text = sys.stdin.read()
+        if not text.strip():
+            raise ValueError("Input is empty (no content provided).")
+        return text
     try:
-        return path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8")
+        if not text.strip():
+            raise ValueError(f"Input file is empty: {path}")
+        return text
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Input file not found: {path}") from e
     except PermissionError as e:

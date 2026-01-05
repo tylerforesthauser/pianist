@@ -15,6 +15,8 @@ _FENCED_BLOCK_RE = re.compile(
 
 
 def _extract_first_json_object(text: str) -> str:
+    if not text.strip():
+        raise ValueError("Input is empty or contains only whitespace.")
     start = text.find("{")
     if start == -1:
         raise ValueError("No JSON object found (missing '{').")
@@ -82,6 +84,8 @@ def parse_composition_from_text(text: str) -> Composition:
     """
     Parse a Composition from raw model output (free-form text).
     """
+    if not text.strip():
+        raise ValueError("Input is empty or contains only whitespace.")
     candidate = _extract_candidate_json(text)
     data = _loads_lenient(candidate)
     return validate_composition_dict(data)
