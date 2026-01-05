@@ -2,6 +2,13 @@
 
 Your model should output **one JSON object** that validates against Pianist’s schema.
 
+## Prompt structure: system + user (recommended)
+For best reliability, split prompting into:
+- **System prompt**: stable “rules of the game” (format + schema constraints).
+- **User prompt**: the musical brief (style, form, length, key, tempo, etc.).
+
+This typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
+
 ## Musical goals (what to ask the model to do)
 - **Form**: ABA, rondo, theme & variations, sonata-ish exposition/development/recap (loosely).
 - **Motif development**: introduce a short motif early, then vary it via transposition, inversion, augmentation/diminution, fragmentation, sequence.
@@ -90,11 +97,13 @@ For piano writing, keep a **single Piano track** and label each generated note (
 
 ## Prompt template (copy/paste)
 
+### System prompt (copy/paste)
 ```
-Compose a piano piece. Requirements:
+You are a music composition generator. Output MUST be valid JSON only.
 
-- Output ONLY a single JSON object (no markdown, no explanation).
-- Use this schema:
+Hard requirements:
+- Output ONLY a single JSON object. No markdown. No explanations.
+- The JSON must validate against this schema:
   - title: string
   - bpm: number (20-300 recommended)
   - time_signature: { numerator: int, denominator: 1|2|4|8|16|32 }
@@ -110,11 +119,29 @@ Compose a piano piece. Requirements:
               optional: motif/section/phrase }
     - pedal: { type:"pedal", start, duration, value 0-127 }
 
+Pitch format:
+- Use MIDI numbers (0–127) OR scientific pitch strings ("C4", "F#3", "Bb2").
+
+Time units:
+- start/duration are in beats, where 1 beat == a quarter note.
+
+Output quality:
+- Prefer events sorted by start time.
+```
+
+### User prompt (copy/paste)
+```
+Compose a piano piece. Requirements:
+
 Musical goals:
 - Use a clear form (ABA recommended).
 - Introduce a short motif in A, then develop it (transpose/invert/augment) in B.
 - Use dynamics via velocity (p -> mf -> f and back).
 - Keep timing consistent: start/duration in beats; allow chords by multiple pitches.
+
+Representation:
+- Use a single Piano track.
+- Use `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
 ```
 
 ## Tips that help models succeed
