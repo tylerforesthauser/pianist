@@ -15,7 +15,7 @@ This typically improves **schema adherence** and reduces output drift compared t
 ### System Prompt
 
 ```
-You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. Output MUST be valid JSON only.
+You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. When the user provides a composition request (which may be a simple description or include specific parameters), interpret their intent and apply the compositional principles below to create a musically coherent piece. Output MUST be valid JSON only.
 
 Hard requirements:
 - Output ONLY a single JSON object. No markdown. No explanations. No fenced code blocks.
@@ -42,17 +42,41 @@ Pitch format:
 Time units:
 - start/duration are in beats, where 1 beat == a quarter note.
 
-Music theory and compositional principles (CRITICAL):
+Compositional approach:
+When interpreting the user's request, apply these principles to create musically coherent and well-structured compositions:
+
+Motivic development and form:
+- Introduce a short, memorable motif early in the piece, then develop it throughout using transposition, inversion, augmentation, diminution, fragmentation, and sequence.
+- Adhere to established formal principles (binary, ternary, sonata, rondo, theme and variations, etc.) as appropriate to the user's request.
+- Use clear phrase structure (typically 4, 8, or 16 beats) with antecedent-consequent relationships.
+- For longer works, plan the overall structure first, then fill in details section by section.
+- Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation") to organize the composition.
+- Create contrast between sections (keys, textures, moods, registers) and use transitions to connect them.
+- Create larger-scale coherence through motivic development and key relationships.
+
+Harmony and voice leading:
 - Functional harmony: Use proper chord progressions following tonal function (I, ii, iii, IV, V, vi, vii°). Establish clear tonic-dominant relationships. Use secondary dominants (V/V, V/vi, etc.) and borrowed chords (modal mixture) for color.
 - Voice leading: Maintain smooth, stepwise motion when possible. Avoid parallel fifths and octaves. Resolve leading tones upward (ti→do) and sevenths downward. Keep common tones between chords when possible.
 - Cadences: Use authentic cadences (V→I) at phrase endings, half cadences (ending on V) for continuation, plagal cadences (IV→I) for closure, and deceptive cadences (V→vi) for surprise.
 - Dissonance and resolution: Properly prepare and resolve dissonances (suspensions, appoggiaturas, passing tones). Use non-chord tones (passing, neighbor, escape, anticipation) to create melodic interest while maintaining harmonic clarity.
 - Harmonic rhythm: Vary chord change frequency—faster in active sections, slower in lyrical passages. Avoid changing chords on every beat unless creating specific effects.
 - Modulation: When modulating, use pivot chords, common-tone modulations, or direct modulations with proper preparation. Return to the home key for structural closure.
-- Counterpoint: When multiple voices are present, maintain independence while respecting harmonic function. Use contrary motion, avoid voice crossing, and maintain appropriate spacing between voices.
-- Form and structure: Adhere to established formal principles (binary, ternary, sonata, etc.). Use clear phrase structure (typically 4, 8, or 16 beats), with antecedent-consequent relationships. Create larger-scale coherence through motivic development and key relationships.
-- Texture: Balance melody and accompaniment. Left hand typically provides harmonic foundation (bass + chord tones), right hand carries melody. Vary texture between sections (homophonic, polyphonic, monophonic).
-- Register and spacing: Use appropriate spacing between hands (avoid excessive gaps or overlaps). Utilize the full range of the piano effectively, with clear bass and treble separation.
+
+Melody and counterpoint:
+- Create melodic lines with clear direction and contour. Use non-chord tones (passing, neighbor, suspension) for interest while maintaining harmonic clarity.
+- When multiple voices are present, maintain independence while respecting harmonic function. Use contrary motion, avoid voice crossing, and maintain appropriate spacing between voices.
+
+Texture and voicing:
+- Balance melody and accompaniment. Left hand typically provides harmonic foundation (bass + chord tones), right hand carries melody. Vary texture between sections (homophonic, polyphonic, monophonic).
+- Use appropriate spacing between hands (avoid excessive gaps or overlaps). Utilize the full range of the piano effectively, with clear bass and treble separation.
+- Use a single Piano track with `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
+
+Dynamics and expression:
+- Use dynamics via velocity (p → mf → f and back) to shape phrases and larger sections.
+- Build to climaxes: use dynamics to shape larger arcs, create tension and release across the entire work.
+
+Rhythm:
+- Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest where appropriate.
 
 Output quality:
 - Prefer events sorted by start time (not required, but reduces mistakes).
@@ -64,44 +88,102 @@ Output quality:
 
 ### User Prompt Template
 
-**Note:** Replace all `{{VARIABLE}}` placeholders with your specific values. The first section below requires customization; other sections are guidelines you can adjust as needed.
+**Note:** Replace `{{VARIABLE}}` placeholders with your specific values. You can provide a simple description of what you want, and the model will apply appropriate compositional principles.
 
 ```
-Compose a piano piece. Requirements:
+Compose a piano piece:
 
-=== COMPOSITION SPECIFICATIONS (REQUIRED - CUSTOMIZE THESE) ===
-- Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
+Title: {{"Morning Sketch"}} or {{"Sonata in C Minor"}}
+
+[OPTIONAL SPECIFICATIONS - include only what you want to specify]
 - Form: {{binary}} | {{ternary/ABA}} | {{rondo}} | {{sonata}} | {{theme and variations}} | {{free-form}}
-- Length: {{~64 beats}} or {{~200 beats}} (Typical ranges: binary/ternary 32-128, sonata 150-300+, multi-movement 200-500+)
+- Length: {{~64 beats}} or {{~200 beats}} (or describe: "short piece", "extended work", etc.)
 - Key: {{"C"}} | {{"Gm"}} | {{"F#"}} | {{"Bb"}}
-- Tempo: {{84}} | {{120}} | {{160}} (BPM)
+- Tempo: {{84}} | {{120}} | {{160}} (BPM, or describe: "slow", "moderate", "fast")
 - Time signature: {{4/4}} | {{3/4}} | {{6/8}}
-- Style/Character: {{lyrical}} | {{dramatic}} | {{playful}} | {{contemplative}}
+- Style/Character: {{lyrical}} | {{dramatic}} | {{playful}} | {{contemplative}} | {{energetic}} | [your description]
 
-=== MUSICAL GOALS ===
-- Introduce a short motif early, then develop it throughout (transpose, invert, augment, diminish, fragment, sequence).
-- Use dynamics via velocity (p → mf → f and back) to shape phrases and larger sections.
-- Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation").
-- Create contrast between sections (keys, textures, moods, registers) and use transitions to connect them.
-- For longer works, plan the overall structure first, then fill in details section by section.
-- Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest.
-
-=== HARMONY AND VOICE LEADING ===
-- Establish clear tonic-dominant relationships and use proper cadences (authentic V→I, half cadences ending on V, plagal IV→I, deceptive V→vi).
-- Maintain smooth voice leading: prefer stepwise motion, resolve leading tones and chordal sevenths properly, avoid parallel fifths/octaves.
-- Vary harmonic rhythm appropriately: faster changes in active sections, slower in lyrical passages.
-- When modulating, use pivot chords or prepare modulations clearly; return to home key for structural closure.
-
-=== MELODY AND COUNTERPOINT ===
-- Create melodic lines with clear direction and contour. Use non-chord tones (passing, neighbor, suspension) for interest while maintaining harmonic clarity.
-- If using multiple voices, maintain independence with contrary motion where appropriate, proper spacing, and avoid voice crossing.
-
-=== TEXTURE AND VOICING ===
-- Left hand: provide harmonic foundation (bass line + chord tones in appropriate register).
-- Right hand: carry melody with supporting harmony when needed.
-- Balance melody and accompaniment; vary texture between sections.
-- Use a single Piano track with `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
+[DESCRIPTION - describe what you want in natural language]
+{{A gentle, flowing piece with a memorable melody that develops throughout.}}
+or
+{{A dramatic sonata with contrasting themes and a development section that explores different keys.}}
+or
+{{A short, playful waltz in a major key with light, dancing rhythms.}}
 ```
+
+**Example user prompts:**
+
+```
+Compose a piano piece:
+
+Title: "Echoes of Rain"
+Form: sonata
+Length: ~250 beats
+Key: C minor
+Tempo: 84
+Time signature: 4/4
+Style/Character: contemplative, melancholic
+
+A reflective sonata that begins quietly with a descending motif, builds to an emotional climax in the development, and returns to the opening material with greater depth.
+```
+
+```
+Compose a piano piece:
+
+Title: "Spring Dance"
+Form: ternary
+Key: G major
+Tempo: 120
+Style/Character: playful, light
+
+A cheerful piece with a bouncy main theme, a contrasting middle section, and a return with added ornamentation.
+```
+
+### Tips for Choosing Parameters
+
+#### Form
+- **binary**: Simple two-section structure (A-B). Good for short pieces (32-64 beats). The B section typically contrasts with A and may modulate.
+- **ternary/ABA**: Three-part form with a return. Classic structure for character pieces (48-128 beats). The middle section provides contrast.
+- **rondo**: Recurring main theme (A) alternates with contrasting episodes (B, C). Good for lively, dance-like pieces. Patterns: ABACA (5-part) or ABACABA (7-part).
+- **sonata**: Large-scale form (150-300+ beats) with exposition, development, and recapitulation. Best for dramatic, substantial works with thematic development.
+- **theme and variations**: A theme followed by multiple variations. Great for exploring different textures, moods, and techniques. Can be any length.
+- **free-form**: No strict formal structure. Use for programmatic pieces, improvisatory styles, or when you want maximum flexibility.
+
+#### Key
+- **Major keys** (C, G, D, F, Bb, etc.): Generally brighter, more optimistic, or energetic. Good for: joyful, triumphant, playful, or serene pieces.
+- **Minor keys** (Am, Dm, Gm, Cm, etc.): Generally darker, more emotional, or introspective. Good for: melancholic, dramatic, contemplative, or passionate pieces.
+- **Common choices**: C major (simple, bright), G major (warm), D major (brilliant), F major (gentle), A minor (expressive), D minor (dramatic), C minor (tragic, powerful).
+- **Sharps/flats**: More sharps (G, D, A, E) tend to sound brighter; more flats (F, Bb, Eb) tend to sound warmer or darker.
+- **Tip**: You can also just describe the mood you want (e.g., "bright and cheerful" or "dark and mysterious") and let the model choose an appropriate key.
+
+#### Tempo (BPM)
+- **Very slow (40-60)**: Grave, largo. For solemn, meditative, or deeply emotional pieces.
+- **Slow (60-80)**: Adagio, andante. For lyrical, contemplative, or expressive pieces.
+- **Moderate (80-100)**: Moderato. Balanced, comfortable pace. Good default for many styles.
+- **Moderately fast (100-120)**: Allegretto. Light, flowing, or gently energetic.
+- **Fast (120-160)**: Allegro. Energetic, exciting, or dance-like.
+- **Very fast (160+)**: Presto, vivace. Brilliant, virtuosic, or intensely energetic.
+- **Tip**: You can also use descriptive terms like "slow", "moderate", "fast", "lively", or "relaxed" instead of specific BPM values.
+
+#### Time Signature
+- **4/4 (common time)**: Most versatile. Natural, balanced feel. Good for most styles.
+- **3/4 (waltz time)**: Triple meter with a waltz-like feel. Good for: waltzes, lyrical pieces, or pieces with a gentle, flowing character.
+- **6/8 (compound duple)**: Two beats per measure, each divided into three. Good for: flowing, dance-like pieces, or pieces with a lilting quality.
+- **2/4**: Two beats per measure. Often feels more direct or march-like.
+- **3/8**: Similar to 3/4 but lighter, faster feel.
+- **Tip**: If unsure, 4/4 is a safe default. For waltzes or dance-like pieces, use 3/4 or 6/8.
+
+#### Style/Character
+- **lyrical**: Song-like, melodic, expressive. Focus on beautiful melodies.
+- **dramatic**: Intense, emotional, with strong contrasts and dynamic range.
+- **playful**: Light, cheerful, with bouncy rhythms and bright harmonies.
+- **contemplative**: Thoughtful, introspective, often slower with rich harmonies.
+- **energetic**: Fast, active, with driving rhythms and bright character.
+- **melancholic**: Sad, wistful, often in minor keys with expressive melodies.
+- **majestic**: Grand, noble, with full textures and strong presence.
+- **delicate**: Light, refined, with soft dynamics and careful voicing.
+- **passionate**: Intense, emotional, with strong dynamics and expressive lines.
+- **Tip**: You can combine multiple descriptors (e.g., "playful and energetic" or "contemplative and melancholic") or use your own words to describe the mood you want.
 
 ## Schema Reference
 
