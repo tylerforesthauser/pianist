@@ -28,6 +28,92 @@ Render a MIDI file from raw model output (supports fenced JSON code blocks and m
 ./pianist render --in examples/model_output.txt --out out.mid
 ```
 
+### Gemini-connected mode (optional)
+
+By default, Pianist is file/stdin-driven: you can paste model output into a file and run `render`.
+
+Optionally, you can have the CLI **call Google Gemini directly** for iteration/generation workflows.
+
+- Install the optional Gemini dependency:
+
+```bash
+python3 -m pip install -e ".[gemini]"
+```
+
+- (Optional) Install python-dotenv for `.env` file support:
+
+```bash
+python3 -m pip install python-dotenv
+# or install both at once:
+python3 -m pip install -e ".[gemini,dotenv]"
+```
+
+- Configure your API key using one of these methods:
+
+**Option 1: .env file (Recommended for local development)**
+```bash
+# Install python-dotenv (optional but recommended)
+python3 -m pip install python-dotenv
+
+# Copy the example file and add your key
+cp .env.example .env
+# Edit .env and uncomment/add your API key:
+# GEMINI_API_KEY=your_key_here
+```
+
+**Option 2: Environment variable (Recommended for CI/CD)**
+```bash
+export GEMINI_API_KEY="YOUR_KEY"
+# or
+export GOOGLE_API_KEY="YOUR_KEY"
+```
+
+**Note**: If both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are set, `GEMINI_API_KEY` takes precedence. Environment variables override values from `.env` files.
+
+Iterate (modify an existing seed JSON) with Gemini, saving the updated JSON, saving the raw Gemini response, and rendering to MIDI in one shot:
+
+```bash
+./pianist iterate --in seed.json --gemini --instructions "Make it more lyrical and add an 8-beat coda." \
+  --out seed_updated.json --render --out-midi out.mid
+```
+
+If you provide `--out` but omit `--raw-out`, Pianist will automatically save the raw Gemini response next to your JSON as `seed_updated.json.gemini.txt`.
+
+Analyze a reference MIDI and have Gemini generate a new inspired composition, then render:
+
+```bash
+./pianist analyze --in existing.mid --gemini --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
+  --out composition.json --render --out-midi composition.mid
+```
+
+**Model Selection**: Both `iterate` and `analyze` commands support `--gemini-model` to choose a specific Gemini model. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
+
+```bash
+./pianist iterate --in seed.json --gemini --gemini-model gemini-1.5-pro \
+  --instructions "Make it more complex." --out updated.json
+```
+
+### API Key Management
+
+For detailed information on managing API keys, including `.env` file support and best practices, see [docs/API_KEY_MANAGEMENT.md](docs/API_KEY_MANAGEMENT.md).
+
+### Testing
+
+Run the test suite:
+
+```bash
+# Run all unit tests (excludes integration tests)
+pytest -m "not integration"
+
+# Run only integration tests (requires API key)
+pytest -m integration
+
+# Run all tests
+pytest
+```
+
+For more information on integration testing best practices, see [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md).
+
 ### Prompt sync (keeping `AI_PROMPTING_GUIDE.md` up to date)
 
 Canonical system prompt text lives in `src/pianist/prompts/*.txt` and is synced into `AI_PROMPTING_GUIDE.md` between markers.
