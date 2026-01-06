@@ -6,8 +6,8 @@ This document explains how to generate OpenAPI/JSON Schema files for use with AI
 
 The schema generation creates two schema formats from the Pydantic models:
 
-1. **OpenAPI Schema** (`schema.openapi.json`): Full OpenAPI 3.1.0 specification for general use
-2. **Gemini-compatible Schema** (`schema.gemini.json`): JSON Schema optimized for Google Gemini's structured output UI (all references inlined)
+1. **OpenAPI Schema** (`schemas/schema.openapi.json`): Full OpenAPI 3.1.0 specification for general use
+2. **Gemini-compatible Schema** (`schemas/schema.gemini.json`): JSON Schema optimized for Google Gemini's structured output UI (all references inlined)
 
 ## Generating the Schemas
 
@@ -46,8 +46,8 @@ python3 -m pianist generate-schema
 **Note:** Use `./pianist` (recommended) or `python3 -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
 By default, this generates both:
-- `schema.openapi.json` - Full OpenAPI specification
-- `schema.gemini.json` - Gemini-compatible schema (inlined, ready for UI)
+- `schemas/schema.openapi.json` - Full OpenAPI specification
+- `schemas/schema.gemini.json` - Gemini-compatible schema (inlined, ready for UI)
 
 You can also generate individual formats:
 
@@ -80,7 +80,7 @@ import json
 client = OpenAI()
 
 # Load the OpenAPI schema and extract the Composition schema
-with open("schema.openapi.json", "r") as f:
+with open("schemas/schema.openapi.json", "r") as f:
     openapi_schema = json.load(f)
     composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
@@ -113,7 +113,7 @@ import json
 client = Anthropic()
 
 # Load the OpenAPI schema and extract the Composition schema
-with open("schema.openapi.json", "r") as f:
+with open("schemas/schema.openapi.json", "r") as f:
     openapi_schema = json.load(f)
     composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
@@ -136,7 +136,7 @@ message = client.messages.create(
 
 ### Google Gemini (Structured Outputs)
 
-**Important**: Use the **Gemini-compatible schema** (`schema.gemini.json`) for Gemini. This schema is optimized for Gemini's UI and has all `$ref` references inlined.
+**Important**: Use the **Gemini-compatible schema** (`schemas/schema.gemini.json`) for Gemini. This schema is optimized for Gemini's UI and has all `$ref` references inlined.
 
 The Gemini-compatible schema:
 - Removes OpenAPI-specific features (`discriminator`, `default`, `title`, `const`)
@@ -155,7 +155,7 @@ import json
 import google.generativeai as genai
 
 # Load the Gemini-compatible schema
-with open("schema.gemini.json", "r") as f:
+with open("schemas/schema.gemini.json", "r") as f:
     schema = json.load(f)
 
 # Configure the model
@@ -173,7 +173,7 @@ response = model.generate_content(
 )
 ```
 
-For Gemini's UI, paste the contents of `schema.gemini.json` directly into the schema field.
+For Gemini's UI, paste the contents of `schemas/schema.gemini.json` directly into the schema field.
 
 ### Other Models
 
@@ -182,7 +182,7 @@ Most AI models that support structured output accept JSON Schema. Extract the Co
 ```python
 import json
 
-with open("schema.openapi.json", "r") as f:
+with open("schemas/schema.openapi.json", "r") as f:
     openapi_schema = json.load(f)
     composition_schema = openapi_schema["components"]["schemas"]["Composition"]
 
@@ -219,4 +219,4 @@ Whenever you modify the Pydantic models in `schema.py`, regenerate the schema fi
 ./pianist generate-schema
 ```
 
-This will regenerate both `schema.openapi.json` and `schema.gemini.json`.
+This will regenerate both `schemas/schema.openapi.json` and `schemas/schema.gemini.json`.

@@ -59,7 +59,8 @@ Keep your **System prompt** mostly the same, but change your **User prompt** to:
 Tip: Pianist can generate a ready-to-paste iteration prompt file:
 
 ```bash
-./pianist iterate --in "seed.json" --prompt-out "iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
+mkdir -p analysis
+./pianist iterate --in "seed.json" --prompt-out "analysis/iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
 ```
 
 Then paste that prompt into your model and render the result:
@@ -76,11 +77,12 @@ Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file an
 
 ```bash
 # Generate a prompt for a NEW composition (recommended)
-./pianist analyze --in "existing.mid" --format prompt --prompt-out "new_piece_prompt.txt" \
+mkdir -p analysis
+./pianist analyze --in "existing.mid" --format prompt --prompt-out "analysis/new_piece_prompt.txt" \
   --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
 
 # Optional: export structured analysis JSON (useful for building tools/UIs)
-./pianist analyze --in "existing.mid" --format json --out "analysis.json"
+./pianist analyze --in "existing.mid" --format json --out "analysis/analysis.json"
 ```
 
 Workflow:

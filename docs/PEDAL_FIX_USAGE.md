@@ -25,13 +25,13 @@ The fix function converts problematic patterns:
 
 ```bash
 # Fix a single file (overwrites input)
-./pianist fix-pedal --in "output/Nocturne in Eb Major.json"
+./pianist fix-pedal --in "composition.json"
 
 # Fix and save to new file
-./pianist fix-pedal --in "output/Nocturne in Eb Major.json" --out "output/Nocturne in Eb Major (fixed).json"
+./pianist fix-pedal --in "composition.json" --out "composition_fixed.json"
 
 # Fix and also render to MIDI
-./pianist fix-pedal --in "output/Nocturne in Eb Major.json" --out "output/Nocturne in Eb Major (fixed).json" --render --out-midi "output/Nocturne in Eb Major (fixed).mid"
+./pianist fix-pedal --in "composition.json" --out "composition_fixed.json" --render --out-midi "composition_fixed.mid"
 ```
 
 ### Python API
@@ -64,7 +64,8 @@ from pianist.parser import parse_composition_from_text
 from pianist.pedal_fix import fix_pedal_patterns
 from pianist.iterate import composition_to_canonical_json
 
-output_dir = Path("output")
+output_dir = Path("analysis")
+output_dir.mkdir(parents=True, exist_ok=True)
 for json_file in output_dir.glob("*.json"):
     comp = parse_composition_from_text(json_file.read_text())
     fixed = fix_pedal_patterns(comp)

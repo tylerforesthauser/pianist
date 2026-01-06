@@ -215,3 +215,13 @@ ref/
 
 # Output data
 output/
+
+# Common generated artifacts created by docs/examples
+analysis/
+analysis.json
+ref_metrics.json
+ref_quick_analysis.json
+seed.json
+seed-*.json
+iterate_prompt.txt
+new_piece_prompt.txt

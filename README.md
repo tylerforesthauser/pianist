@@ -30,14 +30,19 @@ Render a MIDI file from raw model output (supports fenced JSON code blocks and m
 
 ### Prompt sync (keeping `AI_PROMPTING_GUIDE.md` up to date)
 
-Canonical system prompt text lives in `src/pianist/prompts/*.txt` and is synced into `AI_PROMPTING_GUIDE.md`.
+Canonical system prompt text lives in `src/pianist/prompts/*.txt` and is synced into `AI_PROMPTING_GUIDE.md` between markers.
 
 ```bash
 make sync-prompts
 make check-prompts
 ```
 
-See `PROMPT_SYNC.md` for details.
+**Workflow:**
+- Edit prompt text in `src/pianist/prompts/*.txt`
+- Run `make sync-prompts` to update the embedded prompts in `AI_PROMPTING_GUIDE.md`
+- Run `make check-prompts` to verify there is no drift
+
+**CI:** GitHub Actions runs `python3 scripts/sync_prompts_to_guide.py --check` on PRs to prevent drift.
 
 Iterate on an existing work by importing either a Pianist JSON (or raw LLM output text) **or a MIDI file**, emitting a clean JSON seed you can tweak and re-render:
 
@@ -49,7 +54,8 @@ Iterate on an existing work by importing either a Pianist JSON (or raw LLM outpu
 ./pianist iterate --in seed.json --transpose 2 --out seed_transposed.json
 
 # Generate a ready-to-paste LLM prompt (includes the seed JSON)
-./pianist iterate --in seed.json --prompt-out iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
+mkdir -p analysis
+./pianist iterate --in seed.json --prompt-out analysis/iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
 
 # Then render the updated JSON back to MIDI
 ./pianist render --in seed_transposed.json --out out.mid
@@ -59,14 +65,15 @@ Analyze an existing MIDI file to extract prompt-friendly musical constraints (te
 
 ```bash
 # Generate a ready-to-paste prompt for a NEW composition
-./pianist analyze --in existing.mid --format prompt --prompt-out new_piece_prompt.txt \
+mkdir -p analysis
+./pianist analyze --in existing.mid --format prompt --prompt-out analysis/new_piece_prompt.txt \
   --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
 
 # Or export structured analysis JSON (for building UIs/tools)
-./pianist analyze --in existing.mid --format json --out analysis.json
+./pianist analyze --in existing.mid --format json --out analysis/analysis.json
 
 # Or both
-./pianist analyze --in existing.mid --format both --out analysis.json --prompt-out new_piece_prompt.txt
+./pianist analyze --in existing.mid --format both --out analysis/analysis.json --prompt-out analysis/new_piece_prompt.txt
 ```
 
 Fix incorrect sustain pedal patterns in existing compositions:
@@ -79,7 +86,7 @@ Fix incorrect sustain pedal patterns in existing compositions:
 ./pianist fix-pedal --in "composition.json" --out "composition_fixed.json" --render --out-midi "composition_fixed.mid"
 ```
 
-See `PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
+See `docs/PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
 **Alternative:** You can also use the Python module directly:
 
 ```bash
@@ -126,10 +133,10 @@ python3 -m pianist generate-schema
 ```
 
 This generates:
-- `schema.json` - JSON Schema (most commonly used with AI models)
-- `schema.openapi.json` - Full OpenAPI 3.1.0 specification
+- `schemas/schema.openapi.json` - Full OpenAPI 3.1.0 specification
+- `schemas/schema.gemini.json` - Gemini-compatible schema (inlined, ready for UI)
 
-See `SCHEMA_GENERATION.md` for detailed usage instructions with various AI models (OpenAI, Anthropic, etc.).
+See `docs/SCHEMA_GENERATION.md` for detailed usage instructions with various AI models (OpenAI, Anthropic, etc.).
 
 ## Prompting
 
@@ -140,3 +147,48 @@ For piano output, Pianist supports a **single Piano track** where each note (or 
 Pianist supports tempo changes within compositions, including instant tempo changes and gradual tempo changes (ritardando/accelerando) via `TempoEvent` objects.
 
 The prompting guide also recommends using a **system prompt** (format/schema invariants) plus a **user prompt** (musical brief) for better schema adherence.
+
+## Dataset analysis (prompt engineering)
+
+Generated analysis outputs should go to the (gitignored) `analysis/` directory:
+
+```bash
+mkdir -p analysis
+```
+
+Quick analysis (sanity check):
+
+```bash
+python3 scripts/quick_analysis.py ref --output analysis/ref_quick_analysis.json
+```
+
+Full dataset analysis:
+
+```bash
+python3 scripts/analyze_dataset.py ref --output analysis/ref_metrics.json --verbose
+```
+
+How to use the results:
+- **Gaps / continuity**: set maximum allowed gaps between notes and between sections.
+- **Transitions**: set typical transition lengths and prevent “silence transitions”.
+- **Motifs / phrases**: treat as experimental unless you’ve validated the detectors on a few pieces.
+
+Updating the system prompt from analysis:
+- Edit `src/pianist/prompts/system_prompt_full.txt` / `src/pianist/prompts/system_prompt_short.txt`
+- Run `make sync-prompts` and `make check-prompts`
+
+Dataset curation prompt (short version):
+
+```
+Generate a curated list of 40-50 professional piano compositions for analyzing composition patterns. Include:
+
+- Diversity: short (32-64 beats), medium (64-200 beats), long (200+ beats) pieces
+- Various forms: binary, ternary, rondo, sonata, theme & variations, through-composed
+- Multiple periods: Baroque, Classical, Romantic, Impressionist, Modern
+- Mix of popular classics and lesser-known but musically significant works
+- Clear formal structure with motivic development
+
+For each piece, provide: composer, title, length category, form, period, and why it's relevant.
+
+Prioritize well-transcribed MIDI files that are musically coherent and representative of their style.
+```

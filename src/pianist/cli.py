@@ -346,7 +346,9 @@ def main(argv: list[str] | None = None) -> int:
             import json
             from pianist.generate_openapi_schema import generate_gemini_schema
 
-            output_dir = args.output_dir or Path(__file__).parent.parent.parent
+            project_root = Path(__file__).parent.parent.parent
+            output_dir = args.output_dir or (project_root / "schemas")
+            output_dir.mkdir(parents=True, exist_ok=True)
 
             if args.format in ("both", "openapi"):
                 openapi_schema = generate_openapi_schema()

@@ -209,19 +209,21 @@ def generate_gemini_schema() -> dict:
 def main() -> None:
     """Generate and save both OpenAPI and Gemini-compatible schemas."""
     project_root = Path(__file__).parent.parent.parent
+    schemas_dir = project_root / "schemas"
+    schemas_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate schemas
     openapi_schema = generate_openapi_schema()
     gemini_schema = generate_gemini_schema()
     
     # Save OpenAPI schema
-    openapi_path = project_root / "schema.openapi.json"
+    openapi_path = schemas_dir / "schema.openapi.json"
     with open(openapi_path, "w") as f:
         json.dump(openapi_schema, f, indent=2)
     print(f"Generated OpenAPI schema: {openapi_path}")
     
     # Save Gemini-compatible schema
-    gemini_path = project_root / "schema.gemini.json"
+    gemini_path = schemas_dir / "schema.gemini.json"
     with open(gemini_path, "w") as f:
         json.dump(gemini_schema, f, indent=2)
     print(f"Generated Gemini-compatible schema: {gemini_path}")
