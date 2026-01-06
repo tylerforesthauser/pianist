@@ -812,19 +812,39 @@ Time units:
 
 Time continuity (CRITICAL):
 - Fill the ENTIRE requested length with continuous music. NO large gaps or silences between sections.
-- Maximum gap between events: 2 beats (and only between phrases, never between sections).
+- Maximum gap between notes: 1 beat (professional compositions average 0.01 beats; 1 beat is generous but ensures continuity).
+- Maximum gap at section boundaries: 2 beats (95th percentile from analysis of 50 professional compositions).
+- Mean gap between notes should be < 0.1 beats (professional average: 0.01 beats).
 - Use musical transitions (connecting passages, cadential extensions, modulatory bridges) between sections—NEVER empty space.
 - The last event's (start + duration) MUST be within 5 beats of the requested length.
 - Plan section lengths proportionally (e.g., 250-beat sonata: exposition 60-80, development 80-100, recapitulation 60-80, transitions ~20).
 - If requested length is 250 beats, generate approximately 250 beats of actual music, not 200 beats with 50 beats of silence.
+- Before outputting, verify: no gap between consecutive notes exceeds 1 beat; no gap at section boundaries exceeds 2 beats.
+
+Section transitions (CRITICAL):
+- Sections must connect seamlessly with MUSICAL MATERIAL, never with silence or empty space.
+- Transitions are connecting musical passages (not silence) that bridge sections.
+- Typical transition length: 4-9 beats (25th-75th percentile from analysis of professional compositions).
+- Maximum transition length: 17 beats (observed maximum in professional compositions).
+- Transition techniques:
+  * Use sequences: repeat a motif from the previous section, modulating to the new key
+  * Use scale passages or arpeggios to bridge sections smoothly
+  * Extend the cadence of the previous section with additional material that leads into the next section
+  * Fragment the main motif and use it as a bridge
+  * Maintain harmonic motion—avoid static harmony at section boundaries
+  * Keep rhythmic activity—avoid long sustained notes at section boundaries unless musically justified (e.g., dramatic pause before a new section)
+- Overlap material when possible: if a section ends with a long-held note, begin the next section's material before the previous note ends, or add connecting material.
+- Before outputting, verify: no section boundary has more than 2 beats of silence; the last event of one section and the first event of the next section should be connected by musical material.
 
 Compositional approach:
 
 Motivic development and thematic coherence (CRITICAL):
-- Introduce 1-2 short, memorable motifs early in the piece. These motifs MUST be developed and referenced throughout the entire composition.
+- Introduce 1-2 short (2-8 notes), memorable, distinctive motifs in the first 8-16 beats. These motifs MUST be developed and referenced throughout the entire composition.
 - Every new theme or section should relate to the original motifs through development techniques (transposition, inversion, augmentation, diminution, fragmentation, sequence, rhythmic variation).
 - Avoid introducing completely unrelated themes. If a contrasting section is needed, derive it from the original motifs or create clear motivic connections.
 - The composition must sound like a SINGLE COHESIVE WORK, not a collection of unrelated ideas. Maintain thematic relationships throughout.
+- Motifs should appear frequently throughout the composition. Motifs should not repeat in identical form more than 2-3 times consecutively—always vary at least one element (rhythm, pitch via transposition, texture, or harmony).
+- Typical spacing between motif appearances: 1-16 beats. Space out exact repetitions: at least 4-8 beats between identical appearances.
 - Adhere to established formal principles (binary, ternary, sonata, rondo, theme and variations, etc.) as appropriate.
 - Use clear, regular phrase structure (typically 4, 8, or 16 beats) with antecedent-consequent relationships. Maintain consistent phrase lengths within sections.
 - For longer works, plan structure first, then fill in details, ensuring motifs are developed across all sections.
@@ -882,8 +902,10 @@ Output quality:
 - Maintain consistent key centers within sections unless intentionally modulating.
 - Use the `section` annotation field liberally to mark formal divisions.
 - CRITICAL: Fill the entire requested length with continuous music. Last event's (start + duration) must be within 5 beats of requested length.
+- CRITICAL: Maximum gap between notes: 1 beat. Maximum gap at section boundaries: 2 beats. Mean gap should be < 0.1 beats.
 - CRITICAL: Maintain thematic coherence—all sections must relate through motivic development, not unrelated ideas.
 - CRITICAL: Use regular phrase structure (4, 8, or 16 beats) with consistent lengths within sections. Avoid erratic, inconsistent phrase lengths.
+- CRITICAL: Sections must connect with musical transitions (4-9 beats typical), never with silence or empty space.
 ```
 
 ## Schema Reference
