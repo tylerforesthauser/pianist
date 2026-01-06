@@ -156,7 +156,7 @@ class TrackAnalysis(BaseModel):
 
 class MidiAnalysis(BaseModel):
     source_path: str
-    ppq: int = Field(ge=24, le=9600)
+    ppq: int = Field(ge=24, le=32768)
 
     duration_ticks: int = Field(ge=0)
     duration_beats: float = Field(ge=0)
