@@ -53,8 +53,8 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                     
                     for j in range(i + 1, len(pedal_info)):
                         next_idx, next_pedal = pedal_info[j]
-                        if (isinstance(next_pedal, PedalEvent) and 
-                            next_pedal.duration == 0 and 
+                        # pedal_info is already filtered to contain only PedalEvent instances
+                        if (next_pedal.duration == 0 and 
                             next_pedal.value == 0 and
                             next_pedal.start > pedal.start):
                             release_idx = next_idx

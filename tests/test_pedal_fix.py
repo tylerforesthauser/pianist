@@ -1,6 +1,7 @@
 """Tests for pedal pattern fixing functionality."""
 
 from __future__ import annotations
+import warnings
 
 from pianist.pedal_fix import fix_pedal_patterns
 from pianist.schema import PedalEvent, validate_composition_dict
@@ -8,21 +9,23 @@ from pianist.schema import PedalEvent, validate_composition_dict
 
 def test_fix_pedal_press_release_pair() -> None:
     """Test that press-release pairs are merged into single duration>0 event."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                        {"type": "pedal", "start": 4, "duration": 0, "value": 0},
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                            {"type": "pedal", "start": 4, "duration": 0, "value": 0},
+                        ]
+                    }
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -35,21 +38,23 @@ def test_fix_pedal_press_release_pair() -> None:
 
 def test_fix_orphaned_press() -> None:
     """Test that orphaned presses are extended to reasonable default."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "note", "start": 0, "duration": 8, "pitches": [60]},
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "note", "start": 0, "duration": 8, "pitches": [60]},
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        ]
+                    }
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -88,32 +93,34 @@ def test_fix_preserves_correct_patterns() -> None:
 
 def test_fix_preserves_annotations() -> None:
     """Test that section/phrase annotations are preserved when merging."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {
-                            "type": "pedal",
-                            "start": 0,
-                            "duration": 0,
-                            "value": 127,
-                            "section": "A",
-                        },
-                        {
-                            "type": "pedal",
-                            "start": 4,
-                            "duration": 0,
-                            "value": 0,
-                        },
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {
+                                "type": "pedal",
+                                "start": 0,
+                                "duration": 0,
+                                "value": 127,
+                                "section": "A",
+                            },
+                            {
+                                "type": "pedal",
+                                "start": 4,
+                                "duration": 0,
+                                "value": 0,
+                            },
+                        ]
+                    }
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -124,27 +131,29 @@ def test_fix_preserves_annotations() -> None:
 
 def test_fix_handles_multiple_tracks() -> None:
     """Test that fix works correctly with multiple tracks."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                        {"type": "pedal", "start": 4, "duration": 0, "value": 0},
-                    ]
-                },
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                        {"type": "pedal", "start": 2, "duration": 0, "value": 0},
-                    ]
-                },
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                            {"type": "pedal", "start": 4, "duration": 0, "value": 0},
+                        ]
+                    },
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                            {"type": "pedal", "start": 2, "duration": 0, "value": 0},
+                        ]
+                    },
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -159,21 +168,23 @@ def test_fix_handles_multiple_tracks() -> None:
 
 def test_fix_extends_to_next_pedal() -> None:
     """Test that orphaned presses extend to next pedal event."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                        {"type": "pedal", "start": 8, "duration": 4, "value": 127},
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                            {"type": "pedal", "start": 8, "duration": 4, "value": 127},
+                        ]
+                    }
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -187,21 +198,23 @@ def test_fix_extends_to_next_pedal() -> None:
 
 def test_fix_handles_same_start_time() -> None:
     """Test that press and release with same start time are skipped."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 0},
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 0},
+                        ]
+                    }
+                ],
+            }
+        )
     
     fixed = fix_pedal_patterns(comp)
     
@@ -212,20 +225,22 @@ def test_fix_handles_same_start_time() -> None:
 
 def test_fix_handles_empty_events() -> None:
     """Test that fix handles tracks with no events with duration attribute."""
-    comp = validate_composition_dict(
-        {
-            "title": "Test",
-            "bpm": 120,
-            "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [
-                {
-                    "events": [
-                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
-                    ]
-                }
-            ],
-        }
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Suppress validator warnings
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        ]
+                    }
+                ],
+            }
+        )
     
     # Should not raise ValueError even with no events with duration
     fixed = fix_pedal_patterns(comp)

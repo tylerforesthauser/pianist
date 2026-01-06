@@ -290,13 +290,16 @@ class PedalEvent(BaseModel):
         """
         if self.duration == 0 and self.value == 127:
             import warnings
+            # stacklevel=2 points to the caller of PedalEvent constructor/validator
+            # This is approximate and may vary based on call stack depth, but provides
+            # reasonable indication of where the problematic PedalEvent was created.
             warnings.warn(
                 f"PedalEvent at start={self.start} has duration=0 with value=127. "
                 "This creates an instant press with no automatic release. "
                 "For sustained pedaling, use duration>0 instead. "
                 "The renderer will automatically create a press at start and release at start+duration.",
                 UserWarning,
-                stacklevel=3
+                stacklevel=2
             )
         return self
 
