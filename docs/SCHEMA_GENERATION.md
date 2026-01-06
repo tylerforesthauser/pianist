@@ -148,32 +148,35 @@ The Gemini-compatible schema:
 
 **Note on discriminated unions**: The schema replaces `oneOf` for event types with a generic object type containing common properties (`type` and `start`). While this loses schema-level type discrimination, validation still occurs in the Python code to ensure only valid event types (NoteEvent, PedalEvent, TempoEvent) are accepted.
 
-Example usage with Gemini:
-
-```python
-import json
-import google.generativeai as genai
-
-# Load the Gemini-compatible schema
-with open("schemas/schema.gemini.json", "r") as f:
-    schema = json.load(f)
-
-# Configure the model
-genai.configure(api_key="YOUR_API_KEY")
-model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash-exp",
-    generation_config={
-        "response_mime_type": "application/json",
-        "response_schema": schema,
-    }
-)
-
-response = model.generate_content(
-    "Create a piano piece in C major, 64 beats long."
-)
-```
+#### Gemini UI usage
 
 For Gemini's UI, paste the contents of `schemas/schema.gemini.json` directly into the schema field.
+
+#### Programmatic usage (Google GenAI SDK)
+
+The current Gemini docs recommend the **Google GenAI SDK** (`google-genai`) and the `GEMINI_API_KEY` environment variable. See the official quickstart: [Gemini API quickstart](https://ai.google.dev/gemini-api/docs/quickstart).
+
+Pianist's CLI uses a simple, robust approach for programmatic calls:
+- Send a prompt that demands **JSON-only** output (Pianist's system prompt already enforces this)
+- Save the raw response to disk
+- Parse + validate via Pydantic (Pianist will error if it's not a valid `Composition`)
+
+Example (minimal):
+
+```python
+import os
+from google import genai
+
+# Requires GEMINI_API_KEY in your environment (see quickstart)
+assert os.getenv("GEMINI_API_KEY")
+
+client = genai.Client()
+response = client.models.generate_content(
+    model="gemini-flash-latest",
+    contents="Return ONLY a single JSON object that matches Pianist's composition schema.",
+)
+print(response.text)
+```
 
 ### Other Models
 
