@@ -142,13 +142,20 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
    - Implement basic harmonic analysis
    - Implement form detection
 
-3. **Annotation Tools**
-   - CLI annotation commands
+3. **CLI Improvements**
+   - Add `annotate` command for marking musical intent
+   - Add `expand` command for expansion workflow
+   - Add `diff` command for change tracking
+   - Enhance `analyze` to support JSON input and expansion analysis
+   - Improve command ergonomics and help text
+
+4. **Annotation Tools**
+   - CLI annotation commands (`annotate`)
    - Manual annotation support
    - Auto-detection (basic)
    - Documentation
 
-4. **Enhanced Prompts**
+5. **Enhanced Prompts**
    - Include analysis in prompts
    - Include expansion strategies
    - Test with simple expansions
