@@ -54,18 +54,23 @@ with open("composition_fixed.json", "w") as f:
     f.write(fixed_json)
 ```
 
-### Batch Fix Script
+### Batch Processing
 
-Use the provided script to fix multiple files:
+For batch processing multiple files, you can create a simple script using the Python API:
 
-```bash
-python fix_existing_compositions.py output/
+```python
+from pathlib import Path
+from pianist.parser import parse_composition_from_text
+from pianist.pedal_fix import fix_pedal_patterns
+from pianist.iterate import composition_to_canonical_json
+
+output_dir = Path("output")
+for json_file in output_dir.glob("*.json"):
+    comp = parse_composition_from_text(json_file.read_text())
+    fixed = fix_pedal_patterns(comp)
+    fixed_json = composition_to_canonical_json(fixed)
+    json_file.write_text(fixed_json)
 ```
-
-This will fix:
-- `Nocturne in Eb Major.json`
-- `Rhapsody in G Minor - Mono no Aware.json`
-- `Sonata in D Major (2).json`
 
 ## Fix Algorithm
 

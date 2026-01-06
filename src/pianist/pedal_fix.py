@@ -77,6 +77,11 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                             processed_indices.add(idx)
                             processed_indices.add(release_idx)
                             continue
+                        else:
+                            # Same start time - skip both events (invalid pattern)
+                            processed_indices.add(idx)
+                            processed_indices.add(release_idx)
+                            continue
                     
                     # No matching release found - extend to next pedal or default
                     next_pedal_start = None
@@ -92,9 +97,12 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                     else:
                         # No next pedal - extend to end of composition or default
                         last_event_end = max(
-                            (ev.start + getattr(ev, 'duration', 0))
-                            for ev in events
-                            if hasattr(ev, 'duration')
+                            (
+                                (ev.start + getattr(ev, 'duration', 0))
+                                for ev in events
+                                if hasattr(ev, 'duration')
+                            ),
+                            default=pedal.start,
                         )
                         # Use reasonable default: up to 8 beats, or to end of composition
                         duration = min(max(0.1, last_event_end - pedal.start), 8.0)

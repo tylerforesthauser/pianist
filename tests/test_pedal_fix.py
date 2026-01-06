@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pianist.pedal_fix import fix_pedal_patterns
-from pianist.schema import Composition, PedalEvent, NoteEvent, validate_composition_dict
+from pianist.schema import PedalEvent, validate_composition_dict
 
 
 def test_fix_pedal_press_release_pair() -> None:
@@ -185,3 +183,53 @@ def test_fix_extends_to_next_pedal() -> None:
     assert pedals[0].duration > 0
     assert pedals[0].duration < 8
     assert pedals[1].duration == 4  # Second pedal unchanged
+
+
+def test_fix_handles_same_start_time() -> None:
+    """Test that press and release with same start time are skipped."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 0},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    # Both events should be skipped (invalid pattern)
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 0
+
+
+def test_fix_handles_empty_events() -> None:
+    """Test that fix handles tracks with no events with duration attribute."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    # Should not raise ValueError even with no events with duration
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].duration > 0  # Should use fallback default
