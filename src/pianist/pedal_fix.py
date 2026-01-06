@@ -66,7 +66,7 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                         if (next_idx not in processed_indices and
                             next_pedal.duration == 0 and 
                             next_pedal.value == 0 and
-                            next_pedal.start > pedal.start):
+                            next_pedal.start >= pedal.start):
                             release_idx = next_idx
                             release_pedal = next_pedal
                             break

@@ -65,6 +65,26 @@ Then paste that prompt into your model and render the result:
 ./pianist render --in "updated_seed.json" --out "updated.mid"
 ```
 
+## Creating NEW Works Inspired by an Existing MIDI (Analysis -> Prompt)
+
+Sometimes you don't want to *edit* an existing piece—you want to create something **new** that inherits its tempo/texture/density/registration tendencies.
+
+Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file and generate a ready-to-paste prompt for composing a new work:
+
+```bash
+# Generate a prompt for a NEW composition (recommended)
+./pianist analyze --in "existing.mid" --format prompt --prompt-out "new_piece_prompt.txt" \
+  --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
+
+# Optional: export structured analysis JSON (useful for building tools/UIs)
+./pianist analyze --in "existing.mid" --format json --out "analysis.json"
+```
+
+Workflow:
+- Run `./pianist analyze ...` to get a prompt.
+- Paste the prompt into your model to produce a **new** Pianist composition JSON.
+- Render it with `./pianist render --in new.json --out new.mid`.
+
 ## System Prompt Template
 
 The system prompt is usually fixed and provides the model with the schema requirements and compositional principles. Use this template:

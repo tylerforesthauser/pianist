@@ -6,6 +6,7 @@ import traceback
 from pathlib import Path
 
 from .parser import parse_composition_from_text
+from .analyze import analyze_midi, analysis_prompt_template
 from .iterate import (
     composition_from_midi,
     composition_to_canonical_json,
@@ -106,6 +107,49 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional: embed requested changes into the generated prompt template.",
     )
     iterate.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print a full traceback on errors.",
+    )
+
+    analyze = sub.add_parser(
+        "analyze",
+        help="Analyze a .mid/.midi file and emit prompt-friendly output.",
+    )
+    analyze.add_argument(
+        "--in",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input MIDI file (.mid/.midi).",
+    )
+    analyze.add_argument(
+        "--format",
+        choices=["prompt", "json", "both"],
+        default="prompt",
+        help="Output format: 'prompt' (default), 'json', or 'both'.",
+    )
+    analyze.add_argument(
+        "--out",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output path for JSON (or prompt if --format prompt and --prompt-out not provided). If omitted, prints to stdout.",
+    )
+    analyze.add_argument(
+        "--prompt-out",
+        dest="prompt_out_path",
+        type=Path,
+        default=None,
+        help="Optional: write the prompt text to this path (recommended).",
+    )
+    analyze.add_argument(
+        "--instructions",
+        type=str,
+        default=None,
+        help="Optional: embed requested composition instructions into the generated prompt.",
+    )
+    analyze.add_argument(
         "--debug",
         action="store_true",
         help="Print a full traceback on errors.",
@@ -250,6 +294,43 @@ def main(argv: list[str] | None = None) -> int:
             if args.prompt_out_path is not None:
                 prompt = iteration_prompt_template(comp, instructions=args.instructions)
                 args.prompt_out_path.write_text(prompt, encoding="utf-8")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "analyze":
+        try:
+            suffix = args.in_path.suffix.lower()
+            if suffix not in (".mid", ".midi"):
+                raise ValueError("Input must be a .mid or .midi file.")
+
+            analysis = analyze_midi(args.in_path)
+
+            if args.format in ("json", "both"):
+                out_json = analysis.to_pretty_json()
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    args.out_path.write_text(out_json, encoding="utf-8")
+                    sys.stdout.write(str(args.out_path) + "\n")
+
+            if args.format in ("prompt", "both"):
+                prompt = analysis_prompt_template(analysis, instructions=args.instructions)
+                if args.prompt_out_path is not None:
+                    args.prompt_out_path.write_text(prompt, encoding="utf-8")
+                    # Only print the path if we didn't already print JSON path.
+                    if args.format == "prompt":
+                        sys.stdout.write(str(args.prompt_out_path) + "\n")
+                else:
+                    # If --out was provided and we're in prompt-only mode, treat it as prompt output.
+                    if args.format == "prompt" and args.out_path is not None:
+                        args.out_path.write_text(prompt, encoding="utf-8")
+                        sys.stdout.write(str(args.out_path) + "\n")
+                    else:
+                        sys.stdout.write(prompt)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
