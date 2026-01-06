@@ -92,7 +92,7 @@ Hard requirements:
     - pedal: { type:"pedal", start, duration, value 0-127 }
       - For sustained pedaling (standard case): ALWAYS use duration > 0. This automatically creates a press at start and release at start+duration.
       - Example: {"type": "pedal", "start": 0, "duration": 4, "value": 127} holds the pedal for 4 beats.
-      - Only use duration = 0 for rare special cases requiring manual control (not recommended for normal pedaling).
+      - Only use duration == 0 for rare special cases requiring manual control (not recommended for normal pedaling).
     - tempo: { type:"tempo", start: beats>=0,
                EITHER: bpm: number (instant tempo change at start beat)
                OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change from start_bpm to end_bpm over duration beats)
@@ -587,7 +587,7 @@ When generating sustain pedal events, ALWAYS use `duration > 0` for sustained pe
 - ❌ Do NOT forget to release the pedal - always specify a `duration` that ends before or at the next chord change
 
 **Advanced (rare cases only)**:
-- `duration = 0` is only for special cases requiring manual control (not recommended for normal pedaling)
+- `duration: 0` is only for special cases requiring manual control (not recommended for normal pedaling)
 
 #### Hand/Voice Labeling
 
