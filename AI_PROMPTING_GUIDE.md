@@ -89,7 +89,10 @@ Hard requirements:
                 - notes:  [{ hand:"lh|rh", voice?: 1..4, pitch:  "C4" | 60 }, ...] (PREFERRED: enables hand/voice labeling)
                 - legacy pitches/pitch (allowed but not recommended: lacks hand/voice labels)
               optional: motif/section/phrase }
-    - pedal: { type:"pedal", start, duration>0 (use duration>0 for sustained pedaling), value 0-127 }
+    - pedal: { type:"pedal", start, duration, value 0-127 }
+      - For sustained pedaling (standard case): ALWAYS use duration > 0. This automatically creates a press at start and release at start+duration.
+      - Example: {"type": "pedal", "start": 0, "duration": 4, "value": 127} holds the pedal for 4 beats.
+      - Only use duration = 0 for rare special cases requiring manual control (not recommended for normal pedaling).
     - tempo: { type:"tempo", start: beats>=0,
                EITHER: bpm: number (instant tempo change at start beat)
                OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change from start_bpm to end_bpm over duration beats)
@@ -141,6 +144,13 @@ Texture and voicing:
 Dynamics and expression:
 - Use dynamics via velocity (p → mf → f and back) to shape phrases and larger sections.
 - Build to climaxes: use dynamics to shape larger arcs, create tension and release across the entire work.
+
+Sustain pedal:
+- Use sustain pedal events to create rich, sustained sound, especially in lyrical passages, legato sections, and when creating harmonic resonance.
+- ALWAYS use `duration > 0` for pedal events (e.g., `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`). This automatically creates proper press-release pairs.
+- Change pedal at chord changes to maintain clarity - end one pedal event's duration and start a new one at the chord change.
+- For legato pedaling, overlap pedal events slightly (new pedal starts 0.1 beats before previous ends).
+- Do NOT use `duration: 0` for sustained pedaling - this creates instant actions without automatic release.
 
 Rhythm:
 - Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest where appropriate.
@@ -557,32 +567,27 @@ Internally Pianist validates and converts pitches to MIDI numbers.
 
 #### Sustain Pedal Control
 
-For sustain pedal events, **always use `duration > 0`** to specify how long the pedal should be held down:
+When generating sustain pedal events, ALWAYS use `duration > 0` for sustained pedaling. This is the standard pattern that automatically creates proper press-release pairs in the MIDI output.
 
-```json
-{ "type": "pedal", "start": 0, "duration": 4, "value": 127 }
-```
-
-This automatically creates:
-- A pedal press (CC64=127) at `start`
-- A pedal release (CC64=0) at `start + duration`
-
-**Important Guidelines**:
-- **Use `duration > 0` for all normal pedaling** - this is the standard pattern
-- The renderer handles press/release automatically - you don't need separate events
-- Only use `duration = 0` in special cases where you need manual control (rare)
+**Standard Pattern (ALWAYS use this for sustained pedaling)**:
+- Use `duration > 0` to specify how long the pedal should be held down
+- The renderer automatically creates a press (CC64=127) at `start` and a release (CC64=0) at `start + duration`
+- Example: `{"type": "pedal", "start": 0, "duration": 4, "value": 127}` holds the pedal for 4 beats
 - `value` defaults to 127 (full pedal down) if not specified
 
-**Common Patterns**:
+**Common Pedaling Patterns**:
 - Hold pedal for a measure (4 beats): `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`
 - Hold pedal for a phrase (8 beats): `{"type": "pedal", "start": 0, "duration": 8, "value": 127}`
-- Change pedal with harmony: Release and press at chord changes by creating new pedal events
+- Change pedal with harmony: Create new pedal events at chord changes (release previous by ending its duration, start new at the chord change)
 - Legato pedaling: Overlap pedal events slightly (e.g., new pedal starts 0.1 beats before previous ends)
 
-**What NOT to do**:
-- ❌ Don't use `duration: 0` for sustained pedaling - this creates instant actions without automatic release
-- ❌ Don't create separate press/release events manually - use `duration > 0` instead
-- ❌ Don't forget to release the pedal - always specify a `duration` that ends before or at the next chord change
+**CRITICAL: What NOT to generate**:
+- ❌ Do NOT use `duration: 0` for sustained pedaling - this creates instant actions without automatic release and results in missing sustain control
+- ❌ Do NOT create separate press/release events manually - use `duration > 0` instead
+- ❌ Do NOT forget to release the pedal - always specify a `duration` that ends before or at the next chord change
+
+**Advanced (rare cases only)**:
+- `duration = 0` is only for special cases requiring manual control (not recommended for normal pedaling)
 
 #### Hand/Voice Labeling
 
