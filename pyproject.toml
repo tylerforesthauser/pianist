@@ -18,7 +18,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0.0",
+    "pytest>=8.0.0",
+]
+gemini = [
+    "google-genai",
+]
+dotenv = [
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
@@ -35,3 +41,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

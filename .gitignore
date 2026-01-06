@@ -210,10 +210,8 @@ __marimo__/
 # System files
 .DS_Store
 
-# Reference data
-ref/
-
-# Output data
+# Input and output data
+input/
 output/
 
 # Common generated artifacts created by docs/examples
