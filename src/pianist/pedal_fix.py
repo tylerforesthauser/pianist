@@ -3,9 +3,14 @@ Fix incorrect sustain pedal patterns in compositions.
 
 This module provides functions to automatically fix common pedal pattern issues,
 converting duration=0 patterns to duration>0 patterns with reasonable defaults.
+
+Note: The fix currently handles standard pedal patterns (value=127 for press,
+value=0 for release). Half-pedaling values (1-126) are preserved as-is and
+may require manual review.
 """
 
 from __future__ import annotations
+import warnings
 
 from .schema import Composition, PedalEvent
 
@@ -45,8 +50,10 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                 continue
             
             # Only fix duration=0 events
+            # Note: Currently handles standard patterns (value=127 for press, value=0 for release).
+            # Half-pedaling values (1-126) are preserved as-is and may require manual review.
             if pedal.duration == 0:
-                if pedal.value == 127:  # Press event
+                if pedal.value == 127:  # Press event (standard full pedal down)
                     # Look for a matching release event (duration=0, value=0) after this
                     release_idx = None
                     release_pedal = None
@@ -65,14 +72,17 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                         # Found matching release - merge into single event
                         duration = release_pedal.start - pedal.start
                         if duration > 0:
-                            fixed_pedal = PedalEvent(
-                                type="pedal",
-                                start=pedal.start,
-                                duration=duration,
-                                value=pedal.value,
-                                section=pedal.section,
-                                phrase=pedal.phrase,
-                            )
+                            # Suppress validator warnings since we're intentionally fixing the pattern
+                            with warnings.catch_warnings():
+                                warnings.simplefilter("ignore", UserWarning)
+                                fixed_pedal = PedalEvent(
+                                    type="pedal",
+                                    start=pedal.start,
+                                    duration=duration,
+                                    value=pedal.value,
+                                    section=pedal.section,
+                                    phrase=pedal.phrase,
+                                )
                             fixed_pedals.append(fixed_pedal)
                             processed_indices.add(idx)
                             processed_indices.add(release_idx)
@@ -93,6 +103,8 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                     
                     if next_pedal_start is not None:
                         # Extend to next pedal with small gap to avoid overlap
+                        # max() ensures at least 0.1 beat duration while leaving a 0.1 beat gap
+                        # before the next pedal event (e.g., if next is at 8, this extends to 7.9)
                         duration = max(0.1, next_pedal_start - pedal.start - 0.1)
                     else:
                         # No next pedal - extend to end of composition or default
@@ -109,14 +121,17 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                         if duration <= 0:
                             duration = 4.0  # Fallback default
                     
-                    fixed_pedal = PedalEvent(
-                        type="pedal",
-                        start=pedal.start,
-                        duration=duration,
-                        value=pedal.value,
-                        section=pedal.section,
-                        phrase=pedal.phrase,
-                    )
+                    # Suppress validator warnings since we're intentionally fixing the pattern
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", UserWarning)
+                        fixed_pedal = PedalEvent(
+                            type="pedal",
+                            start=pedal.start,
+                            duration=duration,
+                            value=pedal.value,
+                            section=pedal.section,
+                            phrase=pedal.phrase,
+                        )
                     fixed_pedals.append(fixed_pedal)
                     processed_indices.add(idx)
                 
