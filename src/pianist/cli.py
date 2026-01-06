@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 from .parser import parse_composition_from_text
@@ -24,6 +25,125 @@ except ImportError:
     # Schema generation may not be available in all environments
     generate_openapi_schema = None
 
+# Default output directory for all generated files
+_DEFAULT_OUTPUT_DIR = Path("output")
+
+
+def _get_output_base_dir(base_name: str, command: str) -> Path:
+    """
+    Get the base output directory for a command run.
+    
+    Structure: output/<base_name>/<command>/
+    
+    This groups all operations on the same source material together (by base_name),
+    while keeping outputs from different commands separated to avoid filename clashes.
+    
+    For example:
+    - analyze --in song.mid → output/song/analyze/
+    - iterate --in song.mid → output/song/iterate/
+    - Both are grouped under "song" but separated by command to avoid conflicts.
+    
+    Args:
+        base_name: Base name derived from input file (without extension)
+        command: Command name (e.g., "iterate", "analyze", "render", "fix-pedal")
+    
+    Returns:
+        Path to the output directory
+    """
+    return _DEFAULT_OUTPUT_DIR / base_name / command
+
+
+def _resolve_output_path(
+    provided_path: Path | None,
+    default_dir: Path,
+    default_filename: str,
+    command: str,
+) -> Path:
+    """
+    Resolve an output path, defaulting to the output directory structure if not provided or relative.
+    
+    If the path is provided and is absolute, use it as-is.
+    If the path is provided and is relative, resolve it relative to the default directory.
+    If the path is not provided, use default_dir / default_filename.
+    
+    Args:
+        provided_path: The path provided by the user (or None)
+        default_dir: The default output directory for this command run
+        default_filename: Default filename to use if path is not provided
+        command: Command name (for creating default_dir if needed)
+    
+    Returns:
+        Resolved output path
+    """
+    if provided_path is None:
+        return default_dir / default_filename
+    
+    # If absolute path provided, use as-is
+    if provided_path.is_absolute():
+        return provided_path
+    
+    # If relative path provided, resolve relative to default directory
+    # But if it already contains directory components, respect them
+    if len(provided_path.parts) > 1:
+        # User wants a specific subdirectory structure
+        return default_dir / provided_path
+    else:
+        # Just a filename, put it in the default directory
+        return default_dir / provided_path.name
+
+
+def _derive_base_name_from_path(path: Path | None, fallback: str = "output") -> str:
+    """
+    Derive a base name from an input or output path.
+    
+    Uses the stem (filename without extension) of the path.
+    If path is None, returns the fallback.
+    
+    For paths within the output directory, extracts the original base name
+    to maintain grouping even when using outputs as inputs.
+    
+    Examples:
+    - input/song.mid → "song"
+    - output/song/analyze/analysis.json → "song" (extracted from path structure)
+    - output/song/iterate/composition.json → "song" (extracted from path structure)
+    """
+    if path is None:
+        return fallback
+    
+    path = Path(path)
+    
+    # If the path is already in the output directory, try to extract the original base name
+    # This handles cases like: iterate --in output/song/analyze/analysis.json
+    # We want to use "song" not "analysis" as the base name
+    try:
+        # Resolve to absolute path to handle relative paths correctly
+        abs_path = path.resolve()
+        abs_output_dir = _DEFAULT_OUTPUT_DIR.resolve()
+        
+        # Check if the path is within the output directory
+        try:
+            relative_path = abs_path.relative_to(abs_output_dir)
+            parts = relative_path.parts
+            
+            # Our structure is: <base-name>/<command>/<file>
+            # So if we have at least 2 parts, the first is the base name
+            if len(parts) >= 2:
+                # This is output/<base>/<command>/file, extract the base
+                return parts[0]
+            elif len(parts) == 1:
+                # This is output/<base>/file (unusual but possible), use the base
+                return parts[0]
+        except ValueError:
+            # Path is not within output directory, fall through to default
+            pass
+    except (ValueError, IndexError, OSError):
+        # If path resolution fails (e.g., file doesn't exist yet), fall through
+        pass
+    
+    # Default: use the stem of the file
+    stem = path.stem
+    return stem if stem else fallback
+
 
 def _read_text(path: Path | None) -> str:
     if path is None:
@@ -42,11 +162,76 @@ def _read_text(path: Path | None) -> str:
         raise PermissionError(f"Input file not readable: {path}") from e
 
 
-def _write_text(path: Path, text: str) -> None:
+def _version_path_if_exists(path: Path, use_timestamp: bool = False) -> Path:
+    """
+    If the path exists, return a versioned path. Otherwise return the original path.
+    
+    Versioning strategies:
+    - If use_timestamp: append timestamp like .2024-01-15T14-30-25
+    - Otherwise: append incremental version like .v2, .v3, etc.
+    
+    Args:
+        path: The original path
+        use_timestamp: If True, use timestamp-based versioning; otherwise use incremental
+    
+    Returns:
+        A path that doesn't exist (either original or versioned)
+    """
+    if not path.exists():
+        return path
+    
+    if use_timestamp:
+        # Use timestamp: filename.2024-01-15T14-30-25.ext
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        stem = path.stem
+        suffix = path.suffix
+        return path.parent / f"{stem}.{timestamp}{suffix}"
+    else:
+        # Use incremental versioning: filename.v2.ext, filename.v3.ext, etc.
+        stem = path.stem
+        suffix = path.suffix
+        parent = path.parent
+        
+        # Check if stem already ends with .vN pattern
+        import re
+        version_match = re.match(r"^(.+)\.v(\d+)$", stem)
+        if version_match:
+            base_stem = version_match.group(1)
+            version_num = int(version_match.group(2))
+            next_version = version_num + 1
+        else:
+            base_stem = stem
+            next_version = 2
+        
+        # Find the next available version
+        while True:
+            versioned_path = parent / f"{base_stem}.v{next_version}{suffix}"
+            if not versioned_path.exists():
+                return versioned_path
+            next_version += 1
+
+
+def _write_text(path: Path, text: str, version_if_exists: bool = False) -> Path:
+    """
+    Write text to a file, optionally versioning if the file exists.
+    
+    Args:
+        path: The target path
+        text: The text to write
+        version_if_exists: If True and file exists, create a versioned path instead
+    
+    Returns:
+        The actual path used (may be versioned if version_if_exists was True)
+    """
     path = Path(path)
+    
+    if version_if_exists and path.exists():
+        path = _version_path_if_exists(path, use_timestamp=False)
+    
     if path.parent and not path.parent.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+    return path
 
 
 def _derive_gemini_raw_path(out_path: Path) -> Path:
@@ -168,6 +353,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show progress indicators and timing for Gemini API calls.",
     )
+    iterate.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing output files instead of creating versioned copies (e.g., file.v2.json).",
+    )
 
     analyze = sub.add_parser(
         "analyze",
@@ -246,6 +436,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show progress indicators and timing for Gemini API calls.",
     )
+    analyze.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing output files instead of creating versioned copies (e.g., file.v2.json).",
+    )
 
     fix_pedal = sub.add_parser(
         "fix-pedal",
@@ -307,7 +502,13 @@ def main(argv: list[str] | None = None) -> int:
         try:
             text = _read_text(args.in_path)
             comp = parse_composition_from_text(text)
-            out = render_midi_mido(comp, args.out_path)
+            
+            # Determine output directory and path
+            base_name = _derive_base_name_from_path(args.in_path, "render-output")
+            output_dir = _get_output_base_dir(base_name, "render")
+            out_path = _resolve_output_path(args.out_path, output_dir, "output.mid", "render")
+            
+            out = render_midi_mido(comp, out_path)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -338,10 +539,18 @@ def main(argv: list[str] | None = None) -> int:
                 if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
             )
             
-            # Save fixed composition
-            out_path = args.out_path or args.in_path
+            # Determine output directory and paths
+            base_name = _derive_base_name_from_path(args.in_path, "fix-pedal-output")
+            output_dir = _get_output_base_dir(base_name, "fix-pedal")
+            
+            # If no output path specified, overwrite input file (original behavior)
+            if args.out_path is None:
+                out_path = args.in_path
+            else:
+                out_path = _resolve_output_path(args.out_path, output_dir, args.in_path.name, "fix-pedal")
+            
             fixed_json = composition_to_canonical_json(fixed)
-            out_path.write_text(fixed_json, encoding="utf-8")
+            _write_text(out_path, fixed_json)
             
             sys.stdout.write(f"Fixed {args.in_path.name}:\n")
             sys.stdout.write(f"  Pedal issues before: {issues_before}\n")
@@ -353,8 +562,11 @@ def main(argv: list[str] | None = None) -> int:
                 if args.out_midi_path is None:
                     sys.stderr.write("error: --render requires --out-midi\n")
                     return 1
-                render_midi_mido(fixed, args.out_midi_path)
-                sys.stdout.write(f"  Rendered to: {args.out_midi_path}\n")
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "fix-pedal"
+                )
+                render_midi_mido(fixed, out_midi_path)
+                sys.stdout.write(f"  Rendered to: {out_midi_path}\n")
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -375,6 +587,31 @@ def main(argv: list[str] | None = None) -> int:
             if args.transpose:
                 comp = transpose_composition(comp, args.transpose)
 
+            # Determine output directory and paths
+            base_name = _derive_base_name_from_path(args.in_path, "iterate-output")
+            output_dir = _get_output_base_dir(base_name, "iterate")
+            
+            # Resolve output paths (only if provided, to maintain stdout behavior when not provided)
+            if args.out_path is not None:
+                out_json_path = _resolve_output_path(
+                    args.out_path, output_dir, "composition.json", "iterate"
+                )
+            else:
+                out_json_path = None
+            
+            # For MIDI, default to output directory if --render is used
+            if args.render:
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "iterate"
+                )
+            else:
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "iterate"
+                ) if args.out_midi_path is not None else None
+            prompt_out_path = _resolve_output_path(
+                args.prompt_out_path, output_dir, "prompt.txt", "iterate"
+            ) if args.prompt_out_path is not None else None
+
             if args.gemini:
                 instructions = (args.instructions or "").strip()
                 if not instructions:
@@ -383,64 +620,84 @@ def main(argv: list[str] | None = None) -> int:
                 template = iteration_prompt_template(comp, instructions=instructions)
                 prompt = _gemini_prompt_from_template(template)
 
-                if args.prompt_out_path is not None:
-                    _write_text(args.prompt_out_path, template)
+                if prompt_out_path is not None:
+                    _write_text(prompt_out_path, template)
 
                 # Determine raw output path (for both reading cached and saving new)
                 raw_out_path: Path | None = args.raw_out_path
-                if raw_out_path is None and args.out_path is not None:
-                    raw_out_path = _derive_gemini_raw_path(args.out_path)
+                if raw_out_path is None and out_json_path is not None:
+                    # Default: next to JSON output (only if --out was provided)
+                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                elif raw_out_path is not None and not raw_out_path.is_absolute():
+                    # Relative path: resolve relative to output directory
+                    raw_out_path = output_dir / raw_out_path.name
                 
                 # Check if we have a cached response
                 raw_text: str | None = None
+                cached_raw_path: Path | None = None
                 if raw_out_path is not None and raw_out_path.exists():
                     if args.verbose:
                         sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
                     raw_text = _read_text(raw_out_path)
+                    cached_raw_path = raw_out_path
                 
                 # If no cached response, call Gemini
                 if raw_text is None:
                     raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
-                    
-                    # Save raw response wherever possible.
-                    if raw_out_path is not None:
-                        _write_text(raw_out_path, raw_text)
-                    else:
-                        sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw-out "
-                            "or also provide --out to enable an automatic default.\n"
-                        )
 
                 updated = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(updated)
 
                 if args.out_path is None:
                     sys.stdout.write(out_json)
+                    # Save raw response if we have it and no JSON output path
+                    if raw_text is not None and raw_out_path is not None:
+                        _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
+                    elif raw_text is not None:
+                        # No path to save raw response - show warning
+                        sys.stderr.write(
+                            "warning: Gemini raw output was not saved. Provide --raw-out "
+                            "or also provide --out to enable an automatic default.\n"
+                        )
                 else:
-                    _write_text(args.out_path, out_json)
-                    sys.stdout.write(str(args.out_path) + "\n")
+                    # Version output if file exists and --overwrite not set
+                    version_output = not args.overwrite
+                    original_path = out_json_path
+                    actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
+                    
+                    # Handle raw response: if JSON was versioned, version the raw response too
+                    if raw_text is not None and raw_out_path is not None:
+                        if version_output and original_path != actual_json_path:
+                            # JSON was versioned - save raw response with matching version
+                            versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                            _write_text(versioned_raw_path, raw_text, version_if_exists=False)
+                        elif cached_raw_path is None:
+                            # New response (not cached) - save to original location
+                            _write_text(raw_out_path, raw_text, version_if_exists=False)
+                        elif cached_raw_path != raw_out_path:
+                            # Cached from different location - copy to expected location
+                            _write_text(raw_out_path, raw_text, version_if_exists=False)
+                        # If cached and JSON not versioned and paths match, raw response already exists
+                    
+                    sys.stdout.write(str(actual_json_path) + "\n")
 
                 if args.render:
-                    if args.out_midi_path is None:
-                        raise ValueError("--render requires --out-midi.")
-                    render_midi_mido(updated, args.out_midi_path)
+                    render_midi_mido(updated, out_midi_path)
             else:
                 out_json = composition_to_canonical_json(comp)
 
                 if args.out_path is None:
                     sys.stdout.write(out_json)
                 else:
-                    _write_text(args.out_path, out_json)
-                    sys.stdout.write(str(args.out_path) + "\n")
+                    _write_text(out_json_path, out_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
 
-                if args.prompt_out_path is not None:
+                if prompt_out_path is not None:
                     template = iteration_prompt_template(comp, instructions=args.instructions)
-                    _write_text(args.prompt_out_path, template)
+                    _write_text(prompt_out_path, template)
 
                 if args.render:
-                    if args.out_midi_path is None:
-                        raise ValueError("--render requires --out-midi.")
-                    render_midi_mido(comp, args.out_midi_path)
+                    render_midi_mido(comp, out_midi_path)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -456,6 +713,31 @@ def main(argv: list[str] | None = None) -> int:
 
             analysis = analyze_midi(args.in_path)
 
+            # Determine output directory and paths
+            base_name = _derive_base_name_from_path(args.in_path, "analyze-output")
+            output_dir = _get_output_base_dir(base_name, "analyze")
+            
+            # Resolve output paths (only if provided, to maintain stdout behavior when not provided)
+            if args.out_path is not None:
+                out_json_path = _resolve_output_path(
+                    args.out_path, output_dir, "analysis.json", "analyze"
+                )
+            else:
+                out_json_path = None
+            
+            # For MIDI, default to output directory if --render is used with --gemini
+            if args.render and args.gemini:
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "analyze"
+                )
+            else:
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "analyze"
+                ) if args.out_midi_path is not None else None
+            prompt_out_path = _resolve_output_path(
+                args.prompt_out_path, output_dir, "prompt.txt", "analyze"
+            ) if args.prompt_out_path is not None else None
+
             if args.gemini:
                 instructions = (args.instructions or "").strip()
                 if not instructions:
@@ -464,47 +746,69 @@ def main(argv: list[str] | None = None) -> int:
                 template = analysis_prompt_template(analysis, instructions=instructions)
                 prompt = _gemini_prompt_from_template(template)
 
-                if args.prompt_out_path is not None:
-                    _write_text(args.prompt_out_path, template)
+                if prompt_out_path is not None:
+                    _write_text(prompt_out_path, template)
 
                 # Determine raw output path (for both reading cached and saving new)
                 raw_out_path: Path | None = args.raw_out_path
-                if raw_out_path is None and args.out_path is not None:
-                    raw_out_path = _derive_gemini_raw_path(args.out_path)
+                if raw_out_path is None and out_json_path is not None:
+                    # Default: next to JSON output (only if --out was provided)
+                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                elif raw_out_path is not None and not raw_out_path.is_absolute():
+                    # Relative path: resolve relative to output directory
+                    raw_out_path = output_dir / raw_out_path.name
                 
                 # Check if we have a cached response
                 raw_text: str | None = None
+                cached_raw_path: Path | None = None
                 if raw_out_path is not None and raw_out_path.exists():
                     if args.verbose:
                         sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
                     raw_text = _read_text(raw_out_path)
+                    cached_raw_path = raw_out_path
                 
                 # If no cached response, call Gemini
                 if raw_text is None:
                     raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
-                    
-                    # Save raw response wherever possible.
-                    if raw_out_path is not None:
-                        _write_text(raw_out_path, raw_text)
-                    else:
-                        sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw-out "
-                            "or also provide --out to enable an automatic default.\n"
-                        )
 
                 comp = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(comp)
 
                 if args.out_path is None:
                     sys.stdout.write(out_json)
+                    # Save raw response if we have it and no JSON output path
+                    if raw_text is not None and raw_out_path is not None:
+                        _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
+                    elif raw_text is not None:
+                        # No path to save raw response - show warning
+                        sys.stderr.write(
+                            "warning: Gemini raw output was not saved. Provide --raw-out "
+                            "or also provide --out to enable an automatic default.\n"
+                        )
                 else:
-                    _write_text(args.out_path, out_json)
-                    sys.stdout.write(str(args.out_path) + "\n")
+                    # Version output if file exists and --overwrite not set
+                    version_output = not args.overwrite
+                    original_path = out_json_path
+                    actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
+                    
+                    # Handle raw response: if JSON was versioned, version the raw response too
+                    if raw_text is not None and raw_out_path is not None:
+                        if version_output and original_path != actual_json_path:
+                            # JSON was versioned - save raw response with matching version
+                            versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                            _write_text(versioned_raw_path, raw_text, version_if_exists=False)
+                        elif cached_raw_path is None:
+                            # New response (not cached) - save to original location
+                            _write_text(raw_out_path, raw_text, version_if_exists=False)
+                        elif cached_raw_path != raw_out_path:
+                            # Cached from different location - copy to expected location
+                            _write_text(raw_out_path, raw_text, version_if_exists=False)
+                        # If cached and JSON not versioned and paths match, raw response already exists
+                    
+                    sys.stdout.write(str(actual_json_path) + "\n")
 
                 if args.render:
-                    if args.out_midi_path is None:
-                        raise ValueError("--render requires --out-midi.")
-                    render_midi_mido(comp, args.out_midi_path)
+                    render_midi_mido(comp, out_midi_path)
                 return 0
 
             if args.render:
@@ -515,21 +819,21 @@ def main(argv: list[str] | None = None) -> int:
                 if args.out_path is None:
                     sys.stdout.write(out_json)
                 else:
-                    _write_text(args.out_path, out_json)
-                    sys.stdout.write(str(args.out_path) + "\n")
+                    _write_text(out_json_path, out_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
 
             if args.format in ("prompt", "both"):
                 prompt = analysis_prompt_template(analysis, instructions=args.instructions)
-                if args.prompt_out_path is not None:
-                    _write_text(args.prompt_out_path, prompt)
+                if prompt_out_path is not None:
+                    _write_text(prompt_out_path, prompt)
                     # Only print the path if we didn't already print JSON path.
                     if args.format == "prompt":
-                        sys.stdout.write(str(args.prompt_out_path) + "\n")
+                        sys.stdout.write(str(prompt_out_path) + "\n")
                 else:
                     # If --out was provided and we're in prompt-only mode, treat it as prompt output.
                     if args.format == "prompt" and args.out_path is not None:
-                        _write_text(args.out_path, prompt)
-                        sys.stdout.write(str(args.out_path) + "\n")
+                        _write_text(out_json_path, prompt)
+                        sys.stdout.write(str(out_json_path) + "\n")
                     else:
                         sys.stdout.write(prompt)
         except Exception as exc:

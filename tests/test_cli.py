@@ -1174,3 +1174,452 @@ def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path) -> None:
     assert "REFERENCE ANALYSIS" in prompt_text
     assert "Test instructions" in prompt_text
 
+
+# Versioning tests
+
+def test_cli_iterate_versioning_creates_v2_when_file_exists(tmp_path: Path, monkeypatch) -> None:
+    """Test that iterate command creates versioned files when output already exists."""
+    out_json = tmp_path / "updated.json"
+    
+    # Create initial file
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    initial_content = out_json.read_text(encoding="utf-8")
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Make it different.",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Original file should still exist with original content
+    assert out_json.exists()
+    assert out_json.read_text(encoding="utf-8") == initial_content
+    
+    # Versioned file should be created
+    v2_json = tmp_path / "updated.v2.json"
+    assert v2_json.exists()
+    assert v2_json.read_text(encoding="utf-8") != initial_content
+
+
+def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
+    """Test that versioning continues incrementally (v2, v3, etc.)."""
+    out_json = tmp_path / "updated.json"
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    # First run - creates updated.json
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "First",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    assert out_json.exists()
+    
+    # Second run - creates updated.v2.json
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Second",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    v2_json = tmp_path / "updated.v2.json"
+    assert v2_json.exists()
+    
+    # Third run - creates updated.v3.json
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Third",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    v3_json = tmp_path / "updated.v3.json"
+    assert v3_json.exists()
+    
+    # All versions should exist
+    assert out_json.exists()
+    assert v2_json.exists()
+    assert v3_json.exists()
+
+
+def test_cli_iterate_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypatch) -> None:
+    """Test that Gemini raw response is versioned to match JSON output."""
+    out_json = tmp_path / "updated.json"
+    
+    # Create initial files with valid cached response
+    cached_response = _valid_composition_json()
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    raw_path = tmp_path / "updated.json.gemini.txt"
+    raw_path.write_text(cached_response, encoding="utf-8")
+    
+    call_count = 0
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        nonlocal call_count
+        call_count += 1
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Should use cached response (not call Gemini)
+    assert call_count == 0
+    
+    # Original files should still exist
+    assert out_json.exists()
+    assert raw_path.exists()
+    assert raw_path.read_text(encoding="utf-8") == cached_response
+    
+    # Versioned files should be created
+    v2_json = tmp_path / "updated.v2.json"
+    v2_raw = tmp_path / "updated.v2.json.gemini.txt"
+    assert v2_json.exists()
+    assert v2_raw.exists()
+    # Versioned raw file should contain the cached response (same as original since we used cache)
+    assert v2_raw.read_text(encoding="utf-8") == cached_response
+
+
+def test_cli_iterate_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
+    """Test that --overwrite flag prevents versioning."""
+    out_json = tmp_path / "updated.json"
+    initial_content = "original content"
+    out_json.write_text(initial_content, encoding="utf-8")
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+            "--overwrite",
+        ]
+    )
+    assert rc == 0
+    
+    # Original file should be overwritten (not versioned)
+    assert out_json.exists()
+    assert out_json.read_text(encoding="utf-8") != initial_content
+    
+    # No versioned file should be created
+    v2_json = tmp_path / "updated.v2.json"
+    assert not v2_json.exists()
+
+
+def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monkeypatch) -> None:
+    """Test that analyze command creates versioned files when output already exists."""
+    midi_path = tmp_path / "in.mid"
+    mid = mido.MidiFile(ticks_per_beat=480)
+    tr = mido.MidiTrack()
+    mid.tracks.append(tr)
+    tr.append(mido.Message("program_change", program=0, channel=0, time=0))
+    tr.append(mido.Message("note_on", note=60, velocity=64, channel=0, time=0))
+    tr.append(mido.Message("note_off", note=60, velocity=0, channel=0, time=480))
+    tr.append(mido.MetaMessage("end_of_track", time=0))
+    mid.save(midi_path)
+    
+    out_json = tmp_path / "composition.json"
+    
+    # Create initial file
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    initial_content = out_json.read_text(encoding="utf-8")
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "analyze",
+            "--in",
+            str(midi_path),
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Original file should still exist
+    assert out_json.exists()
+    assert out_json.read_text(encoding="utf-8") == initial_content
+    
+    # Versioned file should be created
+    v2_json = tmp_path / "composition.v2.json"
+    assert v2_json.exists()
+
+
+def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypatch) -> None:
+    """Test that analyze command versions Gemini raw response to match JSON."""
+    midi_path = tmp_path / "in.mid"
+    mid = mido.MidiFile(ticks_per_beat=480)
+    tr = mido.MidiTrack()
+    mid.tracks.append(tr)
+    tr.append(mido.Message("program_change", program=0, channel=0, time=0))
+    tr.append(mido.Message("note_on", note=60, velocity=64, channel=0, time=0))
+    tr.append(mido.Message("note_off", note=60, velocity=0, channel=0, time=480))
+    tr.append(mido.MetaMessage("end_of_track", time=0))
+    mid.save(midi_path)
+    
+    out_json = tmp_path / "composition.json"
+    
+    # Create initial files with valid cached response
+    cached_response = _valid_composition_json()
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    raw_path = tmp_path / "composition.json.gemini.txt"
+    raw_path.write_text(cached_response, encoding="utf-8")
+    
+    call_count = 0
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        nonlocal call_count
+        call_count += 1
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "analyze",
+            "--in",
+            str(midi_path),
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Should use cached response (not call Gemini)
+    assert call_count == 0
+    
+    # Original files should still exist
+    assert out_json.exists()
+    assert raw_path.exists()
+    assert raw_path.read_text(encoding="utf-8") == cached_response
+    
+    # Versioned files should be created
+    v2_json = tmp_path / "composition.v2.json"
+    v2_raw = tmp_path / "composition.v2.json.gemini.txt"
+    assert v2_json.exists()
+    assert v2_raw.exists()
+    # Versioned raw file should contain the cached response (same as original since we used cache)
+    assert v2_raw.read_text(encoding="utf-8") == cached_response
+
+
+def test_cli_analyze_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
+    """Test that --overwrite flag prevents versioning in analyze command."""
+    midi_path = tmp_path / "in.mid"
+    mid = mido.MidiFile(ticks_per_beat=480)
+    tr = mido.MidiTrack()
+    mid.tracks.append(tr)
+    tr.append(mido.Message("program_change", program=0, channel=0, time=0))
+    tr.append(mido.Message("note_on", note=60, velocity=64, channel=0, time=0))
+    tr.append(mido.Message("note_off", note=60, velocity=0, channel=0, time=480))
+    tr.append(mido.MetaMessage("end_of_track", time=0))
+    mid.save(midi_path)
+    
+    out_json = tmp_path / "composition.json"
+    initial_content = "original"
+    out_json.write_text(initial_content, encoding="utf-8")
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "analyze",
+            "--in",
+            str(midi_path),
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+            "--overwrite",
+        ]
+    )
+    assert rc == 0
+    
+    # Original file should be overwritten
+    assert out_json.exists()
+    assert out_json.read_text(encoding="utf-8") != initial_content
+    
+    # No versioned file should be created
+    v2_json = tmp_path / "composition.v2.json"
+    assert not v2_json.exists()
+
+
+def test_cli_versioning_with_cached_response(tmp_path: Path, monkeypatch) -> None:
+    """Test that versioning works correctly when using a cached Gemini response."""
+    out_json = tmp_path / "updated.json"
+    raw_path = tmp_path / "updated.json.gemini.txt"
+    
+    # Create initial files with cached response
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    raw_path.write_text(_valid_composition_json(), encoding="utf-8")
+    
+    call_count = 0
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        nonlocal call_count
+        call_count += 1
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Should use cached response (not call Gemini)
+    assert call_count == 0
+    
+    # Original files should still exist
+    assert out_json.exists()
+    assert raw_path.exists()
+    
+    # Versioned files should be created
+    v2_json = tmp_path / "updated.v2.json"
+    v2_raw = tmp_path / "updated.v2.json.gemini.txt"
+    assert v2_json.exists()
+    assert v2_raw.exists()
+
+
+def test_cli_versioning_skips_when_file_not_exists(tmp_path: Path, monkeypatch) -> None:
+    """Test that versioning is skipped when output file doesn't exist."""
+    out_json = tmp_path / "new_file.json"
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    
+    # File should be created (not versioned since it didn't exist)
+    assert out_json.exists()
+    
+    # No versioned file should be created
+    v2_json = tmp_path / "new_file.v2.json"
+    assert not v2_json.exists()
+
+
+def test_cli_versioning_with_already_versioned_file(tmp_path: Path, monkeypatch) -> None:
+    """Test that versioning continues correctly from already versioned files."""
+    out_json = tmp_path / "updated.v2.json"
+    
+    # Create an already versioned file
+    out_json.write_text(_valid_composition_json(), encoding="utf-8")
+    
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    # Try to write to updated.json (not the versioned one)
+    target_json = tmp_path / "updated.json"
+    rc = main(
+        [
+            "iterate",
+            "--in",
+            "examples/model_output.txt",
+            "--gemini",
+            "--instructions",
+            "Test",
+            "--out",
+            str(target_json),
+        ]
+    )
+    assert rc == 0
+    
+    # Should create updated.json (since updated.json doesn't exist)
+    assert target_json.exists()
+    
+    # The v2 file should still exist
+    assert out_json.exists()
+

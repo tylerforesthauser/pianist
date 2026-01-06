@@ -22,11 +22,66 @@ python3 -m pip install -e ".[dev]"
 
 ## CLI
 
+### Output Directory Structure
+
+By default, all generated files are saved to the `output/` directory, organized by input file name and then by command:
+
+- `output/<base-name>/<command>/` - Contains all output files for a command run
+  - `<base-name>` is derived from the input file name (without extension)
+  - `<command>` is the command name (e.g., `render`, `iterate`, `analyze`, `fix-pedal`)
+
+**Why this structure?** This groups all operations on the same source material together, making it easy to find related files. For example, if you analyze `song.mid` and then iterate on it, both operations will be under `output/song/`, just in different command subdirectories. This also prevents filename conflicts between commands (e.g., both `analyze` and `iterate` might create `composition.json`).
+
+For example, running:
+```bash
+./pianist iterate --in seed.json --gemini --instructions "Make it faster" --out updated.json --render
+```
+
+Will create:
+- `output/seed/iterate/updated.json` - The updated composition JSON
+- `output/seed/iterate/updated.json.gemini.txt` - The raw Gemini response
+- `output/seed/iterate/composition.mid` - The rendered MIDI file (if `--out-midi` is not provided)
+
+**Cross-command workflows:** If you use an output file as input to another command, the system will detect if it's already in the output directory and maintain the same base name. For example:
+- `analyze --in song.mid --out analysis.json` → `output/song/analyze/analysis.json`
+- `iterate --in output/song/analyze/analysis.json --out comp.json` → `output/song/iterate/comp.json`
+
+**Note:** If you provide an absolute path (e.g., `/path/to/file.json`), it will be used as-is. Relative paths are resolved relative to the output directory structure.
+
+### File Versioning
+
+By default, if an output file already exists, Pianist will automatically create a versioned copy instead of overwriting it. This preserves your previous results when iterating on the same input with different instructions.
+
+**Versioning behavior:**
+- If `updated.json` exists, the next run creates `updated.v2.json`, then `updated.v3.json`, etc.
+- The raw Gemini response (`.gemini.txt`) is automatically versioned to match the JSON file
+- Use `--overwrite` to explicitly overwrite existing files instead of versioning
+
+**Example:**
+```bash
+# First run
+./pianist iterate --in seed.json --out updated.json --gemini --instructions "Make it faster"
+# Creates: output/seed/iterate/updated.json and updated.json.gemini.txt
+
+# Second run with different instructions
+./pianist iterate --in seed.json --out updated.json --gemini --instructions "Make it slower"
+# Creates: output/seed/iterate/updated.v2.json and updated.v2.json.gemini.txt
+# Original files are preserved
+
+# To overwrite instead
+./pianist iterate --in seed.json --out updated.json --gemini --instructions "Try again" --overwrite
+# Overwrites: output/seed/iterate/updated.json
+```
+
+### Commands
+
 Render a MIDI file from raw model output (supports fenced JSON code blocks and minor JSON mistakes):
 
 ```bash
 ./pianist render --in examples/model_output.txt --out out.mid
 ```
+
+By default, the MIDI file will be saved to `output/<input-name>/render/out.mid`. You can still provide an absolute path to save elsewhere.
 
 ### Gemini-connected mode (optional)
 
@@ -77,7 +132,7 @@ Iterate (modify an existing seed JSON) with Gemini, saving the updated JSON, sav
   --out seed_updated.json --render --out-midi out.mid
 ```
 
-If you provide `--out` but omit `--raw-out`, Pianist will automatically save the raw Gemini response next to your JSON as `seed_updated.json.gemini.txt`.
+If you provide `--out` but omit `--raw-out`, Pianist will automatically save the raw Gemini response next to your JSON as `<out>.gemini.txt`. All files will be saved to `output/<input-name>/iterate/` by default.
 
 Analyze a reference MIDI and have Gemini generate a new inspired composition, then render:
 
@@ -85,6 +140,8 @@ Analyze a reference MIDI and have Gemini generate a new inspired composition, th
 ./pianist analyze --in existing.mid --gemini --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
   --out composition.json --render --out-midi composition.mid
 ```
+
+All output files (JSON, raw Gemini response, MIDI) will be saved to `output/<input-name>/analyze/` by default.
 
 **Model Selection**: Both `iterate` and `analyze` commands support `--gemini-model` to choose a specific Gemini model. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
 
