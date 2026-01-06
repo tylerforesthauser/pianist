@@ -1,0 +1,187 @@
+"""Tests for pedal pattern fixing functionality."""
+
+from __future__ import annotations
+
+import pytest
+
+from pianist.pedal_fix import fix_pedal_patterns
+from pianist.schema import Composition, PedalEvent, NoteEvent, validate_composition_dict
+
+
+def test_fix_pedal_press_release_pair() -> None:
+    """Test that press-release pairs are merged into single duration>0 event."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        {"type": "pedal", "start": 4, "duration": 0, "value": 0},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].start == 0
+    assert pedals[0].duration == 4
+    assert pedals[0].value == 127
+
+
+def test_fix_orphaned_press() -> None:
+    """Test that orphaned presses are extended to reasonable default."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "note", "start": 0, "duration": 8, "pitches": [60]},
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].start == 0
+    assert pedals[0].duration > 0
+    assert pedals[0].value == 127
+
+
+def test_fix_preserves_correct_patterns() -> None:
+    """Test that already correct patterns (duration>0) are preserved."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 4, "value": 127},
+                        {"type": "pedal", "start": 8, "duration": 2, "value": 127},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 2
+    assert pedals[0].duration == 4
+    assert pedals[1].duration == 2
+
+
+def test_fix_preserves_annotations() -> None:
+    """Test that section/phrase annotations are preserved when merging."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {
+                            "type": "pedal",
+                            "start": 0,
+                            "duration": 0,
+                            "value": 127,
+                            "section": "A",
+                        },
+                        {
+                            "type": "pedal",
+                            "start": 4,
+                            "duration": 0,
+                            "value": 0,
+                        },
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].section == "A"
+
+
+def test_fix_handles_multiple_tracks() -> None:
+    """Test that fix works correctly with multiple tracks."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        {"type": "pedal", "start": 4, "duration": 0, "value": 0},
+                    ]
+                },
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        {"type": "pedal", "start": 2, "duration": 0, "value": 0},
+                    ]
+                },
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    assert len(fixed.tracks) == 2
+    pedals_0 = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    pedals_1 = [e for e in fixed.tracks[1].events if isinstance(e, PedalEvent)]
+    assert len(pedals_0) == 1
+    assert len(pedals_1) == 1
+    assert pedals_0[0].duration == 4
+    assert pedals_1[0].duration == 2
+
+
+def test_fix_extends_to_next_pedal() -> None:
+    """Test that orphaned presses extend to next pedal event."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 0, "value": 127},
+                        {"type": "pedal", "start": 8, "duration": 4, "value": 127},
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 2
+    # First pedal should extend to just before the second
+    assert pedals[0].duration > 0
+    assert pedals[0].duration < 8
+    assert pedals[1].duration == 4  # Second pedal unchanged
