@@ -157,7 +157,10 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 **Success Criteria:**
 - [ ] Schema supports musical intent annotations
 - [ ] Basic analysis works (motif, phrase, harmony)
-- [ ] Annotation tools work
+- [ ] `annotate` command works
+- [ ] `expand` command works
+- [ ] `diff` command works
+- [ ] `analyze` supports JSON input
 - [ ] Simple expansions work (32 beats → 64 beats)
 - [ ] Enhanced prompts improve AI output
 
@@ -181,11 +184,12 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
    - Search functionality
    - Integration with prompts
 
-3. **Expansion Command**
-   - `pianist expand` command implementation
+3. **Expansion Command Enhancement**
+   - Enhance `pianist expand` command
    - Full expansion workflow
    - Strategy generation
    - Reference integration
+   - Quality validation integration
 
 4. **Validation**
    - Quality validation implementation
@@ -215,8 +219,9 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
    - Better validation
 
 2. **Collaboration Tools**
+   - Enhance `diff` command with musical diff
    - Change tracking
-   - Diff visualization
+   - Diff visualization improvements
    - Feedback mechanisms
    - Iteration support
 
