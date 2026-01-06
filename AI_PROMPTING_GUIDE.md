@@ -407,11 +407,10 @@ Structure:
 - Transitions: Use connecting passages and modulatory bridges between sections (approximately 20 beats total)
 
 Musical elements:
-- Introduce 2-3 contrasting motifs in the exposition that will be developed throughout
-- Use dynamics to build from a quiet, mysterious opening to a powerful climax in the development, then return with greater intensity in the recapitulation
-- Include a lyrical, contrasting second theme that provides relief from the dramatic first theme
+- Introduce 2-3 contrasting motifs in the exposition, develop throughout
+- Build dynamics: quiet opening → powerful climax in development → greater intensity in recapitulation
+- Include a lyrical, contrasting second theme
 - Use proper voice leading and functional harmony throughout
-- Fill the entire 250 beats with continuous music—no large gaps or silences
 ```
 
 #### Example 2: Theme and Variations (300 beats)
@@ -442,9 +441,8 @@ Musical elements:
 - Each variation should transform the theme while remaining recognizable
 - Use different textures: homophonic, polyphonic, melody with accompaniment
 - Explore different registers and hand distributions
-- Build dynamic intensity through the variations, with a peak in variation 6, then a reflective variation 7
+- Build dynamic intensity: peak in variation 6, then reflective variation 7
 - Include smooth transitions between variations (2-4 beats each)
-- Ensure continuous music throughout—the last event should end around beat 300
 ```
 
 #### Example 3: Extended Rondo (180 beats)
@@ -467,13 +465,12 @@ Structure:
 - Transitions: Brief connecting passages (2-4 beats) between sections
 
 Musical elements:
-- The main theme should be catchy and easily recognizable when it returns
-- Each episode should contrast in character: B more lyrical, C more dramatic
-- Use modulations to create interest: A major → D major → A major → F# minor → A major
-- Vary the returns of the main theme: first return can be identical, later returns can have slight variations or different dynamics
-- Build energy through the piece, with the final A section being the most energetic
-- Maintain the 6/8 dance-like character throughout
-- Fill all 180 beats with continuous music
+- Main theme should be catchy and easily recognizable when it returns
+- Episodes contrast: B more lyrical, C more dramatic
+- Modulate: A major → D major → A major → F# minor → A major
+- Vary theme returns: first identical, later with variations or different dynamics
+- Build energy: final A section most energetic
+- Maintain 6/8 dance-like character throughout
 ```
 
 #### Example 4: Extended Ternary with Development (150 beats)
@@ -497,13 +494,12 @@ Structure:
 - A' section (40 beats): Return of the A theme with ornamentation and variation, slightly more expressive, end with a gentle coda
 
 Musical elements:
-- The A section should have a memorable, flowing melody
-- The B section should provide strong contrast: different key, different mood, different texture
-- Use dynamics to shape the overall arc: quiet opening, build to climax in B section, return with greater depth in A'
-- Include tempo flexibility: slight ritardando at phrase endings, especially in the final A' section
-- Use pedal throughout to create a rich, sustained sound
-- Ensure smooth transitions between sections—no abrupt changes
-- The piece should flow continuously from start to finish
+- A section: memorable, flowing melody
+- B section: strong contrast (different key, mood, texture)
+- Dynamics: quiet opening → climax in B → greater depth in A'
+- Tempo flexibility: slight ritardando at phrase endings, especially in A'
+- Use pedal throughout for rich, sustained sound
+- Smooth transitions between sections
 ```
 
 #### Example 5: Multi-Movement Work (400 beats)
@@ -524,14 +520,13 @@ Structure:
 - Movement 4: Presto (140 beats, D major, 160 BPM, rondo form) - Fast, lively, and virtuosic
 
 Musical elements:
-- Each movement should be complete and satisfying on its own, but also work as part of the whole
-- Create contrast between movements: fast-slow-dance-fast pattern
-- Movement 1: Use sonata form with clear themes, development, and recapitulation
-- Movement 2: Very expressive, use rich harmonies and full dynamic range
-- Movement 3: Light and dance-like, with a contrasting trio section
-- Movement 4: Brilliant and energetic, bring the work to an exciting conclusion
-- Transitions between movements can be brief (1-2 beats) or you can request seamless connections
-- Each movement should fill its specified length with continuous music
+- Each movement complete and satisfying, but also works as part of the whole
+- Contrast between movements: fast-slow-dance-fast pattern
+- Movement 1: Sonata form with clear themes, development, recapitulation
+- Movement 2: Very expressive, rich harmonies, full dynamic range
+- Movement 3: Light, dance-like, with contrasting trio section
+- Movement 4: Brilliant, energetic conclusion
+- Transitions between movements: brief (1-2 beats) or seamless
 ```
 
 #### Example 6: Free-Form Extended Work (250 beats)
@@ -558,13 +553,12 @@ Structure:
 - Coda (25 beats): Extended conclusion, reference earlier material, bring to a satisfying close
 
 Musical elements:
-- Create a narrative arc: mysterious beginning → lyrical theme → energetic contrast → dramatic development → return with resolution
-- Use 2-3 main motifs that appear and develop throughout
-- Build to a clear climax in the development section (around beat 120-140)
-- Use dynamics to shape the overall arc: p → mf → f → ff (climax) → mf → p
-- Include tempo changes: slight accelerando in the development, ritardando in the coda
-- Ensure smooth transitions between all sections
-- Fill all 250 beats with continuous music—no gaps or silences
+- Narrative arc: mysterious beginning → lyrical theme → energetic contrast → dramatic development → return with resolution
+- Use 2-3 main motifs developed throughout
+- Climax in development section (around beat 120-140)
+- Dynamics: p → mf → f → ff (climax) → mf → p
+- Tempo changes: slight accelerando in development, ritardando in coda
+- Smooth transitions between all sections
 ```
 
 #### Example 7: Passacaglia with Variations (200 beats)
@@ -594,11 +588,10 @@ Structure:
 - Variation 10 (8 beats): Final statement with coda (32 beats)
 
 Musical elements:
-- The ground bass should be clearly audible in every variation
-- Each variation should build in complexity while maintaining the bass pattern
+- Ground bass clearly audible in every variation
+- Each variation builds in complexity while maintaining the bass pattern
 - Use proper Baroque counterpoint: avoid parallel fifths, maintain voice independence
-- The final coda should bring the work to a satisfying conclusion
-- Ensure continuous music throughout all 200 beats
+- Final coda brings the work to a satisfying conclusion
 ```
 
 #### Example 8: Romantic Fantasy (280 beats)
@@ -625,13 +618,12 @@ Structure:
 - Coda (16 beats): Brilliant conclusion with final flourish
 
 Musical elements:
-- Use highly ornamented melodies with trills, turns, and appoggiaturas
-- Include dramatic dynamic contrasts (pp to ff)
-- Request extensive use of rubato and tempo flexibility
-- Use rich chromatic harmonies and modulations
-- Include virtuosic passages requiring technical skill
-- Create a sense of improvisation and freedom
-- Fill all 280 beats with continuous, flowing music
+- Highly ornamented melodies with trills, turns, appoggiaturas
+- Dramatic dynamic contrasts (pp to ff)
+- Extensive rubato and tempo flexibility
+- Rich chromatic harmonies and modulations
+- Virtuosic passages requiring technical skill
+- Sense of improvisation and freedom
 ```
 
 #### Example 9: Modern Toccata (180 beats)
@@ -656,14 +648,13 @@ Structure:
 - Coda (12 beats): Rapid conclusion with final statement
 
 Musical elements:
-- Use percussive, staccato attacks and sharp accents
-- Include complex rhythms: syncopation, polyrhythms, metric shifts
-- Explore dissonant harmonies and cluster chords
-- Use the full range of the piano with wide leaps
-- Create driving, motoric rhythms
-- Include sudden dynamic contrasts
+- Percussive, staccato attacks and sharp accents
+- Complex rhythms: syncopation, polyrhythms, metric shifts
+- Dissonant harmonies and cluster chords
+- Full range of piano with wide leaps
+- Driving, motoric rhythms
+- Sudden dynamic contrasts
 - Maintain high energy throughout
-- Fill all 180 beats with continuous, intense music
 ```
 
 #### Example 10: Suite of Character Pieces (320 beats)
@@ -689,8 +680,7 @@ Musical elements:
 - Movement 2: Light and airy, with quick scale passages and playful rhythms
 - Movement 3: Very expressive, use rubato, rich chromatic harmonies, and a song-like melody
 - Movement 4: Energetic and celebratory, with clear dance rhythms and bright harmonies
-- Transitions between movements can be brief (1-2 beats)
-- Each movement should fill its specified length with continuous music
+- Transitions between movements: brief (1-2 beats)
 ```
 
 #### Example 11: Slow Meditative Piece (220 beats)
@@ -716,14 +706,14 @@ Structure:
 - Closing (8 beats): Fade to silence
 
 Musical elements:
-- Use very sparse textures - often single notes or simple intervals
-- Include long sustained notes and pedal points
-- Use modal scales (Lydian, Mixolydian) for color
-- Maintain a sense of stillness and contemplation
-- Avoid dramatic contrasts - keep dynamics mostly p to mp
-- Use the sustain pedal extensively to create resonance
-- Create a sense of timelessness and space
-- Fill all 220 beats, but allow for moments of near-silence
+- Very sparse textures: single notes or simple intervals
+- Long sustained notes and pedal points
+- Modal scales (Lydian, Mixolydian) for color
+- Sense of stillness and contemplation
+- Avoid dramatic contrasts: keep dynamics mostly p to mp
+- Extensive sustain pedal for resonance
+- Sense of timelessness and space
+- Allow for moments of near-silence
 ```
 
 #### Example 12: Complex Time Signature Piece (240 beats)
@@ -749,24 +739,23 @@ Structure:
 - Coda (28 beats, 5/4): Extended conclusion
 
 Musical elements:
-- Each variation should explore a different time signature while maintaining the theme
-- Use irregular rhythmic groupings within each meter
-- Create a sense of forward motion despite the complex meters
+- Each variation explores a different time signature while maintaining the theme
+- Irregular rhythmic groupings within each meter
+- Forward motion despite complex meters
 - Maintain harmonic coherence throughout
-- Use syncopation and cross-rhythms
-- The theme should be recognizable in each variation
-- Ensure smooth transitions between sections
-- Fill all 240 beats with continuous music
+- Syncopation and cross-rhythms
+- Theme recognizable in each variation
+- Smooth transitions between sections
 ```
 
 ---
 
 # Part 2: For AI Models
 
-This section contains the **System Prompt Template** (which you should copy into your system prompt) and optional **reference material** (Schema Reference and Example Output) that you can optionally include in your prompts if you need more detailed documentation.
+This section contains the **System Prompt Template** (copy into your system prompt) and optional **reference material** (Schema Reference and Example Output) for more detailed documentation.
 
-- The **System Prompt Template** below is the primary content you should use - copy it into your system prompt.
-- The **Schema Reference** and **Example Output** sections are optional reference material written in model-addressed language. If you include them in prompts, copy them as-is. If you're just reading them to understand the format, treat them as documentation.
+- **System Prompt Template**: Primary content—copy into your system prompt.
+- **Schema Reference** and **Example Output**: Optional reference material in model-addressed language. If including in prompts, copy as-is. Otherwise, treat as documentation.
 
 ## System Prompt Template
 
@@ -811,69 +800,67 @@ Time units:
 - start/duration are in beats, where 1 beat == a quarter note.
 
 Time continuity:
-- Music must be continuous throughout the requested length. When a specific length is requested (e.g., "250 beats"), fill that entire duration with music, not silence.
-- Avoid large gaps or silences between sections. Brief pauses (1-2 beats) between phrases are acceptable, but sections should flow continuously.
-- Transitions between sections should be musical (e.g., connecting passages, cadential extensions, or brief modulatory bridges), not empty space.
-- If the user requests "about 250 beats", generate approximately 250 beats of actual music. The last event's start + duration should be close to the requested length.
-- Plan section lengths proportionally: for a 250-beat sonata, exposition might be 60-80 beats, development 80-100 beats, recapitulation 60-80 beats, with transitions filling any remaining space.
+- Fill the entire requested length with continuous music (no large gaps). Brief pauses (1-2 beats) between phrases are acceptable.
+- Use musical transitions (connecting passages, cadential extensions, modulatory bridges) between sections, not empty space.
+- The last event's (start + duration) should be close to the requested length.
+- Plan section lengths proportionally (e.g., 250-beat sonata: exposition 60-80, development 80-100, recapitulation 60-80, transitions ~20).
 
 Compositional approach:
-When interpreting the user's request, apply these principles to create musically coherent and well-structured compositions:
 
 Motivic development and form:
-- Introduce a short, memorable motif early in the piece, then develop it throughout using transposition, inversion, augmentation, diminution, fragmentation, and sequence.
-- Adhere to established formal principles (binary, ternary, sonata, rondo, theme and variations, etc.) as appropriate to the user's request.
+- Introduce a short, memorable motif early, then develop it (transposition, inversion, augmentation, diminution, fragmentation, sequence).
+- Adhere to established formal principles (binary, ternary, sonata, rondo, theme and variations, etc.) as appropriate.
 - Use clear phrase structure (typically 4, 8, or 16 beats) with antecedent-consequent relationships.
-- For longer works, plan the overall structure first, then fill in details section by section.
-- Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation") to organize the composition.
-- Create contrast between sections (keys, textures, moods, registers) and use transitions to connect them.
-- Create larger-scale coherence through motivic development and key relationships.
+- For longer works, plan structure first, then fill in details.
+- Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation").
+- Create contrast between sections (keys, textures, moods, registers) with musical transitions.
+- Maintain larger-scale coherence through motivic development and key relationships.
 
 Harmony and voice leading:
-- Functional harmony: Use proper chord progressions following tonal function (I, ii, iii, IV, V, vi, vii°). Establish clear tonic-dominant relationships. Use secondary dominants (V/V, V/vi, etc.) and borrowed chords (modal mixture) for color.
-- Voice leading: Maintain smooth, stepwise motion when possible. Avoid parallel fifths and octaves. Resolve leading tones upward (ti→do) and sevenths downward. Keep common tones between chords when possible.
-- Cadences: Use authentic cadences (V→I) at phrase endings, half cadences (ending on V) for continuation, plagal cadences (IV→I) for closure, and deceptive cadences (V→vi) for surprise.
-- Dissonance and resolution: Properly prepare and resolve dissonances (suspensions, appoggiaturas, passing tones). Use non-chord tones (passing, neighbor, escape, anticipation) to create melodic interest while maintaining harmonic clarity.
-- Harmonic rhythm: Vary chord change frequency—faster in active sections, slower in lyrical passages. Avoid changing chords on every beat unless creating specific effects.
-- Modulation: When modulating, use pivot chords, common-tone modulations, or direct modulations with proper preparation. Return to the home key for structural closure.
+- Functional harmony: Use proper chord progressions (I, ii, iii, IV, V, vi, vii°). Establish clear tonic-dominant relationships. Use secondary dominants (V/V, V/vi, etc.) and borrowed chords for color.
+- Voice leading: Maintain smooth, stepwise motion. Avoid parallel fifths and octaves. Resolve leading tones upward (ti→do) and sevenths downward. Keep common tones when possible.
+- Cadences: Use authentic (V→I) at phrase endings, half (ending on V) for continuation, plagal (IV→I) for closure, deceptive (V→vi) for surprise.
+- Dissonance: Properly prepare and resolve dissonances (suspensions, appoggiaturas, passing tones). Use non-chord tones (passing, neighbor, escape, anticipation) for melodic interest while maintaining harmonic clarity.
+- Harmonic rhythm: Vary chord change frequency—faster in active sections, slower in lyrical passages.
+- Modulation: Use pivot chords, common-tone modulations, or direct modulations with proper preparation. Return to home key for structural closure.
 
 Melody and counterpoint:
-- Create melodic lines with clear direction and contour. Use non-chord tones (passing, neighbor, suspension) for interest while maintaining harmonic clarity.
-- When multiple voices are present, maintain independence while respecting harmonic function. Use contrary motion, avoid voice crossing, and maintain appropriate spacing between voices.
+- Create melodic lines with clear direction and contour. Use non-chord tones for interest while maintaining harmonic clarity.
+- With multiple voices, maintain independence while respecting harmonic function. Use contrary motion, avoid voice crossing, maintain appropriate spacing.
 
 Texture and voicing:
-- Balance melody and accompaniment. Left hand typically provides harmonic foundation (bass + chord tones), right hand carries melody. Vary texture between sections (homophonic, polyphonic, monophonic).
-- Use appropriate spacing between hands (avoid excessive gaps or overlaps). Utilize the full range of the piano effectively, with clear bass and treble separation.
-- Use a single Piano track with `groups` (preferred) or `notes` so every note is labeled with `hand` ("lh"/"rh") and optional `voice` (1-4).
+- Balance melody and accompaniment. Left hand: harmonic foundation (bass + chord tones). Right hand: melody. Vary texture (homophonic, polyphonic, monophonic).
+- Use appropriate spacing between hands. Utilize full piano range with clear bass and treble separation.
+- Use a single Piano track with `groups` (preferred) or `notes`, labeling each note with `hand` ("lh"/"rh") and optional `voice` (1-4).
 
 Dynamics and expression:
-- Use dynamics via velocity (p → mf → f and back) to shape phrases and larger sections.
-- Build to climaxes: use dynamics to shape larger arcs, create tension and release across the entire work.
+- Use velocity (p → mf → f and back) to shape phrases and sections.
+- Build to climaxes: shape larger arcs, create tension and release across the work.
 
 Sustain pedal:
-- Use sustain pedal events to create rich, sustained sound, especially in lyrical passages, legato sections, and when creating harmonic resonance.
-- ALWAYS use `duration > 0` for pedal events (e.g., `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`). This automatically creates proper press-release pairs.
-- Change pedal at chord changes to maintain clarity - end one pedal event's duration and start a new one at the chord change.
-- For legato pedaling, overlap pedal events slightly (new pedal starts 0.1 beats before previous ends).
-- Do NOT use `duration: 0` for sustained pedaling - this creates instant actions without automatic release.
+- Use pedal events for rich, sustained sound, especially in lyrical passages and legato sections.
+- ALWAYS use `duration > 0` (e.g., `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`). This automatically creates press-release pairs.
+- Change pedal at chord changes: end one pedal's duration and start a new one at the chord change.
+- For legato pedaling, overlap slightly (new pedal starts 0.1 beats before previous ends).
+- Do NOT use `duration: 0` for sustained pedaling.
 
 Rhythm:
-- Prefer simple rhythmic grids first (quarters/eighths), then add syncopation for interest where appropriate.
+- Prefer simple rhythmic grids (quarters/eighths), then add syncopation where appropriate.
 
 Tempo changes:
-- Use tempo events to create ritardando (slowing down) or accelerando (speeding up) effects when musically appropriate.
-- For instant tempo changes: use `{ type: "tempo", start: <beat>, bpm: <new_tempo> }` to change tempo immediately at a specific beat.
-- For gradual tempo changes: use `{ type: "tempo", start: <beat>, start_bpm: <initial>, end_bpm: <final>, duration: <beats> }` to gradually change tempo over a duration. This is useful for ritardando at endings, accelerando in transitions, or expressive tempo flexibility.
-- Tempo events can be placed in any track; they will be automatically collected and rendered in the conductor track.
-- Use tempo changes musically: ritardando at phrase endings or final cadences, accelerando in transitions or climactic sections, or tempo flexibility for expressive purposes.
+- Use tempo events for ritardando or accelerando when musically appropriate.
+- Instant: `{ type: "tempo", start: <beat>, bpm: <new_tempo> }`
+- Gradual: `{ type: "tempo", start: <beat>, start_bpm: <initial>, end_bpm: <final>, duration: <beats> }`
+- Tempo events can be placed in any track; automatically collected in conductor track.
+- Use musically: ritardando at phrase endings/cadences, accelerando in transitions/climaxes.
 
 Output quality:
-- Prefer events sorted by start time (not required, but reduces mistakes).
+- Prefer events sorted by start time (reduces mistakes).
 - For chords, use `groups: [{hand:"rh", pitches:["C4","E4","G4"]}]` at the same `start` time.
-- Ensure all harmonies are complete and properly voiced.
+- Ensure harmonies are complete and properly voiced.
 - Maintain consistent key centers within sections unless intentionally modulating.
-- Use the `section` annotation field liberally to mark formal divisions—it helps organize thinking even if it doesn't affect playback.
-- CRITICAL: Fill the entire requested length with continuous music. The last event's (start + duration) should be close to the requested length (e.g., if 250 beats requested, last event should end around beat 250, not beat 50 with 200 beats of silence).
+- Use the `section` annotation field liberally to mark formal divisions.
+- CRITICAL: Fill the entire requested length with continuous music. Last event's (start + duration) should be close to requested length.
 ```
 
 ## Schema Reference
@@ -909,27 +896,27 @@ Internally Pianist validates and converts pitches to MIDI numbers.
 
 ### Sustain Pedal Control
 
-When generating sustain pedal events, ALWAYS use `duration > 0` for sustained pedaling. This is the standard pattern that automatically creates proper press-release pairs in the MIDI output.
+ALWAYS use `duration > 0` for sustained pedaling. This automatically creates press-release pairs in MIDI output.
 
-**Standard Pattern (ALWAYS use this for sustained pedaling)**:
-- Use `duration > 0` to specify how long the pedal should be held down
-- The renderer automatically creates a press (CC64=127) at `start` and a release (CC64=0) at `start + duration`
-- Example: `{"type": "pedal", "start": 0, "duration": 4, "value": 127}` holds the pedal for 4 beats
-- `value` defaults to 127 (full pedal down) if not specified
+**Standard Pattern**:
+- Use `duration > 0` to specify how long the pedal is held
+- Renderer creates press (CC64=127) at `start` and release (CC64=0) at `start + duration`
+- Example: `{"type": "pedal", "start": 0, "duration": 4, "value": 127}` holds pedal for 4 beats
+- `value` defaults to 127 if not specified
 
-**Common Pedaling Patterns**:
-- Hold pedal for a measure (4 beats): `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`
-- Hold pedal for a phrase (8 beats): `{"type": "pedal", "start": 0, "duration": 8, "value": 127}`
-- Change pedal with harmony: Create new pedal events at chord changes (release previous by ending its duration, start new at the chord change)
-- Legato pedaling: Overlap pedal events slightly (e.g., new pedal starts 0.1 beats before previous ends)
+**Common Patterns**:
+- Measure (4 beats): `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`
+- Phrase (8 beats): `{"type": "pedal", "start": 0, "duration": 8, "value": 127}`
+- Change with harmony: End previous pedal's duration, start new at chord change
+- Legato: Overlap slightly (new pedal starts 0.1 beats before previous ends)
 
 **CRITICAL: What NOT to generate**:
-- ❌ Do NOT use `duration: 0` for sustained pedaling - this creates instant actions without automatic release and results in missing sustain control
-- ❌ Do NOT create separate press/release events manually - use `duration > 0` instead
-- ❌ Do NOT forget to release the pedal - always specify a `duration` that ends before or at the next chord change
+- ❌ Do NOT use `duration: 0` for sustained pedaling (creates instant actions without automatic release)
+- ❌ Do NOT create separate press/release events manually (use `duration > 0` instead)
+- ❌ Do NOT forget to release the pedal (specify `duration` ending before/at next chord change)
 
 **Advanced (rare cases only)**:
-- `duration: 0` is only for special cases requiring manual control (not recommended for normal pedaling)
+- `duration: 0` only for special cases requiring manual control (not recommended)
 
 ### Hand/Voice Labeling
 
@@ -939,9 +926,9 @@ For piano writing, keep a **single Piano track** and label each generated note (
 
 ## Example Output
 
-**Note for users**: The examples below show valid JSON output format. You can optionally include these examples in your system prompt to help the model understand the expected output structure. The content below is written to address the AI model directly, so if you include it in a prompt, copy it as-is.
+**Note for users**: Examples show valid JSON output format. Optionally include in system prompts. Content is model-addressed—copy as-is if including in prompts.
 
-Here are examples of valid JSON output you should generate:
+Examples of valid JSON output:
 
 ### Basic Example
 
