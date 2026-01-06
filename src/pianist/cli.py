@@ -19,6 +19,7 @@ from .pedal_fix import fix_pedal_patterns
 from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
 from .gemini import GeminiError, generate_text
+from .diff import diff_compositions, format_diff_text, format_diff_json, format_diff_markdown
 
 
 # Default output directory for all generated files
@@ -976,8 +977,63 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "annotate":
         try:
-            # TODO: Implement annotation functionality
-            raise NotImplementedError("Annotation command not yet implemented. This is a placeholder.")
+            # Load composition
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
+            
+            # Determine output directory and paths
+            base_name = _derive_base_name_from_path(args.in_path, "annotate-output")
+            output_dir = _get_output_base_dir(base_name, "annotate")
+            
+            # If --show, just display current annotations and exit
+            if args.show:
+                # Check if composition has musical_intent field (when schema extensions are implemented)
+                comp_dict = comp.model_dump()
+                if "musical_intent" in comp_dict and comp_dict["musical_intent"]:
+                    import json
+                    intent_json = json.dumps(comp_dict["musical_intent"], indent=2)
+                    sys.stdout.write("Current annotations:\n")
+                    sys.stdout.write(intent_json + "\n")
+                else:
+                    sys.stdout.write("No annotations found in composition.\n")
+                    sys.stdout.write("Note: Schema extensions for annotations are not yet implemented.\n")
+                return 0
+            
+            # For --auto-detect, use analysis module (when implemented)
+            if args.auto_detect:
+                # TODO: Implement auto-detection using analysis module
+                sys.stderr.write(
+                    "warning: Auto-detection not yet implemented. "
+                    "Schema extensions and analysis module are required.\n"
+                )
+                # For now, just copy the composition
+                annotated_comp = comp
+            else:
+                # Manual annotation flags not yet supported (need schema extensions)
+                # For now, just copy the composition
+                annotated_comp = comp
+                if hasattr(args, "mark_motif") or hasattr(args, "mark_expansion"):
+                    sys.stderr.write(
+                        "warning: Manual annotation flags not yet implemented. "
+                        "Schema extensions are required. Composition copied without changes.\n"
+                    )
+            
+            # Determine output path
+            if args.out_path is None:
+                # Default: overwrite input file
+                out_path = args.in_path
+            else:
+                out_path = _resolve_output_path(args.out_path, output_dir, args.in_path.name, "annotate")
+            
+            # Save annotated composition
+            annotated_json = composition_to_canonical_json(annotated_comp)
+            _write_text(out_path, annotated_json)
+            sys.stdout.write(f"Saved to: {out_path}\n")
+            
+            if args.auto_detect or (hasattr(args, "mark_motif") and args.mark_motif):
+                sys.stdout.write(
+                    "Note: Annotation functionality is limited until schema extensions are implemented.\n"
+                )
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -987,8 +1043,164 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "expand":
         try:
-            # TODO: Implement expansion functionality
-            raise NotImplementedError("Expand command not yet implemented. This is a placeholder.")
+            # Load composition
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
+            
+            # Calculate current length
+            current_length = 0.0
+            for track in comp.tracks:
+                for event in track.events:
+                    event_end = event.start + (getattr(event, "duration", 0.0))
+                    current_length = max(current_length, event_end)
+            
+            if args.verbose:
+                sys.stderr.write(f"Current length: {current_length:.2f} beats\n")
+                sys.stderr.write(f"Target length: {args.target_length:.2f} beats\n")
+                sys.stderr.write(f"Expansion needed: {args.target_length - current_length:.2f} beats\n")
+            
+            # If no provider, just show expansion strategy (when analysis module is ready)
+            if args.provider is None:
+                sys.stderr.write(
+                    "warning: Expansion without AI provider is not yet fully implemented. "
+                    "Analysis module and expansion strategies are required.\n"
+                )
+                sys.stderr.write(
+                    f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
+                )
+                # For now, just copy the composition
+                expanded_comp = comp
+            else:
+                # Generate expansion prompt
+                # TODO: Use enhanced expansion prompt with analysis and strategy
+                # For now, use basic iteration prompt with expansion instructions
+                expansion_instructions = (
+                    f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
+                    f"Preserve the original musical ideas and develop them naturally. "
+                    f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
+                )
+                
+                if args.preserve_motifs:
+                    expansion_instructions += " Preserve all marked motifs and develop them throughout."
+                
+                if args.preserve:
+                    preserve_ids = [id.strip() for id in args.preserve.split(",")]
+                    expansion_instructions += f" Preserve these specific ideas: {', '.join(preserve_ids)}."
+                
+                template = iteration_prompt_template(comp, instructions=expansion_instructions)
+                prompt = _gemini_prompt_from_template(template)
+                
+                # Determine output directory and paths
+                base_name = _derive_base_name_from_path(args.in_path, "expand-output")
+                output_dir = _get_output_base_dir(base_name, "expand")
+                
+                if args.out_path is not None:
+                    out_json_path = _resolve_output_path(
+                        args.out_path, output_dir, "composition.json", "expand"
+                    )
+                else:
+                    out_json_path = None
+                
+                # Determine raw output path
+                raw_out_path: Path | None = args.raw_out_path
+                if raw_out_path is None and out_json_path is not None:
+                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                elif raw_out_path is not None and not raw_out_path.is_absolute():
+                    raw_out_path = output_dir / raw_out_path.name
+                
+                # Check for cached response
+                raw_text: str | None = None
+                cached_raw_path: Path | None = None
+                if raw_out_path is not None and raw_out_path.exists():
+                    if args.verbose:
+                        sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
+                    raw_text = _read_text(raw_out_path)
+                    cached_raw_path = raw_out_path
+                
+                # Call AI provider if no cached response
+                if raw_text is None:
+                    if args.provider == "gemini":
+                        if args.verbose:
+                            sys.stderr.write("Calling AI provider for expansion...\n")
+                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
+                    else:
+                        raise ValueError(f"Unsupported provider: {args.provider}")
+                
+                # Parse expanded composition
+                expanded_comp = parse_composition_from_text(raw_text)
+                
+                # Calculate expanded length
+                expanded_length = 0.0
+                for track in expanded_comp.tracks:
+                    for event in track.events:
+                        event_end = event.start + (getattr(event, "duration", 0.0))
+                        expanded_length = max(expanded_length, event_end)
+                
+                if args.verbose:
+                    sys.stderr.write(f"Expanded length: {expanded_length:.2f} beats\n")
+                
+                # Validate if requested
+                if args.validate:
+                    # TODO: Implement validation using validation module
+                    sys.stderr.write(
+                        "warning: Validation not yet fully implemented. "
+                        "Validation module is required.\n"
+                    )
+                    # Basic check: did it expand?
+                    if expanded_length < current_length:
+                        sys.stderr.write(
+                            "warning: Expanded composition is shorter than original. "
+                            "This may indicate an issue.\n"
+                        )
+                    elif expanded_length < args.target_length * 0.9:
+                        sys.stderr.write(
+                            f"warning: Expanded composition ({expanded_length:.2f} beats) "
+                            f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
+                        )
+                
+                # Save raw response
+                if raw_text is not None and raw_out_path is not None:
+                    if cached_raw_path is None:
+                        _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
+                
+                # Save expanded composition
+                expanded_json = composition_to_canonical_json(expanded_comp)
+                
+                if args.out_path is None:
+                    sys.stdout.write(expanded_json)
+                else:
+                    version_output = not args.overwrite
+                    actual_json_path = _write_text(out_json_path, expanded_json, version_if_exists=version_output)
+                    sys.stdout.write(str(actual_json_path) + "\n")
+                
+                # Render if requested
+                if args.render:
+                    if args.out_midi_path is None:
+                        if args.out_path is not None:
+                            midi_name = args.out_path.stem + ".mid"
+                        else:
+                            midi_name = args.in_path.stem + "_expanded.mid"
+                        out_midi_path = _resolve_output_path(
+                            Path(midi_name), output_dir, "composition.mid", "expand"
+                        )
+                    else:
+                        out_midi_path = _resolve_output_path(
+                            args.out_midi_path, output_dir, "composition.mid", "expand"
+                        )
+                    render_midi_mido(expanded_comp, out_midi_path)
+                    sys.stdout.write(f"Rendered to: {out_midi_path}\n")
+                    return 0
+                
+                return 0
+            
+            # No provider case: save unchanged composition
+            expanded_json = composition_to_canonical_json(expanded_comp)
+            if args.out_path is None:
+                sys.stdout.write(expanded_json)
+            else:
+                out_path = _resolve_output_path(args.out_path, output_dir, args.in_path.name, "expand")
+                _write_text(out_path, expanded_json)
+                sys.stdout.write(str(out_path) + "\n")
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -998,8 +1210,34 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "diff":
         try:
-            # TODO: Implement diff functionality
-            raise NotImplementedError("Diff command not yet implemented. This is a placeholder.")
+            # Load both compositions
+            text1 = _read_text(args.input1)
+            comp1 = parse_composition_from_text(text1)
+            
+            text2 = _read_text(args.input2)
+            comp2 = parse_composition_from_text(text2)
+            
+            # Compute diff
+            diff = diff_compositions(comp1, comp2)
+            
+            # Format output based on format flag
+            if args.format == "json":
+                output = format_diff_json(diff)
+            elif args.format == "markdown":
+                output = format_diff_markdown(diff)
+            else:  # text
+                output = format_diff_text(diff, show_preserved=args.show_preserved)
+            
+            # Write output
+            if args.out_path is not None:
+                # Determine output directory
+                base_name = _derive_base_name_from_path(args.input1, "diff-output")
+                output_dir = _get_output_base_dir(base_name, "diff")
+                out_path = _resolve_output_path(args.out_path, output_dir, "diff.txt", "diff")
+                _write_text(out_path, output)
+                sys.stdout.write(str(out_path) + "\n")
+            else:
+                sys.stdout.write(output)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
