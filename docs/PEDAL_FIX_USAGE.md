@@ -136,21 +136,3 @@ After fixing, verify the results:
 2. Render to MIDI and listen for proper sustain pedal behavior
 3. Compare before/after MIDI files to ensure pedaling is preserved
 
-## Integration with Render Pipeline
-
-You can integrate the fix into your render pipeline:
-
-```python
-from pianist.parser import parse_composition_from_text
-from pianist.pedal_fix import fix_pedal_patterns
-from pianist.renderers.mido_renderer import render_midi_mido
-
-# Load and fix
-comp = parse_composition_from_text(json_text)
-fixed = fix_pedal_patterns(comp)
-
-# Render
-render_midi_mido(fixed, "output.mid")
-```
-
-This ensures all compositions have correct pedal patterns before rendering.

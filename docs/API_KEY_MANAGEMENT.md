@@ -95,26 +95,6 @@ If both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are set:
    - Create API keys with minimal required permissions
    - Use separate keys for different projects if needed
 
-## Integration Testing
-
-For integration tests that optionally use the real API:
-
-```python
-from tests.integration_helpers import skip_if_no_api_key, has_api_key
-
-def test_real_gemini_integration():
-    skip_if_no_api_key()  # Skips if no key available
-    # Your integration test code here...
-```
-
-Or use the fixture:
-```python
-def test_real_gemini_integration(gemini_api_key_available):
-    if not gemini_api_key_available:
-        pytest.skip("No API key")
-    # Your integration test code here...
-```
-
 ## Troubleshooting
 
 ### Key not found
@@ -144,7 +124,7 @@ cp .env.example .env
 # Edit .env and add: GEMINI_API_KEY=your_key
 
 # Now pianist will automatically use the key
-./pianist analyze -i song.mid --gemini --instructions "..." -o out.json
+./pianist analyze -i song.mid --provider gemini --instructions "..." -o out.json
 ```
 
 ### CI/CD Setup (GitHub Actions example)
@@ -159,6 +139,6 @@ cp .env.example .env
 ```bash
 # Override .env file for this session
 export GEMINI_API_KEY="different_key"
-./pianist iterate -i seed.json --gemini --instructions "..." -o out.json
+./pianist iterate -i seed.json --provider gemini --instructions "..." -o out.json
 ```
 

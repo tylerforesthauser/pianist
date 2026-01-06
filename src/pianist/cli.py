@@ -11,6 +11,7 @@ from .analyze import analyze_midi, analysis_prompt_template
 from .iterate import (
     composition_from_midi,
     composition_to_canonical_json,
+    generation_prompt_template,
     iteration_prompt_template,
     transpose_composition,
 )
@@ -261,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         cmd_parser.add_argument(
             "--verbose", "-v",
             action="store_true",
-            help="Show progress indicators and timing for Gemini API calls.",
+            help="Show progress indicators and timing for AI API calls.",
         )
         cmd_parser.add_argument(
             "--overwrite",
@@ -318,22 +319,24 @@ def main(argv: list[str] | None = None) -> int:
         help="Write a ready-to-paste LLM prompt that includes the seed JSON.",
     )
     iterate.add_argument(
-        "--gemini",
-        action="store_true",
-        help="Call Google Gemini to apply instructions to the seed, producing an updated composition JSON.",
+        "--provider",
+        type=str,
+        choices=["gemini"],
+        default=None,
+        help="AI provider to use for iteration. If omitted, only generates a prompt template (use --prompt to save it).",
     )
     iterate.add_argument(
-        "--gemini-model",
+        "--model",
         type=str,
         default="gemini-flash-latest",
-        help="Gemini model name to use (default: gemini-flash-latest).",
+        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
     )
     iterate.add_argument(
         "-r", "--raw",
         dest="raw_out_path",
         type=Path,
         default=None,
-        help="Save the raw Gemini response text to this path. Auto-generated if --output is provided.",
+        help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
     )
     iterate.add_argument(
         "--render",
@@ -351,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
         "--instructions",
         type=str,
         default="",
-        help="Instructions for Gemini to modify the composition (optional, but recommended).",
+        help="Instructions for modifying the composition (optional, but recommended when using --provider).",
     )
     add_common_flags(iterate)
 
@@ -387,27 +390,29 @@ def main(argv: list[str] | None = None) -> int:
         help="Write the prompt text to this path.",
     )
     analyze.add_argument(
-        "--gemini",
-        action="store_true",
-        help="Call Google Gemini to generate a new composition inspired by the analysis.",
+        "--provider",
+        type=str,
+        choices=["gemini"],
+        default=None,
+        help="AI provider to use for generating a new composition. If omitted, only generates analysis/prompt.",
     )
     analyze.add_argument(
-        "--gemini-model",
+        "--model",
         type=str,
         default="gemini-flash-latest",
-        help="Gemini model name to use (default: gemini-flash-latest).",
+        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
     )
     analyze.add_argument(
         "-r", "--raw",
         dest="raw_out_path",
         type=Path,
         default=None,
-        help="Save the raw Gemini response text to this path. Auto-generated if --output is provided.",
+        help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
     )
     analyze.add_argument(
         "--render",
         action="store_true",
-        help="Also render the Gemini-generated composition to MIDI (only valid with --gemini).",
+        help="Also render the AI-generated composition to MIDI (only valid with --provider).",
     )
     analyze.add_argument(
         "-m", "--midi",
@@ -420,7 +425,7 @@ def main(argv: list[str] | None = None) -> int:
         "--instructions",
         type=str,
         default="",
-        help="Instructions for Gemini to compose a new piece (optional, but recommended).",
+        help="Instructions for composing a new piece (optional, but recommended when using --provider).",
     )
     add_common_flags(analyze)
 
@@ -455,6 +460,65 @@ def main(argv: list[str] | None = None) -> int:
         help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
     add_common_flags(fix_pedal)
+
+    generate = sub.add_parser(
+        "generate",
+        help="Generate a new composition from a text description.",
+    )
+    generate.add_argument(
+        "description",
+        nargs="?",
+        type=str,
+        default=None,
+        help="Text description of the composition to generate. If omitted, reads from stdin.",
+    )
+    generate.add_argument(
+        "-o", "--output",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output JSON path. If omitted, prints to stdout.",
+    )
+    generate.add_argument(
+        "--provider",
+        type=str,
+        choices=["gemini"],
+        default=None,
+        help="AI provider to use for generation. If omitted, only generates a prompt template (use --prompt to save it).",
+    )
+    generate.add_argument(
+        "--model",
+        type=str,
+        default="gemini-flash-latest",
+        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+    )
+    generate.add_argument(
+        "-r", "--raw",
+        dest="raw_out_path",
+        type=Path,
+        default=None,
+        help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
+    )
+    generate.add_argument(
+        "--render",
+        action="store_true",
+        help="Also render the generated composition to MIDI (only valid with --provider).",
+    )
+    generate.add_argument(
+        "-m", "--midi",
+        dest="out_midi_path",
+        type=Path,
+        default=None,
+        help="Output MIDI path. Auto-generated from output name if --render is used without this flag.",
+    )
+    generate.add_argument(
+        "-p", "--prompt",
+        dest="prompt_out_path",
+        type=Path,
+        default=None,
+        help="Write a ready-to-paste LLM prompt to this path.",
+    )
+    add_common_flags(generate)
 
 
     args = parser.parse_args(argv)
@@ -590,7 +654,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.prompt_out_path, output_dir, "prompt.txt", "iterate"
             ) if args.prompt_out_path is not None else None
 
-            if args.gemini:
+            if args.provider:
                 instructions = (args.instructions or "").strip()
                 # Instructions are optional but recommended
                 template = iteration_prompt_template(comp, instructions=instructions)
@@ -613,13 +677,16 @@ def main(argv: list[str] | None = None) -> int:
                 cached_raw_path: Path | None = None
                 if raw_out_path is not None and raw_out_path.exists():
                     if args.verbose:
-                        sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
+                        sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
                     raw_text = _read_text(raw_out_path)
                     cached_raw_path = raw_out_path
                 
-                # If no cached response, call Gemini
+                # If no cached response, call AI provider
                 if raw_text is None:
-                    raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
+                    if args.provider == "gemini":
+                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
+                    else:
+                        raise ValueError(f"Unsupported provider: {args.provider}")
 
                 updated = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(updated)
@@ -632,7 +699,7 @@ def main(argv: list[str] | None = None) -> int:
                     elif raw_text is not None:
                         # No path to save raw response - show warning
                         sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw (-r) "
+                            "warning: AI raw output was not saved. Provide --raw (-r) "
                             "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
@@ -702,7 +769,7 @@ def main(argv: list[str] | None = None) -> int:
                 out_json_path = None
             
             # For MIDI, auto-generate path if --render is used without explicit path
-            if args.render and args.gemini:
+            if args.render and args.provider:
                 if args.out_midi_path is None:
                     # Auto-generate MIDI path from input/output name
                     if args.out_path is not None:
@@ -724,7 +791,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.prompt_out_path, output_dir, "prompt.txt", "analyze"
             ) if args.prompt_out_path is not None else None
 
-            if args.gemini:
+            if args.provider:
                 instructions = (args.instructions or "").strip()
                 # Instructions are optional but recommended
                 template = analysis_prompt_template(analysis, instructions=instructions)
@@ -747,13 +814,16 @@ def main(argv: list[str] | None = None) -> int:
                 cached_raw_path: Path | None = None
                 if raw_out_path is not None and raw_out_path.exists():
                     if args.verbose:
-                        sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
+                        sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
                     raw_text = _read_text(raw_out_path)
                     cached_raw_path = raw_out_path
                 
-                # If no cached response, call Gemini
+                # If no cached response, call AI provider
                 if raw_text is None:
-                    raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
+                    if args.provider == "gemini":
+                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
+                    else:
+                        raise ValueError(f"Unsupported provider: {args.provider}")
 
                 comp = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(comp)
@@ -766,7 +836,7 @@ def main(argv: list[str] | None = None) -> int:
                     elif raw_text is not None:
                         # No path to save raw response - show warning
                         sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw (-r) "
+                            "warning: AI raw output was not saved. Provide --raw (-r) "
                             "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
@@ -796,7 +866,7 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
 
             if args.render:
-                raise ValueError("--render is only supported with --gemini for 'analyze'.")
+                raise ValueError("--render is only supported with --provider for 'analyze'.")
 
             if args.format in ("json", "both"):
                 out_json = analysis.to_pretty_json()
@@ -820,6 +890,145 @@ def main(argv: list[str] | None = None) -> int:
                         sys.stdout.write(str(out_json_path) + "\n")
                     else:
                         sys.stdout.write(prompt)
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "generate":
+        try:
+            # Read description from positional arg or stdin
+            if args.description is not None:
+                description = args.description.strip()
+            else:
+                description = sys.stdin.read().strip()
+            
+            if not description:
+                raise ValueError("Composition description is required. Provide as argument or pipe text to stdin.")
+            
+            # Determine output directory and paths
+            base_name = "generate-output"
+            output_dir = _get_output_base_dir(base_name, "generate")
+            
+            # Resolve output paths (only if provided, to maintain stdout behavior when not provided)
+            if args.out_path is not None:
+                out_json_path = _resolve_output_path(
+                    args.out_path, output_dir, "composition.json", "generate"
+                )
+            else:
+                out_json_path = None
+            
+            # Validate --render requires --provider
+            if args.render and args.provider is None:
+                raise ValueError("--render is only supported with --provider for 'generate'.")
+            
+            # For MIDI, auto-generate path if --render is used without explicit path
+            if args.render:
+                if args.out_midi_path is None:
+                    # Auto-generate MIDI path from output name
+                    if args.out_path is not None:
+                        midi_name = args.out_path.stem + ".mid"
+                    else:
+                        midi_name = "composition.mid"
+                    out_midi_path = _resolve_output_path(
+                        Path(midi_name), output_dir, "composition.mid", "generate"
+                    )
+                else:
+                    out_midi_path = _resolve_output_path(
+                        args.out_midi_path, output_dir, "composition.mid", "generate"
+                    )
+            else:
+                out_midi_path = _resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "generate"
+                ) if args.out_midi_path is not None else None
+            prompt_out_path = _resolve_output_path(
+                args.prompt_out_path, output_dir, "prompt.txt", "generate"
+            ) if args.prompt_out_path is not None else None
+            
+            # Generate prompt template
+            template = generation_prompt_template(description)
+            
+            if prompt_out_path is not None:
+                _write_text(prompt_out_path, template)
+            
+            # If no provider specified, just output the prompt
+            if args.provider is None:
+                if args.out_path is None:
+                    sys.stdout.write(template)
+                else:
+                    _write_text(out_json_path, template)
+                    sys.stdout.write(str(out_json_path) + "\n")
+                return 0
+            
+            # Generate composition using AI provider
+            prompt = _gemini_prompt_from_template(template)
+            
+            # Determine raw output path (for both reading cached and saving new)
+            raw_out_path: Path | None = args.raw_out_path
+            if raw_out_path is None and out_json_path is not None:
+                # Default: next to JSON output (only if --out was provided)
+                raw_out_path = _derive_gemini_raw_path(out_json_path)
+            elif raw_out_path is not None and not raw_out_path.is_absolute():
+                # Relative path: resolve relative to output directory
+                raw_out_path = output_dir / raw_out_path.name
+            
+            # Check if we have a cached response
+            raw_text: str | None = None
+            cached_raw_path: Path | None = None
+            if raw_out_path is not None and raw_out_path.exists():
+                if args.verbose:
+                    sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
+                raw_text = _read_text(raw_out_path)
+                cached_raw_path = raw_out_path
+            
+            # If no cached response, call AI provider
+            if raw_text is None:
+                if args.provider == "gemini":
+                    raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
+                else:
+                    raise ValueError(f"Unsupported provider: {args.provider}")
+            
+            comp = parse_composition_from_text(raw_text)
+            out_json = composition_to_canonical_json(comp)
+            
+            if args.out_path is None:
+                sys.stdout.write(out_json)
+                # Save raw response if we have it and no JSON output path
+                if raw_text is not None and raw_out_path is not None:
+                    _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
+                elif raw_text is not None:
+                    # No path to save raw response - show warning
+                    sys.stderr.write(
+                        "warning: AI raw output was not saved. Provide --raw (-r) "
+                        "or also provide --output (-o) to enable an automatic default.\n"
+                    )
+            else:
+                # Version output if file exists and --overwrite not set
+                version_output = not args.overwrite
+                original_path = out_json_path
+                actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
+                
+                # Handle raw response: if JSON was versioned, version the raw response too
+                if raw_text is not None and raw_out_path is not None:
+                    if version_output and original_path != actual_json_path:
+                        # JSON was versioned - save raw response with matching version
+                        versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                        _write_text(versioned_raw_path, raw_text, version_if_exists=False)
+                    elif cached_raw_path is None:
+                        # New response (not cached) - save to original location
+                        _write_text(raw_out_path, raw_text, version_if_exists=False)
+                    elif cached_raw_path != raw_out_path:
+                        # Cached from different location - copy to expected location
+                        _write_text(raw_out_path, raw_text, version_if_exists=False)
+                    # If cached and JSON not versioned and paths match, raw response already exists
+                
+                sys.stdout.write(str(actual_json_path) + "\n")
+            
+            if args.render:
+                render_midi_mido(comp, out_midi_path)
+                sys.stdout.write(f"Rendered to: {out_midi_path}\n")
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)

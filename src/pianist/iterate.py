@@ -325,3 +325,22 @@ def iteration_prompt_template(comp: Composition, instructions: str | None = None
         f"{requested}\n"
     )
 
+
+def generation_prompt_template(description: str) -> str:
+    """
+    Build a copy/paste-friendly prompt for generating a new composition from scratch.
+
+    This does NOT call an LLM. It just packages the description in a way that's
+    easy to feed into your model of choice.
+    """
+    from .prompt_templates import SYSTEM_PROMPT_SHORT
+    return (
+        "SYSTEM PROMPT (paste into your system message):\n"
+        f"{SYSTEM_PROMPT_SHORT}\n"
+        "\n"
+        "USER PROMPT (paste into your user message):\n"
+        "Compose a piano piece:\n"
+        "\n"
+        f"{description}\n"
+    )
+
