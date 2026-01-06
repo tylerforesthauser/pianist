@@ -65,7 +65,8 @@ This directory contains the core planning documents for the Pianist project. The
 
 **Principles:**
 - Keep documents focused and up-to-date
-- Don't create new documents without clear need
+- **Don't create new documents without clear need** - Carefully consider if a new document is truly required
+- **Temporary documents** should go in `docs/temp/` - Use this for work-in-progress, research notes, or documents that will be consolidated/removed later
 - Consolidate related information
 - Remove outdated information
 - Update based on learnings and feedback
@@ -75,6 +76,7 @@ This directory contains the core planning documents for the Pianist project. The
 - Quarterly reviews
 - When major decisions are made
 - When goals or priorities change
+- Periodically clean up `docs/temp/` directory
 
 ---
 
@@ -83,4 +85,5 @@ This directory contains the core planning documents for the Pianist project. The
 - **[README.md](README.md)** - User-facing documentation
 - **[AI_PROMPTING_GUIDE.md](AI_PROMPTING_GUIDE.md)** - AI prompting guidance
 - **[docs/](docs/)** - Technical documentation
+- **[docs/temp/](docs/temp/)** - Temporary documents (work-in-progress, research notes, etc.)
 
