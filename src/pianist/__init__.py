@@ -22,6 +22,10 @@ __all__ = [
     "composition_to_canonical_json",
     "iteration_prompt_template",
     "transpose_composition",
+    # analysis
+    "MidiAnalysis",
+    "analyze_midi",
+    "analysis_prompt_template",
 ]
 
 __version__ = "0.1.0"
@@ -42,4 +46,9 @@ from .iterate import (  # noqa: E402
     composition_to_canonical_json,
     iteration_prompt_template,
     transpose_composition,
+)
+from .analyze import (  # noqa: E402
+    MidiAnalysis,
+    analyze_midi,
+    analysis_prompt_template,
 )
