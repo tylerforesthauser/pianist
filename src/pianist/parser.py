@@ -80,13 +80,23 @@ def _loads_lenient(candidate: str) -> dict[str, Any]:
     return obj
 
 
-def parse_composition_from_text(text: str) -> Composition:
+def parse_json_dict_from_text(text: str) -> dict[str, Any]:
     """
-    Parse a Composition from raw model output (free-form text).
+    Parse a top-level JSON object (dict) from free-form text.
+
+    This is useful for parsing structured outputs from LLMs where the response may
+    contain extra prose or fenced code blocks.
     """
     if not text.strip():
         raise ValueError("Input is empty or contains only whitespace.")
     candidate = _extract_candidate_json(text)
-    data = _loads_lenient(candidate)
+    return _loads_lenient(candidate)
+
+
+def parse_composition_from_text(text: str) -> Composition:
+    """
+    Parse a Composition from raw model output (free-form text).
+    """
+    data = parse_json_dict_from_text(text)
     return validate_composition_dict(data)
 

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import traceback
 from pathlib import Path
 
 from .parser import parse_composition_from_text
-from .analyze import analyze_midi, analysis_prompt_template
+from .analyze import (
+    analyze_midi,
+    analysis_prompt_template,
+    analysis_packet_to_pretty_json,
+    build_analysis_packet,
+    suggest_metadata_from_analysis_packet,
+)
 from .iterate import (
     composition_from_midi,
     composition_to_canonical_json,
@@ -125,9 +132,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     analyze.add_argument(
         "--format",
-        choices=["prompt", "json", "both"],
+        choices=["prompt", "json", "both", "analysis-packet", "llm-metadata"],
         default="prompt",
-        help="Output format: 'prompt' (default), 'json', or 'both'.",
+        help="Output format: 'prompt' (default), 'json', 'both', 'analysis-packet', or 'llm-metadata'.",
     )
     analyze.add_argument(
         "--out",
@@ -148,6 +155,37 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default=None,
         help="Optional: embed requested composition instructions into the generated prompt.",
+    )
+    analyze.add_argument(
+        "--window-beats",
+        type=float,
+        default=None,
+        help="Window size in beats for analysis-packet features (default: 1 bar).",
+    )
+    analyze.add_argument(
+        "--llm",
+        choices=["none", "mock", "openai"],
+        default="none",
+        help="LLM provider for --format llm-metadata (default: none). Use 'mock' for deterministic offline metadata.",
+    )
+    analyze.add_argument(
+        "--llm-model",
+        type=str,
+        default=None,
+        help="Model name for --llm openai (default: env OPENAI_MODEL or a sane default).",
+    )
+    analyze.add_argument(
+        "--llm-base-url",
+        type=str,
+        default=None,
+        help="Base URL for an OpenAI-compatible API (default: env OPENAI_BASE_URL or https://api.openai.com/v1).",
+    )
+    analyze.add_argument(
+        "--packet-out",
+        dest="packet_out_path",
+        type=Path,
+        default=None,
+        help="Optional: when --format llm-metadata, also write the analysis-packet JSON here.",
     )
     analyze.add_argument(
         "--debug",
@@ -307,6 +345,38 @@ def main(argv: list[str] | None = None) -> int:
             if suffix not in (".mid", ".midi"):
                 raise ValueError("Input must be a .mid or .midi file.")
 
+            if args.format == "analysis-packet":
+                packet = build_analysis_packet(args.in_path, window_beats=args.window_beats)
+                out_json = analysis_packet_to_pretty_json(packet)
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    args.out_path.write_text(out_json, encoding="utf-8")
+                    sys.stdout.write(str(args.out_path) + "\n")
+                return 0
+
+            if args.format == "llm-metadata":
+                if args.llm == "none":
+                    raise ValueError("--format llm-metadata requires --llm (mock or openai).")
+                packet = build_analysis_packet(args.in_path, window_beats=args.window_beats)
+                if args.packet_out_path is not None:
+                    args.packet_out_path.write_text(
+                        analysis_packet_to_pretty_json(packet), encoding="utf-8"
+                    )
+                meta = suggest_metadata_from_analysis_packet(
+                    packet,
+                    llm="mock" if args.llm == "mock" else "openai",
+                    model=args.llm_model,
+                    base_url=args.llm_base_url,
+                )
+                out_json = json.dumps(meta, indent=2, sort_keys=True) + "\n"
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    args.out_path.write_text(out_json, encoding="utf-8")
+                    sys.stdout.write(str(args.out_path) + "\n")
+                return 0
+
             analysis = analyze_midi(args.in_path)
 
             if args.format in ("json", "both"):
@@ -343,7 +413,6 @@ def main(argv: list[str] | None = None) -> int:
             sys.stderr.write("error: Schema generation not available.\n")
             return 1
         try:
-            import json
             from pianist.generate_openapi_schema import generate_gemini_schema
 
             output_dir = args.output_dir or Path(__file__).parent.parent.parent

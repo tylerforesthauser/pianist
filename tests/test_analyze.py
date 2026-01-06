@@ -117,3 +117,47 @@ def test_cli_analyze_json_and_prompt_outputs(tmp_path: Path) -> None:
     prompt = prompt_path.read_text(encoding="utf-8")
     assert "Compose something lyrical." in prompt
 
+
+def test_cli_analyze_analysis_packet(tmp_path: Path) -> None:
+    midi_path = tmp_path / "in.mid"
+    _write_test_midi(midi_path)
+
+    out_json = tmp_path / "packet.json"
+    rc = main(["analyze", "--in", str(midi_path), "--format", "analysis-packet", "--out", str(out_json)])
+    assert rc == 0
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["schema_version"] == "analysis-packet/v1"
+    assert data["source"]["ppq"] == 480
+    assert data["timeline"]["tempo_events"]
+    assert data["features_windows"]
+
+
+def test_cli_analyze_llm_metadata_mock(tmp_path: Path) -> None:
+    midi_path = tmp_path / "in.mid"
+    _write_test_midi(midi_path)
+
+    out_meta = tmp_path / "meta.json"
+    out_packet = tmp_path / "packet.json"
+    rc = main(
+        [
+            "analyze",
+            "--in",
+            str(midi_path),
+            "--format",
+            "llm-metadata",
+            "--llm",
+            "mock",
+            "--out",
+            str(out_meta),
+            "--packet-out",
+            str(out_packet),
+        ]
+    )
+    assert rc == 0
+    meta = json.loads(out_meta.read_text(encoding="utf-8"))
+    assert meta["schema_version"] == "metadata-suggestion/v1"
+    assert "global" in meta
+    assert "sections" in meta and meta["sections"]
+    assert "seed_annotations" in meta and meta["seed_annotations"]["section_markers"]
+    assert out_packet.exists()
+
