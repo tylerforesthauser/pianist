@@ -204,30 +204,48 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
                         )
                     )
             elif isinstance(ev, PedalEvent):
-                abs_msgs.append(
-                    _AbsMsg(
-                        start_tick,
-                        mido.Message(
-                            "control_change",
-                            control=64,
-                            value=ev.value,
-                            channel=track.channel,
-                            time=0,
-                        ),
+                # For duration=0, only create a single message (instant press or release)
+                # For duration>0, create press at start and release at end
+                if dur_ticks == 0:
+                    # Instant action: only send the value change, no release
+                    abs_msgs.append(
+                        _AbsMsg(
+                            start_tick,
+                            mido.Message(
+                                "control_change",
+                                control=64,
+                                value=ev.value,
+                                channel=track.channel,
+                                time=0,
+                            ),
+                        )
                     )
-                )
-                abs_msgs.append(
-                    _AbsMsg(
-                        end_tick,
-                        mido.Message(
-                            "control_change",
-                            control=64,
-                            value=0,
-                            channel=track.channel,
-                            time=0,
-                        ),
+                else:
+                    # Sustained pedal: press at start, release at end
+                    abs_msgs.append(
+                        _AbsMsg(
+                            start_tick,
+                            mido.Message(
+                                "control_change",
+                                control=64,
+                                value=ev.value,
+                                channel=track.channel,
+                                time=0,
+                            ),
+                        )
                     )
-                )
+                    abs_msgs.append(
+                        _AbsMsg(
+                            end_tick,
+                            mido.Message(
+                                "control_change",
+                                control=64,
+                                value=0,
+                                channel=track.channel,
+                                time=0,
+                            ),
+                        )
+                    )
             elif isinstance(ev, TempoEvent):
                 # Tempo events are collected above and handled separately
                 # Skip them here to avoid duplicate processing
