@@ -124,6 +124,7 @@ The fix uses these rules:
 - Overlapping pedals are handled by extending to the next pedal with a small gap
 - Very complex pedal patterns may need manual review
 - The fix preserves section/phrase annotations when merging events
+- The fix currently only handles standard pedal patterns (`value=127` for press, `value=0` for release) when `duration=0`; half-pedaling values (`1–126`) with `duration=0` are preserved as-is (not normalized) and may require manual review. Half-pedaling values with `duration>0` are always preserved.
 
 ## Verification
 

@@ -5,7 +5,8 @@ This module provides functions to automatically fix common pedal pattern issues,
 converting duration=0 patterns to duration>0 patterns with reasonable defaults.
 
 Note: The fix currently handles standard pedal patterns (value=127 for press,
-value=0 for release). Half-pedaling values (1-126) are preserved as-is and
+value=0 for release). Half-pedaling values (1-126) with duration>0 are preserved,
+while duration=0 half-pedaling events are preserved as-is (not normalized) and
 may require manual review.
 """
 
@@ -51,7 +52,7 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
             
             # Only fix duration=0 events
             # Note: Currently handles standard patterns (value=127 for press, value=0 for release).
-            # Half-pedaling values (1-126) are preserved as-is and may require manual review.
+            # Half-pedaling values (1-126) with duration=0 are preserved as-is (not normalized).
             if pedal.duration == 0:
                 if pedal.value == 127:  # Press event (standard full pedal down)
                     # Look for a matching release event (duration=0, value=0) after this
@@ -61,7 +62,9 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                     for j in range(i + 1, len(pedal_info)):
                         next_idx, next_pedal = pedal_info[j]
                         # pedal_info is already filtered to contain only PedalEvent instances
-                        if (next_pedal.duration == 0 and 
+                        # Skip releases that are already processed (paired with a previous press)
+                        if (next_idx not in processed_indices and
+                            next_pedal.duration == 0 and 
                             next_pedal.value == 0 and
                             next_pedal.start > pedal.start):
                             release_idx = next_idx
@@ -96,8 +99,9 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                     # No matching release found - extend to next pedal or default
                     next_pedal_start = None
                     for j in range(i + 1, len(pedal_info)):
-                        _, next_pedal = pedal_info[j]
-                        if next_pedal.start > pedal.start:
+                        next_idx, next_pedal = pedal_info[j]
+                        # Skip pedals that are already processed (e.g., releases already paired)
+                        if next_idx not in processed_indices and next_pedal.start > pedal.start:
                             next_pedal_start = next_pedal.start
                             break
                     
@@ -137,6 +141,11 @@ def fix_pedal_patterns(comp: Composition) -> Composition:
                 
                 elif pedal.value == 0:  # Release event without matching press
                     # Keep as-is (valid for instant release, though unusual)
+                    fixed_pedals.append(pedal)
+                    processed_indices.add(idx)
+                else:
+                    # Half-pedaling or non-standard value (1-126) with duration=0
+                    # Preserve as-is rather than dropping it
                     fixed_pedals.append(pedal)
                     processed_indices.add(idx)
             else:

@@ -248,3 +248,89 @@ def test_fix_handles_empty_events() -> None:
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].duration > 0  # Should use fallback default
+
+
+def test_fix_handles_half_pedaling_duration_zero() -> None:
+    """Test that half-pedaling events with duration=0 are preserved as-is."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 64},  # Half-pedaling
+                        ]
+                    }
+                ],
+            }
+        )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].duration == 0  # Preserved as-is
+    assert pedals[0].value == 64  # Preserved as-is
+
+
+def test_fix_preserves_half_pedaling_duration_positive() -> None:
+    """Test that half-pedaling events with duration>0 are preserved."""
+    comp = validate_composition_dict(
+        {
+            "title": "Test",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {"type": "pedal", "start": 0, "duration": 4, "value": 64},  # Half-pedaling
+                    ]
+                }
+            ],
+        }
+    )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    assert len(pedals) == 1
+    assert pedals[0].duration == 4  # Preserved
+    assert pedals[0].value == 64  # Preserved
+
+
+def test_fix_handles_two_presses_one_release() -> None:
+    """Test that two consecutive presses followed by one release only pairs first press with release."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        comp = validate_composition_dict(
+            {
+                "title": "Test",
+                "bpm": 120,
+                "time_signature": {"numerator": 4, "denominator": 4},
+                "tracks": [
+                    {
+                        "events": [
+                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},  # First press
+                            {"type": "pedal", "start": 2, "duration": 0, "value": 127},  # Second press
+                            {"type": "pedal", "start": 4, "duration": 0, "value": 0},   # Single release
+                        ]
+                    }
+                ],
+            }
+        )
+    
+    fixed = fix_pedal_patterns(comp)
+    
+    pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
+    # Should have: first press paired with release (duration=4), second press extended
+    assert len(pedals) == 2
+    # First pedal should be paired with release
+    first_pedal = next(p for p in pedals if p.start == 0)
+    assert first_pedal.duration == 4  # Paired with release at 4
+    # Second pedal should be extended (no release available)
+    second_pedal = next(p for p in pedals if p.start == 2)
+    assert second_pedal.duration > 0  # Extended to default
