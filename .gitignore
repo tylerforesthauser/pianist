@@ -209,3 +209,9 @@ __marimo__/
 
 # System files
 .DS_Store
+
+# Reference data
+ref/
+
+# Output data
+output/
