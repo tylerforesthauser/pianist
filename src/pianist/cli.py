@@ -36,12 +36,12 @@ def _get_output_base_dir(base_name: str, command: str) -> Path:
     
     For example:
     - analyze --in song.mid → output/song/analyze/
-    - iterate --in song.mid → output/song/iterate/
+    - import --in song.mid → output/song/import/
     - Both are grouped under "song" but separated by command to avoid conflicts.
     
     Args:
         base_name: Base name derived from input file (without extension)
-        command: Command name (e.g., "iterate", "analyze", "render", "fix-pedal")
+        command: Command name (e.g., "import", "modify", "analyze", "render", "fix")
     
     Returns:
         Path to the output directory
@@ -247,7 +247,7 @@ def _gemini_prompt_from_template(template: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="pianist",
-        description="Convert AI-generated composition JSON into a MIDI file.",
+        description="Framework for human-AI collaboration in musical composition. Convert between JSON and MIDI, analyze compositions, and expand incomplete works.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -287,76 +287,98 @@ def main(argv: list[str] | None = None) -> int:
     )
     add_common_flags(render)
 
-    iterate = sub.add_parser(
-        "iterate",
-        help="Import an existing JSON/MIDI and emit a clean, tweakable composition JSON seed.",
+    # Import command: Import external formats (MIDI, etc.) to JSON
+    import_cmd = sub.add_parser(
+        "import",
+        help="Import a MIDI file and convert it to Pianist JSON format.",
     )
-    iterate.add_argument(
+    import_cmd.add_argument(
         "-i", "--input",
         dest="in_path",
         type=Path,
         required=True,
-        help="Input composition: a Pianist JSON (or raw LLM output text) OR a .mid/.midi file.",
+        help="Input MIDI file (.mid/.midi).",
     )
-    iterate.add_argument(
+    import_cmd.add_argument(
         "-o", "--output",
         dest="out_path",
         type=Path,
         default=None,
         help="Output JSON path. If omitted, prints to stdout.",
     )
-    iterate.add_argument(
+    add_common_flags(import_cmd)
+
+    # Modify command: Modify existing compositions (transpose, AI modification, etc.)
+    modify = sub.add_parser(
+        "modify",
+        help="Modify an existing composition (transpose, fix, or modify with AI).",
+    )
+    modify.add_argument(
+        "-i", "--input",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input composition JSON (or raw LLM output text).",
+    )
+    modify.add_argument(
+        "-o", "--output",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output JSON path. If omitted, prints to stdout.",
+    )
+    modify.add_argument(
         "--transpose", "-t",
         type=int,
         default=0,
         help="Transpose all notes by this many semitones (can be negative).",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "-p", "--prompt",
         dest="prompt_out_path",
         type=Path,
         default=None,
-        help="Write a ready-to-paste LLM prompt that includes the seed JSON.",
+        help="Write a ready-to-paste LLM prompt that includes the composition JSON.",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "--provider",
         type=str,
         choices=["gemini"],
         default=None,
-        help="AI provider to use for iteration. If omitted, only generates a prompt template (use --prompt to save it).",
+        help="AI provider to use for modification. If omitted, only generates a prompt template (use --prompt to save it).",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "--model",
         type=str,
         default="gemini-flash-latest",
         help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "-r", "--raw",
         dest="raw_out_path",
         type=Path,
         default=None,
         help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "--render",
         action="store_true",
-        help="Also render the (possibly Gemini-updated) composition to MIDI.",
+        help="Also render the (possibly AI-modified) composition to MIDI.",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "-m", "--midi",
         dest="out_midi_path",
         type=Path,
         default=None,
         help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
-    iterate.add_argument(
+    modify.add_argument(
         "--instructions",
         type=str,
         default="",
         help="Instructions for modifying the composition (optional, but recommended when using --provider).",
     )
-    add_common_flags(iterate)
+    add_common_flags(modify)
 
     analyze = sub.add_parser(
         "analyze",
@@ -429,37 +451,200 @@ def main(argv: list[str] | None = None) -> int:
     )
     add_common_flags(analyze)
 
-    fix_pedal = sub.add_parser(
-        "fix-pedal",
-        help="Fix incorrect sustain pedal patterns in a composition JSON file.",
+    # Fix command: Fix composition issues
+    fix = sub.add_parser(
+        "fix",
+        help="Fix composition issues (pedal patterns, etc.).",
     )
-    fix_pedal.add_argument(
+    fix.add_argument(
         "-i", "--input",
         dest="in_path",
         type=Path,
         required=True,
         help="Input JSON file containing composition.",
     )
-    fix_pedal.add_argument(
+    fix.add_argument(
         "-o", "--output",
         dest="out_path",
         type=Path,
         default=None,
         help="Output JSON path. If omitted, overwrites input file.",
     )
-    fix_pedal.add_argument(
+    fix.add_argument(
+        "--pedal",
+        action="store_true",
+        help="Fix incorrect sustain pedal patterns.",
+    )
+    fix.add_argument(
+        "--all",
+        action="store_true",
+        help="Fix all available issues.",
+    )
+    fix.add_argument(
         "--render",
         action="store_true",
         help="Also render the fixed composition to MIDI.",
     )
-    fix_pedal.add_argument(
+    fix.add_argument(
         "-m", "--midi",
         dest="out_midi_path",
         type=Path,
         default=None,
         help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
-    add_common_flags(fix_pedal)
+    add_common_flags(fix)
+
+    # Annotate command: Mark musical intent
+    annotate = sub.add_parser(
+        "annotate",
+        help="Mark musical intent (key ideas, expansion points, etc.).",
+    )
+    annotate.add_argument(
+        "-i", "--input",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input composition JSON.",
+    )
+    annotate.add_argument(
+        "-o", "--output",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output annotated JSON path. If omitted, overwrites input file.",
+    )
+    annotate.add_argument(
+        "--auto-detect",
+        action="store_true",
+        help="Automatically detect and annotate key ideas.",
+    )
+    annotate.add_argument(
+        "--show",
+        action="store_true",
+        help="Show current annotations without modifying.",
+    )
+    # TODO: Add more annotation flags (--mark-motif, --mark-expansion, etc.)
+    add_common_flags(annotate)
+
+    # Expand command: Expand incomplete compositions
+    expand = sub.add_parser(
+        "expand",
+        help="Expand an incomplete composition to a complete work.",
+    )
+    expand.add_argument(
+        "-i", "--input",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input composition JSON (preferably annotated).",
+    )
+    expand.add_argument(
+        "-o", "--output",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output expanded JSON path. If omitted, prints to stdout.",
+    )
+    expand.add_argument(
+        "--target-length",
+        type=float,
+        required=True,
+        help="Target length in beats.",
+    )
+    expand.add_argument(
+        "--provider",
+        type=str,
+        choices=["gemini"],
+        default=None,
+        help="AI provider to use for expansion. If omitted, only generates expansion strategy.",
+    )
+    expand.add_argument(
+        "--model",
+        type=str,
+        default="gemini-flash-latest",
+        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+    )
+    expand.add_argument(
+        "--preserve-motifs",
+        action="store_true",
+        help="Preserve all marked motifs.",
+    )
+    expand.add_argument(
+        "--preserve",
+        type=str,
+        default=None,
+        help="Comma-separated list of idea IDs to preserve.",
+    )
+    expand.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate expansion quality before returning.",
+    )
+    expand.add_argument(
+        "--render",
+        action="store_true",
+        help="Also render the expanded composition to MIDI.",
+    )
+    expand.add_argument(
+        "-m", "--midi",
+        dest="out_midi_path",
+        type=Path,
+        default=None,
+        help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
+    )
+    expand.add_argument(
+        "-r", "--raw",
+        dest="raw_out_path",
+        type=Path,
+        default=None,
+        help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
+    )
+    expand.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show expansion progress.",
+    )
+    add_common_flags(expand)
+
+    # Diff command: Show changes between compositions
+    diff = sub.add_parser(
+        "diff",
+        help="Show what changed between two compositions.",
+    )
+    diff.add_argument(
+        "input1",
+        type=Path,
+        help="First composition JSON.",
+    )
+    diff.add_argument(
+        "input2",
+        type=Path,
+        help="Second composition JSON.",
+    )
+    diff.add_argument(
+        "-o", "--output",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output diff file. If omitted, prints to stdout.",
+    )
+    diff.add_argument(
+        "--musical",
+        action="store_true",
+        help="Show musical diff (not just text).",
+    )
+    diff.add_argument(
+        "--show-preserved",
+        action="store_true",
+        help="Highlight what was preserved.",
+    )
+    diff.add_argument(
+        "--format",
+        choices=["text", "json", "markdown"],
+        default="text",
+        help="Output format (default: text).",
+    )
+    add_common_flags(diff)
 
     generate = sub.add_parser(
         "generate",
@@ -542,63 +727,32 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(str(out) + "\n")
         return 0
 
-    if args.cmd == "fix-pedal":
+    if args.cmd == "import":
         try:
-            text = _read_text(args.in_path)
-            comp = parse_composition_from_text(text)
+            suffix = args.in_path.suffix.lower()
+            if suffix not in (".mid", ".midi"):
+                raise ValueError("Input must be a .mid or .midi file for import.")
             
-            # Count issues before fix
-            issues_before = sum(
-                1 for track in comp.tracks
-                for ev in track.events
-                if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
-            )
-            
-            # Fix pedal patterns
-            fixed = fix_pedal_patterns(comp)
-            
-            # Count after fix
-            issues_after = sum(
-                1 for track in fixed.tracks
-                for ev in track.events
-                if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
-            )
+            comp = composition_from_midi(args.in_path)
             
             # Determine output directory and paths
-            base_name = _derive_base_name_from_path(args.in_path, "fix-pedal-output")
-            output_dir = _get_output_base_dir(base_name, "fix-pedal")
+            base_name = _derive_base_name_from_path(args.in_path, "import-output")
+            output_dir = _get_output_base_dir(base_name, "import")
             
-            # If no output path specified, overwrite input file (original behavior)
-            if args.out_path is None:
-                out_path = args.in_path
+            if args.out_path is not None:
+                out_json_path = _resolve_output_path(
+                    args.out_path, output_dir, "composition.json", "import"
+                )
             else:
-                out_path = _resolve_output_path(args.out_path, output_dir, args.in_path.name, "fix-pedal")
+                out_json_path = None
             
-            fixed_json = composition_to_canonical_json(fixed)
-            _write_text(out_path, fixed_json)
+            out_json = composition_to_canonical_json(comp)
             
-            sys.stdout.write(f"Fixed {args.in_path.name}:\n")
-            sys.stdout.write(f"  Pedal issues before: {issues_before}\n")
-            sys.stdout.write(f"  Pedal issues after: {issues_after}\n")
-            sys.stdout.write(f"  Saved to: {out_path}\n")
-            
-            # Optionally render to MIDI
-            if args.render:
-                if args.out_midi_path is None:
-                    # Auto-generate MIDI path from input/output name
-                    if args.out_path is not None:
-                        midi_name = args.out_path.stem + ".mid"
-                    else:
-                        midi_name = args.in_path.stem + "_fixed.mid"
-                    out_midi_path = _resolve_output_path(
-                        Path(midi_name), output_dir, "composition.mid", "fix-pedal"
-                    )
-                else:
-                    out_midi_path = _resolve_output_path(
-                        args.out_midi_path, output_dir, "composition.mid", "fix-pedal"
-                    )
-                render_midi_mido(fixed, out_midi_path)
-                sys.stdout.write(f"  Rendered to: {out_midi_path}\n")
+            if args.out_path is None:
+                sys.stdout.write(out_json)
+            else:
+                _write_text(out_json_path, out_json)
+                sys.stdout.write(str(out_json_path) + "\n")
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -606,27 +760,23 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
 
-    if args.cmd == "iterate":
+    if args.cmd == "modify":
         try:
-            suffix = args.in_path.suffix.lower()
-            if suffix in (".mid", ".midi"):
-                comp = composition_from_midi(args.in_path)
-            else:
-                # Treat as model output / JSON text file (parse_composition_from_text is lenient).
-                text = _read_text(args.in_path)
-                comp = parse_composition_from_text(text)
+            # Treat as model output / JSON text file (parse_composition_from_text is lenient).
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
 
             if args.transpose:
                 comp = transpose_composition(comp, args.transpose)
 
             # Determine output directory and paths
-            base_name = _derive_base_name_from_path(args.in_path, "iterate-output")
-            output_dir = _get_output_base_dir(base_name, "iterate")
+            base_name = _derive_base_name_from_path(args.in_path, "modify-output")
+            output_dir = _get_output_base_dir(base_name, "modify")
             
             # Resolve output paths (only if provided, to maintain stdout behavior when not provided)
             if args.out_path is not None:
                 out_json_path = _resolve_output_path(
-                    args.out_path, output_dir, "composition.json", "iterate"
+                    args.out_path, output_dir, "composition.json", "modify"
                 )
             else:
                 out_json_path = None
@@ -640,18 +790,18 @@ def main(argv: list[str] | None = None) -> int:
                     else:
                         midi_name = args.in_path.stem + ".mid"
                     out_midi_path = _resolve_output_path(
-                        Path(midi_name), output_dir, "composition.mid", "iterate"
+                        Path(midi_name), output_dir, "composition.mid", "modify"
                     )
                 else:
                     out_midi_path = _resolve_output_path(
-                        args.out_midi_path, output_dir, "composition.mid", "iterate"
+                        args.out_midi_path, output_dir, "composition.mid", "modify"
                     )
             else:
                 out_midi_path = _resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "iterate"
+                    args.out_midi_path, output_dir, "composition.mid", "modify"
                 ) if args.out_midi_path is not None else None
             prompt_out_path = _resolve_output_path(
-                args.prompt_out_path, output_dir, "prompt.txt", "iterate"
+                args.prompt_out_path, output_dir, "prompt.txt", "modify"
             ) if args.prompt_out_path is not None else None
 
             if args.provider:
@@ -741,6 +891,115 @@ def main(argv: list[str] | None = None) -> int:
 
                 if args.render:
                     render_midi_mido(comp, out_midi_path)
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "fix":
+        try:
+            # Determine which fixes to apply
+            fix_pedal_flag = args.pedal or args.all
+            
+            if not fix_pedal_flag:
+                raise ValueError("No fix specified. Use --pedal, --all, or other fix flags.")
+            
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
+            
+            issues_before = 0
+            if fix_pedal_flag:
+                issues_before = sum(
+                    1 for track in comp.tracks
+                    for ev in track.events
+                    if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
+                )
+            
+            # Apply fixes
+            fixed = comp
+            if fix_pedal_flag:
+                fixed = fix_pedal_patterns(fixed)
+            
+            # Count after fix
+            issues_after = 0
+            if fix_pedal_flag:
+                issues_after = sum(
+                    1 for track in fixed.tracks
+                    for ev in track.events
+                    if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
+                )
+            
+            # Determine output directory and paths
+            base_name = _derive_base_name_from_path(args.in_path, "fix-output")
+            output_dir = _get_output_base_dir(base_name, "fix")
+            
+            # If no output path specified, overwrite input file (original behavior)
+            if args.out_path is None:
+                out_path = args.in_path
+            else:
+                out_path = _resolve_output_path(args.out_path, output_dir, args.in_path.name, "fix")
+            
+            fixed_json = composition_to_canonical_json(fixed)
+            _write_text(out_path, fixed_json)
+            
+            sys.stdout.write(f"Fixed {args.in_path.name}:\n")
+            if fix_pedal_flag:
+                sys.stdout.write(f"  Pedal issues before: {issues_before}\n")
+                sys.stdout.write(f"  Pedal issues after: {issues_after}\n")
+            sys.stdout.write(f"  Saved to: {out_path}\n")
+            
+            # Optionally render to MIDI
+            if args.render:
+                if args.out_midi_path is None:
+                    # Auto-generate MIDI path from input/output name
+                    if args.out_path is not None:
+                        midi_name = args.out_path.stem + ".mid"
+                    else:
+                        midi_name = args.in_path.stem + "_fixed.mid"
+                    out_midi_path = _resolve_output_path(
+                        Path(midi_name), output_dir, "composition.mid", "fix"
+                    )
+                else:
+                    out_midi_path = _resolve_output_path(
+                        args.out_midi_path, output_dir, "composition.mid", "fix"
+                    )
+                render_midi_mido(fixed, out_midi_path)
+                sys.stdout.write(f"  Rendered to: {out_midi_path}\n")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "annotate":
+        try:
+            # TODO: Implement annotation functionality
+            raise NotImplementedError("Annotation command not yet implemented. This is a placeholder.")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "expand":
+        try:
+            # TODO: Implement expansion functionality
+            raise NotImplementedError("Expand command not yet implemented. This is a placeholder.")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
+        return 0
+
+    if args.cmd == "diff":
+        try:
+            # TODO: Implement diff functionality
+            raise NotImplementedError("Diff command not yet implemented. This is a placeholder.")
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
