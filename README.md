@@ -28,6 +28,17 @@ Render a MIDI file from raw model output (supports fenced JSON code blocks and m
 ./pianist render --in examples/model_output.txt --out out.mid
 ```
 
+### Prompt sync (keeping `AI_PROMPTING_GUIDE.md` up to date)
+
+Canonical system prompt text lives in `src/pianist/prompts/*.txt` and is synced into `AI_PROMPTING_GUIDE.md`.
+
+```bash
+make sync-prompts
+make check-prompts
+```
+
+See `PROMPT_SYNC.md` for details.
+
 Iterate on an existing work by importing either a Pianist JSON (or raw LLM output text) **or a MIDI file**, emitting a clean JSON seed you can tweak and re-render:
 
 ```bash
