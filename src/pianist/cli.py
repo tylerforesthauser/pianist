@@ -8,6 +8,10 @@ from pathlib import Path
 
 from .parser import parse_composition_from_text
 from .analyze import analyze_midi, analysis_prompt_template
+from .musical_analysis import (
+    analyze_composition as analyze_composition_musical,
+    MUSIC21_AVAILABLE,
+)
 from .iterate import (
     composition_from_midi,
     composition_to_canonical_json,
@@ -397,7 +401,7 @@ def main(argv: list[str] | None = None) -> int:
         dest="in_path",
         type=Path,
         required=True,
-        help="Input MIDI file (.mid/.midi).",
+        help="Input file: MIDI (.mid/.midi) or JSON composition (.json).",
     )
     analyze.add_argument(
         "--format", "-f",
@@ -1291,14 +1295,68 @@ def main(argv: list[str] | None = None) -> int:
                 # For now, just copy the composition
                 expanded_comp = comp
             else:
-                # Generate expansion prompt
-                # TODO: Use enhanced expansion prompt with analysis and strategy
-                # For now, use basic iteration prompt with expansion instructions
-                expansion_instructions = (
-                    f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
-                    f"Preserve the original musical ideas and develop them naturally. "
-                    f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
-                )
+                # Generate expansion prompt with analysis
+                # Perform musical analysis to inform expansion
+                if MUSIC21_AVAILABLE:
+                    try:
+                        musical_analysis = analyze_composition_musical(comp)
+                        
+                        # Build expansion instructions with analysis
+                        expansion_instructions = (
+                            f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
+                            f"Preserve the original musical ideas and develop them naturally. "
+                            f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'}).\n\n"
+                        )
+                        
+                        # Add analysis results
+                        if musical_analysis.motifs:
+                            expansion_instructions += f"Detected motifs ({len(musical_analysis.motifs)}): "
+                            motif_descriptions = [f"motif at {m.start:.1f}-{m.start+m.duration:.1f} beats (pitches: {m.pitches})" for m in musical_analysis.motifs[:3]]
+                            expansion_instructions += ", ".join(motif_descriptions)
+                            if len(musical_analysis.motifs) > 3:
+                                expansion_instructions += f" (and {len(musical_analysis.motifs)-3} more)"
+                            expansion_instructions += ". Develop and vary these motifs throughout the expansion.\n\n"
+                        
+                        if musical_analysis.phrases:
+                            expansion_instructions += f"Detected phrases ({len(musical_analysis.phrases)}): "
+                            phrase_descriptions = [f"phrase at {p.start:.1f}-{p.start+p.duration:.1f} beats" for p in musical_analysis.phrases[:3]]
+                            expansion_instructions += ", ".join(phrase_descriptions)
+                            if len(musical_analysis.phrases) > 3:
+                                expansion_instructions += f" (and {len(musical_analysis.phrases)-3} more)"
+                            expansion_instructions += ". Extend these phrases naturally and add complementary material.\n\n"
+                        
+                        if musical_analysis.harmonic_progression and musical_analysis.harmonic_progression.chords:
+                            expansion_instructions += f"Harmonic analysis: {len(musical_analysis.harmonic_progression.chords)} chords detected. "
+                            if musical_analysis.harmonic_progression.key:
+                                expansion_instructions += f"Key: {musical_analysis.harmonic_progression.key}. "
+                            expansion_instructions += "Maintain harmonic coherence while expanding.\n\n"
+                        
+                        if musical_analysis.form:
+                            expansion_instructions += f"Musical form: {musical_analysis.form}. Preserve this form structure while expanding sections.\n\n"
+                        
+                        # Add expansion suggestions
+                        if musical_analysis.expansion_suggestions:
+                            expansion_instructions += "Expansion strategies:\n"
+                            for suggestion in musical_analysis.expansion_suggestions[:3]:
+                                expansion_instructions += f"- {suggestion}\n"
+                            expansion_instructions += "\n"
+                        
+                    except Exception as e:
+                        if args.verbose:
+                            sys.stderr.write(f"warning: Musical analysis failed: {e}. Using basic expansion instructions.\n")
+                        # Fall back to basic instructions
+                        expansion_instructions = (
+                            f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
+                            f"Preserve the original musical ideas and develop them naturally. "
+                            f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
+                        )
+                else:
+                    # No music21 available, use basic instructions
+                    expansion_instructions = (
+                        f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
+                        f"Preserve the original musical ideas and develop them naturally. "
+                        f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
+                    )
                 
                 if args.preserve_motifs:
                     expansion_instructions += " Preserve all marked motifs and develop them throughout."
@@ -1475,8 +1533,85 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "analyze":
         try:
             suffix = args.in_path.suffix.lower()
+            
+            # Handle JSON input (composition analysis)
+            if suffix == ".json":
+                if not MUSIC21_AVAILABLE:
+                    sys.stderr.write(
+                        "warning: music21 is not installed. Musical analysis requires music21. "
+                        "Install with: pip install music21\n"
+                    )
+                    return 1
+                
+                # Load composition from JSON
+                text = _read_text(args.in_path)
+                comp = parse_composition_from_text(text)
+                
+                # Perform musical analysis
+                musical_analysis = analyze_composition_musical(comp)
+                
+                # Format analysis results as JSON
+                import json
+                analysis_result = {
+                    "source": str(args.in_path),
+                    "composition": {
+                        "title": comp.title,
+                        "bpm": comp.bpm,
+                        "key_signature": comp.key_signature,
+                        "time_signature": f"{comp.time_signature.numerator}/{comp.time_signature.denominator}",
+                    },
+                    "analysis": {
+                        "motifs": [
+                            {
+                                "start": m.start,
+                                "duration": m.duration,
+                                "pitches": m.pitches,
+                                "description": m.description,
+                            }
+                            for m in musical_analysis.motifs
+                        ],
+                        "phrases": [
+                            {
+                                "start": p.start,
+                                "duration": p.duration,
+                                "description": p.description,
+                            }
+                            for p in musical_analysis.phrases
+                        ],
+                        "harmony": {
+                            "chords": musical_analysis.harmonic_progression.chords if musical_analysis.harmonic_progression else [],
+                            "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
+                        } if musical_analysis.harmonic_progression else None,
+                        "form": musical_analysis.form,
+                        "key_ideas": musical_analysis.key_ideas,
+                        "expansion_suggestions": musical_analysis.expansion_suggestions,
+                    },
+                }
+                
+                # Determine output directory and paths
+                base_name = _derive_base_name_from_path(args.in_path, "analyze-output")
+                output_dir = _get_output_base_dir(base_name, "analyze")
+                
+                if args.out_path is not None:
+                    out_json_path = _resolve_output_path(
+                        args.out_path, output_dir, "analysis.json", "analyze"
+                    )
+                else:
+                    out_json_path = None
+                
+                # Output analysis
+                analysis_json = json.dumps(analysis_result, indent=2)
+                if args.out_path is None:
+                    sys.stdout.write(analysis_json)
+                else:
+                    _write_text(out_json_path, analysis_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
+                
+                return 0
+            
+            # Handle MIDI input (existing behavior)
             if suffix not in (".mid", ".midi"):
-                raise ValueError("Input must be a .mid or .midi file.")
+                raise ValueError("Input must be a .mid, .midi, or .json file.")
 
             analysis = analyze_midi(args.in_path)
 
