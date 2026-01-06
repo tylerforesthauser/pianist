@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pianist"
 version = "0.1.0"
-description = "Framework for converting AI-generated music specifications into MIDI."
+description = "Composition workflow platform enabling rock solid human-AI collaboration through structured JSON and MIDI conversion."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

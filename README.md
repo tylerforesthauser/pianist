@@ -1,10 +1,14 @@
 # pianist
 
-Convert AI-generated composition specs (JSON) into MIDI.
+Enable AI models to demonstrate creative musical expression through a structured format (JSON) that converts to universal MIDI files for human collaboration.
 
 ## What is Pianist?
 
-Pianist is a tool that converts structured JSON composition data into playable MIDI files. It works seamlessly with AI models (like ChatGPT, Claude, Gemini, etc.) that can generate musical compositions in JSON format, but it also works perfectly fine without any AI—you can create JSON manually, import from MIDI, or use any external AI tool.
+Pianist is a composition workflow platform that creates a rock solid conduit between human composers and AI models. It enables bidirectional creative workflows where:
+- **AI → Human**: AI generates musical ideas that humans can refine in their DAWs
+- **Human → AI**: Humans can export their work for AI expansion and iteration
+
+Pianist provides a shared musical vocabulary (JSON schema) that both humans and AI can use, converting between structured JSON and standard MIDI files. It works seamlessly with AI models (like ChatGPT, Claude, Gemini, etc.) that can generate musical compositions in JSON format, but it also works perfectly fine without any AI—you can create JSON manually, import from MIDI, or use any external AI tool.
 
 ### How It Works
 
@@ -29,7 +33,9 @@ Pianist is a tool that converts structured JSON composition data into playable M
 
 ### Use Cases
 
+- **AI-Human Collaboration**: AI generates musical ideas that humans refine in DAWs, or humans create sketches that AI expands into complete compositions
 - **Compose with AI**: Generate piano compositions using AI models and convert them to MIDI
+- **Expand Incomplete Compositions**: Take a 90-second sketch "full of great ideas" and have AI expand it to a complete 5-minute composition while preserving and developing the original ideas
 - **MIDI analysis**: Analyze existing MIDI files to extract musical patterns and generate prompts for new compositions
 - **Composition iteration**: Refine and modify compositions through multiple iterations
 - **Music production**: Create MIDI files for use in DAWs, notation software, or further processing

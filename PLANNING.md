@@ -41,6 +41,26 @@ This directory contains the core planning documents for the Pianist project. The
 
 ---
 
+### [PREPARATION.md](PREPARATION.md)
+**Purpose:** Outlines steps needed to prepare the project for implementing the roadmap.
+
+**Contents:**
+- Current state assessment
+- Phase 1 preparation tasks
+- Research and design needs
+- Dependencies and infrastructure
+- Testing infrastructure
+- Implementation order
+- Getting started checklist
+
+**When to update:**
+- Before starting each phase
+- When preparation tasks are completed
+- When new dependencies are identified
+- When approach changes
+
+---
+
 ## Document Maintenance
 
 **Principles:**
