@@ -44,11 +44,27 @@ Iterate on an existing work by importing either a Pianist JSON (or raw LLM outpu
 ./pianist render --in seed_transposed.json --out out.mid
 ```
 
+Analyze an existing MIDI file to extract prompt-friendly musical constraints (tempo/time/key, note density, chord sizes, register, pedal usage, etc.) and generate a **NEW-composition prompt** inspired by that MIDI:
+
+```bash
+# Generate a ready-to-paste prompt for a NEW composition
+./pianist analyze --in existing.mid --format prompt --prompt-out new_piece_prompt.txt \
+  --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
+
+# Or export structured analysis JSON (for building UIs/tools)
+./pianist analyze --in existing.mid --format json --out analysis.json
+
+# Or both
+./pianist analyze --in existing.mid --format both --out analysis.json --prompt-out new_piece_prompt.txt
+```
+
 **Alternative:** You can also use the Python module directly:
 
 ```bash
 python3 -m pianist render --in examples/model_output.txt --out out.mid
 ```
+
+`analyze` and `iterate` are also available via `python3 -m pianist ...`.
 
 **Note:** Use `./pianist` (recommended) or `python3 -m pianist` instead of `pianist` for maximum compatibility with editable installs.
 
@@ -62,6 +78,15 @@ from pianist.renderers import render_midi_mido
 text = Path("examples/model_output.txt").read_text(encoding="utf-8")
 composition = parse_composition_from_text(text)
 render_midi_mido(composition, "out.mid")
+```
+
+Analyze a MIDI file and generate a new-composition prompt:
+
+```python
+from pianist import analyze_midi, analysis_prompt_template
+
+analysis = analyze_midi("existing.mid")
+prompt = analysis_prompt_template(analysis, instructions="Write a calm nocturne.")
 ```
 
 ## Schema Generation for Structured Output
