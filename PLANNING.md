@@ -23,7 +23,7 @@ This directory contains the core planning documents for the Pianist project. The
 ---
 
 ### [ROADMAP.md](ROADMAP.md)
-**Purpose:** Outlines the feature priorities, implementation roadmap, and technical approach.
+**Purpose:** Outlines the feature priorities, implementation roadmap, technical approach, and getting started guide.
 
 **Contents:**
 - Feature priorities (6 main areas)
@@ -31,6 +31,7 @@ This directory contains the core planning documents for the Pianist project. The
 - Technical approach and design
 - Example workflows
 - Success metrics
+- Getting started guide (implementation steps, dependencies, testing)
 - Open questions
 
 **When to update:**
@@ -38,26 +39,9 @@ This directory contains the core planning documents for the Pianist project. The
 - After completing phases
 - When technical approach changes
 - When new questions are answered
+- When implementation steps change
 
 ---
-
-### [PREPARATION.md](PREPARATION.md)
-**Purpose:** Outlines steps needed to prepare the project for implementing the roadmap.
-
-**Contents:**
-- Current state assessment
-- Phase 1 preparation tasks
-- Research and design needs
-- Dependencies and infrastructure
-- Testing infrastructure
-- Implementation order
-- Getting started checklist
-
-**When to update:**
-- Before starting each phase
-- When preparation tasks are completed
-- When new dependencies are identified
-- When approach changes
 
 ---
 

@@ -24,7 +24,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 **Why:** Everything else depends on this - expansion prompts, auto-detection, and expansion strategies all need analysis.
 
 **What to do:**
-1. Research and choose analysis library (music21 recommended in PREPARATION.md)
+1. Research and choose analysis library (music21 recommended)
 2. Add library to `pyproject.toml` dependencies
 3. Implement basic functions in `src/pianist/musical_analysis.py`:
    - `detect_motifs(composition)` - Find recurring patterns
@@ -523,65 +523,168 @@ These questions will be answered during implementation.
 
 ---
 
-## Next Steps (Immediate Priorities)
+## Getting Started: Implementation Guide
 
-Based on current progress (75% of Phase 1 complete), the next steps are:
+This section provides practical steps for implementing the roadmap, consolidating preparation tasks and implementation guidance.
 
-### 1. Implement Basic Musical Analysis (CRITICAL - Next Step)
-**Priority:** HIGHEST
+### Current State
+
+**Achievement:** 75% of Phase 1 complete
+
+**What's Working:**
+- ✅ JSON schema provides shared musical vocabulary
+- ✅ Bidirectional conversion (JSON ↔ MIDI) works
+- ✅ Schema extensions implemented (`MusicalIntent`, `KeyIdea`, `ExpansionPoint`)
+- ✅ CLI commands implemented (`annotate`, `expand`, `diff`)
+- ✅ Annotation tools implemented (`annotations.py`)
+- ✅ Command structure refined (import, modify, fix, etc.)
+
+**What's Missing (Critical Gaps):**
+- 🔴 Musical analysis implementation (placeholder exists, needs implementation)
+- 🔴 Expansion strategy module (placeholder exists, needs implementation)
+- 🔴 Validation module (placeholder exists, needs implementation)
+- 🔴 Enhanced prompts with analysis integration
+
+### Implementation Order
+
+#### Step 1: Implement Basic Musical Analysis ⚡ **CRITICAL PATH**
+**Priority:** CRITICAL  
 **Status:** Placeholder module exists, implementation needed
 
 **Tasks:**
-- [ ] Research and integrate music21 library (or chosen alternative)
-- [ ] Implement basic motif detection algorithm
-- [ ] Implement basic phrase detection
-- [ ] Implement basic harmonic analysis
-- [ ] Implement basic form detection
-- [ ] Write tests for analysis functions
-- [ ] Integrate with `analyze` command
+1. **Research and choose analysis library**
+   - Evaluate music21, librosa, and alternatives
+   - Test basic functionality
+   - Make decision
+   - Add to `pyproject.toml` dependencies
 
-**Dependencies:** music21 library (or alternative)
-**Estimated Complexity:** High
+2. **Implement basic functions in `src/pianist/musical_analysis.py`:**
+   - `detect_motifs(composition)` - Find recurring melodic/rhythmic patterns
+   - `detect_phrases(composition)` - Identify musical phrases and structure
+   - `analyze_harmony(composition)` - Basic chord/harmonic analysis
+   - `detect_form(composition)` - Identify musical form (binary, ternary, etc.)
+
+3. **Write tests**
+   - Create test fixtures for analysis
+   - Write tests in `tests/test_musical_analysis.py`
+   - Test with various composition structures
+
+4. **Integrate with `analyze` command**
+   - Add JSON input support
+   - Integrate analysis module
+   - Add expansion analysis output format
+
+**Estimated Complexity:** High  
+**Dependencies:** Music theory library (music21 recommended)  
 **Blocking:** Enhanced prompts, auto-detection, expansion strategies
 
-### 2. Enhance `analyze` Command (HIGH)
-**Priority:** HIGH
+#### Step 2: Enhance `analyze` Command
+**Priority:** HIGH  
 **Status:** Works for MIDI, needs JSON support
 
 **Tasks:**
-- [ ] Add JSON input support to `analyze` command
-- [ ] Integrate musical analysis module
-- [ ] Add expansion analysis output
-- [ ] Update tests
+1. Add JSON input parsing to `analyze` command
+2. Integrate musical analysis module
+3. Add expansion analysis output format
+4. Update tests
 
+**Estimated Complexity:** Medium  
 **Dependencies:** Musical analysis module
-**Estimated Complexity:** Medium
 
-### 3. Enhance Expansion Prompts (HIGH)
-**Priority:** HIGH
+#### Step 3: Enhance Expansion Prompts
+**Priority:** HIGH  
 **Status:** Basic prompts exist, need analysis integration
 
 **Tasks:**
-- [ ] Update expansion prompts to include analysis results
-- [ ] Include detected motifs, phrases, harmony in prompts
-- [ ] Test with real compositions
-- [ ] Refine based on results
+1. Update `expand` command to run analysis before expansion
+2. Include detected motifs, phrases, harmony in expansion prompts
+3. Test with real compositions
+4. Refine based on results
 
-**Dependencies:** Musical analysis module
-**Estimated Complexity:** Low-Medium
+**Estimated Complexity:** Low-Medium  
+**Dependencies:** Analysis module
 
-### 4. Implement Basic Auto-Detection (MEDIUM)
-**Priority:** MEDIUM
+#### Step 4: Implement Basic Auto-Detection
+**Priority:** MEDIUM  
 **Status:** Not started
 
 **Tasks:**
-- [ ] Use analysis module to auto-detect key ideas
-- [ ] Integrate with `annotate --auto-detect`
-- [ ] Test accuracy
-- [ ] Refine detection algorithms
+1. Use analysis module to auto-detect key ideas
+2. Implement `annotate --auto-detect` functionality
+3. Test accuracy
+4. Refine detection algorithms
 
+**Estimated Complexity:** Medium  
 **Dependencies:** Musical analysis module
-**Estimated Complexity:** Medium
+
+### Dependencies & Infrastructure
+
+#### Required Dependencies
+- **Music Theory Library:** music21 (recommended) or alternative
+- **Pattern Detection:** May need custom algorithms or additional libraries
+- **Harmonic Analysis:** music21 provides this
+- **Form Detection:** Custom algorithms or music21
+
+**Action Items:**
+- [ ] Add music21 (or chosen library) to `pyproject.toml`
+- [ ] Test dependency installation
+- [ ] Document any additional dependencies needed
+
+#### Module Structure
+**Status:** Placeholder modules exist
+
+- ✅ `src/pianist/musical_analysis.py` - Placeholder exists, needs implementation
+- ✅ `src/pianist/annotations.py` - ✅ **COMPLETE**
+- ✅ `src/pianist/expansion_strategy.py` - Placeholder exists, needs implementation
+- ✅ `src/pianist/validation.py` - Placeholder exists, needs implementation
+
+### Testing Infrastructure
+
+#### Test Data Preparation
+**Status:** Basic fixtures exist
+
+- ✅ `tests/fixtures/incomplete_compositions/` - Directory exists
+- ✅ `tests/fixtures/annotated_compositions/` - Directory exists
+- [ ] Create test compositions with various structures
+- [ ] Create compositions with clear motifs/phrases
+- [ ] Document test data structure
+
+#### Test Framework
+**Status:** Test files exist
+
+- ✅ `tests/test_musical_analysis.py` - Placeholder exists
+- ✅ `tests/test_annotations.py` - Not needed (annotations.py is complete)
+- ✅ `tests/test_expansion_strategy.py` - Not yet created
+- ✅ `tests/test_validation.py` - Not yet created
+
+### Questions to Answer
+
+Before beginning implementation, these questions should be answered:
+
+1. **Analysis Library:**
+   - Which library provides best balance of features and ease of use?
+   - What are the licensing considerations?
+   - What are the performance implications?
+   - **Recommendation:** music21 (comprehensive, well-maintained, good documentation)
+
+2. **Analysis Accuracy:**
+   - How to test analysis accuracy?
+   - What are acceptable accuracy thresholds?
+   - How to handle edge cases?
+
+3. **Integration:**
+   - How to integrate analysis results into prompts?
+   - What level of detail is needed?
+   - How to handle analysis failures?
+
+### Resources
+
+- **Current Schema:** `src/pianist/schema.py`
+- **Current Analysis:** `src/pianist/analyze.py` (MIDI analysis)
+- **Current Iteration:** `src/pianist/iterate.py`
+- **Musical Analysis Module:** `src/pianist/musical_analysis.py` (placeholder)
+- **Mission:** [MISSION.md](MISSION.md)
+- **Planning:** [PLANNING.md](PLANNING.md)
 
 ## Notes
 
@@ -590,4 +693,5 @@ Based on current progress (75% of Phase 1 complete), the next steps are:
 - **Approach:** Phased implementation (foundation → intelligence → refinement)
 - **Flexibility:** Roadmap will be revised based on learnings and feedback
 - **Current Blocker:** Musical analysis implementation is the critical path forward
+- **Start Here:** Implement basic musical analysis - everything else depends on this
 
