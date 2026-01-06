@@ -56,7 +56,7 @@ class NoteGroup(BaseModel):
     # Support both pitch (singular) and pitches (plural)
     pitch: int | str | None = None
     pitches: list[int | str] | None = None
-    hand: Hand
+    hand: Hand | None = None
     voice: Voice | None = None
 
     @model_validator(mode="before")
@@ -76,6 +76,25 @@ class NoteGroup(BaseModel):
             data.pop("pitch", None)
         
         return data
+    
+    @model_validator(mode="after")
+    def _infer_hand_if_missing(self) -> "NoteGroup":
+        """Infer hand from pitch range if not provided.
+        
+        Heuristic: pitches below middle C (60) are typically left hand,
+        pitches at or above middle C are typically right hand.
+        For mixed ranges, use the average pitch.
+        """
+        if self.hand is None and self.pitches:
+            # Calculate average MIDI pitch
+            midi_pitches = [_coerce_pitch_to_midi(p) for p in self.pitches]
+            avg_pitch = sum(midi_pitches) / len(midi_pitches)
+            # Middle C is MIDI 60; use it as the threshold
+            self.hand = "lh" if avg_pitch < 60 else "rh"
+        elif self.hand is None:
+            # Fallback: if no pitches somehow, default to right hand
+            self.hand = "rh"
+        return self
 
     @field_validator("pitches")
     @classmethod
