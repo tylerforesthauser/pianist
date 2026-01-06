@@ -1446,6 +1446,13 @@ def main(argv: list[str] | None = None) -> int:
             elif args.format == "markdown":
                 output = format_diff_markdown(diff)
             else:  # text
+                # TODO: Implement --musical flag for musical-aware diff
+                # For now, --musical is a no-op (musical diff not yet implemented)
+                if args.musical:
+                    sys.stderr.write(
+                        "warning: --musical flag is not yet fully implemented. "
+                        "Showing standard diff.\n"
+                    )
                 output = format_diff_text(diff, show_preserved=args.show_preserved)
             
             # Write output
