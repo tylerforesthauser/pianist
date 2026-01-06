@@ -13,6 +13,8 @@ from .iterate import (
     iteration_prompt_template,
     transpose_composition,
 )
+from .pedal_fix import fix_pedal_patterns
+from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
 
 try:
@@ -153,6 +155,42 @@ def main(argv: list[str] | None = None) -> int:
         help="Print a full traceback on errors.",
     )
 
+    fix_pedal = sub.add_parser(
+        "fix-pedal",
+        help="Fix incorrect sustain pedal patterns in a composition JSON file.",
+    )
+    fix_pedal.add_argument(
+        "--in",
+        dest="in_path",
+        type=Path,
+        required=True,
+        help="Input JSON file containing composition.",
+    )
+    fix_pedal.add_argument(
+        "--out",
+        dest="out_path",
+        type=Path,
+        default=None,
+        help="Output JSON path. If omitted, overwrites input file.",
+    )
+    fix_pedal.add_argument(
+        "--render",
+        action="store_true",
+        help="Also render the fixed composition to MIDI (requires --out-midi).",
+    )
+    fix_pedal.add_argument(
+        "--out-midi",
+        dest="out_midi_path",
+        type=Path,
+        default=None,
+        help="Output MIDI path (only used with --render).",
+    )
+    fix_pedal.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print a full traceback on errors.",
+    )
+
     if generate_openapi_schema is not None:
         schema_cmd = sub.add_parser(
             "generate-schema",
@@ -184,6 +222,52 @@ def main(argv: list[str] | None = None) -> int:
             sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
             return 1
         sys.stdout.write(str(out) + "\n")
+        return 0
+
+    if args.cmd == "fix-pedal":
+        try:
+            text = _read_text(args.in_path)
+            comp = parse_composition_from_text(text)
+            
+            # Count issues before fix
+            issues_before = sum(
+                1 for track in comp.tracks
+                for ev in track.events
+                if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
+            )
+            
+            # Fix pedal patterns
+            fixed = fix_pedal_patterns(comp)
+            
+            # Count after fix
+            issues_after = sum(
+                1 for track in fixed.tracks
+                for ev in track.events
+                if isinstance(ev, PedalEvent) and ev.duration == 0 and ev.value == 127
+            )
+            
+            # Save fixed composition
+            out_path = args.out_path or args.in_path
+            fixed_json = composition_to_canonical_json(fixed)
+            out_path.write_text(fixed_json, encoding="utf-8")
+            
+            sys.stdout.write(f"Fixed {args.in_path.name}:\n")
+            sys.stdout.write(f"  Pedal issues before: {issues_before}\n")
+            sys.stdout.write(f"  Pedal issues after: {issues_after}\n")
+            sys.stdout.write(f"  Saved to: {out_path}\n")
+            
+            # Optionally render to MIDI
+            if args.render:
+                if args.out_midi_path is None:
+                    sys.stderr.write("error: --render requires --out-midi\n")
+                    return 1
+                render_midi_mido(fixed, args.out_midi_path)
+                sys.stdout.write(f"  Rendered to: {args.out_midi_path}\n")
+        except Exception as exc:
+            if args.debug:
+                traceback.print_exc(file=sys.stderr)
+            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
+            return 1
         return 0
 
     if args.cmd == "iterate":

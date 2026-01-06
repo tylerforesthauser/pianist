@@ -234,6 +234,9 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
                             ),
                         )
                     )
+                    # Release always uses value=0 (standard MIDI behavior).
+                    # Even if the pedal event had a non-127 value (e.g., half-pedaling),
+                    # the release is always 0 to fully release the sustain pedal.
                     abs_msgs.append(
                         _AbsMsg(
                             end_tick,

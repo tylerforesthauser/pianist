@@ -262,7 +262,7 @@ def analyze_midi(path: str | Path) -> MidiAnalysis:
                     if current is not None:
                         start_tick, down_value = current
                         end_tick = abs_tick
-                        if end_tick >= start_tick:
+                        if end_tick > start_tick:
                             raw_pedals.append(
                                 _RawPedal(
                                     channel=ch,
@@ -290,7 +290,7 @@ def analyze_midi(path: str | Path) -> MidiAnalysis:
         for ch, current in active_pedal.items():
             if current is not None:
                 start_tick, down_value = current
-                if end_tick >= start_tick:
+                if end_tick > start_tick:
                     raw_pedals.append(
                         _RawPedal(
                             channel=ch,

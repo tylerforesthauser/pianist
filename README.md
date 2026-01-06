@@ -58,6 +58,17 @@ Analyze an existing MIDI file to extract prompt-friendly musical constraints (te
 ./pianist analyze --in existing.mid --format both --out analysis.json --prompt-out new_piece_prompt.txt
 ```
 
+Fix incorrect sustain pedal patterns in existing compositions:
+
+```bash
+# Fix pedal patterns (overwrites input)
+./pianist fix-pedal --in "composition.json"
+
+# Fix and save to new file, also render to MIDI
+./pianist fix-pedal --in "composition.json" --out "composition_fixed.json" --render --out-midi "composition_fixed.mid"
+```
+
+See `PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
 **Alternative:** You can also use the Python module directly:
 
 ```bash
