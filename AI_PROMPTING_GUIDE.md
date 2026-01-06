@@ -867,8 +867,13 @@ Hard requirements:
 Pitch format:
 - Use MIDI numbers (0–127) OR scientific pitch strings ("C4", "F#3", "Bb2").
 
-Time units:
-- start/duration are in beats, where 1 beat == a quarter note.
+Time units (CRITICAL - DO NOT CONFUSE):
+- ALL start and duration values are in BEATS (quarter note = 1 beat), NOT ticks.
+- ppq (480) is ONLY for internal MIDI rendering—DO NOT multiply your beat values by ppq.
+- Examples: start:0 (beat 0), start:4 (beat 4), duration:2 (2 beats).
+- WRONG: start:1920 (this is ticks, not beats—would be 1920/480=4 beats).
+- Typical values: 0, 1, 2, 4, 8, 16 beats. If you see values >1000, you're using ticks by mistake.
+- 1 beat == a quarter note (regardless of time signature denominator).
 
 Time continuity (CRITICAL):
 - Fill the ENTIRE requested length with continuous music. NO large gaps or silences between sections.
@@ -985,6 +990,15 @@ Schema essentials (HARD):
 - Top-level: title (string), bpm (number), time_signature {numerator:int, denominator:1|2|4|8|16|32}, key_signature? (string like "C","Gm","F#","Bb","C#m"), ppq (int, default 480), tracks (non-empty).
 - Track: {name:"Piano", program:0, channel:0..15, events:[...]}.
 - Event types: "note" | "pedal" | "tempo" | "section".
+
+CRITICAL - Time units (DO NOT CONFUSE):
+- ALL start and duration values are in BEATS (quarter note = 1 beat), NOT ticks.
+- ppq (480) is ONLY for internal MIDI rendering—DO NOT multiply your beat values by ppq.
+- Examples: start:0 (beat 0), start:4 (beat 4), duration:2 (2 beats). 
+- WRONG: start:1920 (this is ticks, not beats—would be 1920/480=4 beats).
+- Typical values: 0, 1, 2, 4, 8, 16 beats. If you see values >1000, you're using ticks by mistake.
+
+Event schemas:
   - note: {type:"note", start>=0, duration>0, velocity 1..127, and pitches provided via ONE of: groups | notes | (legacy) pitch/pitches}
   - pedal: {type:"pedal", start>=0, duration>0, value 0..127}. Use duration>0 (auto press+release). Do not use duration:0 for normal pedaling.
   - tempo: {type:"tempo", start>=0, bpm:number} OR {type:"tempo", start>=0, start_bpm:number, end_bpm:number, duration>0}
