@@ -20,6 +20,13 @@ from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
 from .gemini import GeminiError, generate_text
 from .diff import diff_compositions, format_diff_text, format_diff_json, format_diff_markdown
+from .annotations import (
+    add_key_idea,
+    add_expansion_point,
+    set_development_direction,
+    add_to_preserve_list,
+)
+from .schema import MusicalIntent, KeyIdea, ExpansionPoint
 
 
 # Default output directory for all generated files
@@ -102,7 +109,7 @@ def _derive_base_name_from_path(path: Path | None, fallback: str = "output") -> 
     Examples:
     - input/song.mid → "song"
     - output/song/analyze/analysis.json → "song" (extracted from path structure)
-    - output/song/iterate/composition.json → "song" (extracted from path structure)
+    - output/song/modify/composition.json → "song" (extracted from path structure)
     """
     if path is None:
         return fallback
@@ -110,7 +117,7 @@ def _derive_base_name_from_path(path: Path | None, fallback: str = "output") -> 
     path = Path(path)
     
     # If the path is already in the output directory, try to extract the original base name
-    # This handles cases like: iterate --in output/song/analyze/analysis.json
+    # This handles cases like: modify -i output/song/analyze/analysis.json
     # We want to use "song" not "analysis" as the base name
     try:
         # Resolve to absolute path to handle relative paths correctly
@@ -524,7 +531,82 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Show current annotations without modifying.",
     )
-    # TODO: Add more annotation flags (--mark-motif, --mark-expansion, etc.)
+    annotate.add_argument(
+        "--mark-motif",
+        type=str,
+        nargs=2,
+        metavar=("START-DURATION", "DESCRIPTION"),
+        help="Mark a motif. Format: --mark-motif '0-4' 'Opening motif'",
+    )
+    annotate.add_argument(
+        "--mark-phrase",
+        type=str,
+        nargs=2,
+        metavar=("START-DURATION", "DESCRIPTION"),
+        help="Mark a phrase. Format: --mark-phrase '0-16' 'Opening phrase'",
+    )
+    annotate.add_argument(
+        "--mark-harmonic-progression",
+        type=str,
+        nargs=2,
+        metavar=("START-DURATION", "DESCRIPTION"),
+        help="Mark a harmonic progression. Format: --mark-harmonic-progression '0-8' 'I-V-vi-IV'",
+    )
+    annotate.add_argument(
+        "--mark-rhythmic-pattern",
+        type=str,
+        nargs=2,
+        metavar=("START-DURATION", "DESCRIPTION"),
+        help="Mark a rhythmic pattern. Format: --mark-rhythmic-pattern '0-2' 'Syncopated rhythm'",
+    )
+    annotate.add_argument(
+        "--idea-id",
+        type=str,
+        default=None,
+        help="ID for the key idea (auto-generated if not provided).",
+    )
+    annotate.add_argument(
+        "--importance",
+        choices=["high", "medium", "low"],
+        default="medium",
+        help="Importance level for the key idea (default: medium).",
+    )
+    annotate.add_argument(
+        "--development-direction",
+        type=str,
+        default=None,
+        help="How to develop the key idea (e.g., 'expand and vary', 'preserve exactly').",
+    )
+    annotate.add_argument(
+        "--mark-expansion",
+        type=str,
+        metavar="SECTION",
+        help="Mark an expansion point for a section.",
+    )
+    annotate.add_argument(
+        "--target-length",
+        type=float,
+        default=None,
+        help="Target length in beats for expansion point (required with --mark-expansion).",
+    )
+    annotate.add_argument(
+        "--development-strategy",
+        type=str,
+        default=None,
+        help="Development strategy for expansion (required with --mark-expansion).",
+    )
+    annotate.add_argument(
+        "--preserve",
+        type=str,
+        default=None,
+        help="Comma-separated list of idea IDs or characteristics to preserve.",
+    )
+    annotate.add_argument(
+        "--overall-direction",
+        type=str,
+        default=None,
+        help="Overall development direction for the composition.",
+    )
     add_common_flags(annotate)
 
     # Expand command: Expand incomplete compositions
@@ -599,11 +681,6 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help="Save the raw AI response text to this path. Auto-generated if --output is provided. Only used with --provider.",
-    )
-    expand.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Show expansion progress.",
     )
     add_common_flags(expand)
 
@@ -707,7 +784,11 @@ def main(argv: list[str] | None = None) -> int:
     add_common_flags(generate)
 
 
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as e:
+        # argparse raises SystemExit on errors, convert to return code
+        return e.code if e.code is not None else 1
 
     if args.cmd == "render":
         try:
@@ -987,35 +1068,179 @@ def main(argv: list[str] | None = None) -> int:
             
             # If --show, just display current annotations and exit
             if args.show:
-                # Check if composition has musical_intent field (when schema extensions are implemented)
-                comp_dict = comp.model_dump()
-                if "musical_intent" in comp_dict and comp_dict["musical_intent"]:
+                if comp.musical_intent is not None:
                     import json
-                    intent_json = json.dumps(comp_dict["musical_intent"], indent=2)
+                    intent_dict = comp.musical_intent.model_dump()
+                    intent_json = json.dumps(intent_dict, indent=2)
                     sys.stdout.write("Current annotations:\n")
                     sys.stdout.write(intent_json + "\n")
                 else:
                     sys.stdout.write("No annotations found in composition.\n")
-                    sys.stdout.write("Note: Schema extensions for annotations are not yet implemented.\n")
                 return 0
+            
+            annotated_comp = comp
             
             # For --auto-detect, use analysis module (when implemented)
             if args.auto_detect:
                 # TODO: Implement auto-detection using analysis module
                 sys.stderr.write(
-                    "warning: Auto-detection not yet implemented. "
-                    "Schema extensions and analysis module are required.\n"
+                    "warning: Auto-detection not yet fully implemented. "
+                    "Analysis module is required for automatic detection.\n"
                 )
                 # For now, just copy the composition
-                annotated_comp = comp
             else:
-                # Manual annotation flags not yet supported (need schema extensions)
-                # For now, just copy the composition
-                annotated_comp = comp
-                if hasattr(args, "mark_motif") or hasattr(args, "mark_expansion"):
+                # Process manual annotation flags
+                annotations_added = False
+                
+                # Parse START-DURATION format (e.g., "0-4" means start=0, duration=4)
+                def parse_time_range(time_str: str) -> tuple[float, float]:
+                    try:
+                        parts = time_str.split("-")
+                        if len(parts) != 2:
+                            raise ValueError(f"Invalid time range format: {time_str}. Expected 'START-DURATION'")
+                        start = float(parts[0])
+                        duration = float(parts[1])
+                        if duration <= 0:
+                            raise ValueError(f"Duration must be positive: {duration}")
+                        return start, duration
+                    except ValueError as e:
+                        raise ValueError(f"Invalid time range '{time_str}': {e}") from e
+                
+                # Generate idea ID if not provided
+                idea_counter = 1
+                def generate_idea_id(idea_type: str) -> str:
+                    nonlocal idea_counter
+                    existing_ids = set()
+                    if annotated_comp.musical_intent:
+                        existing_ids = {idea.id for idea in annotated_comp.musical_intent.key_ideas}
+                    while True:
+                        candidate = f"{idea_type}_{idea_counter}"
+                        if candidate not in existing_ids:
+                            idea_counter += 1
+                            return candidate
+                        idea_counter += 1
+                
+                # Mark motif
+                if args.mark_motif:
+                    start, duration = parse_time_range(args.mark_motif[0])
+                    description = args.mark_motif[1]
+                    idea_id = args.idea_id or generate_idea_id("motif")
+                    annotated_comp = add_key_idea(
+                        annotated_comp,
+                        idea_id=idea_id,
+                        idea_type="motif",
+                        start=start,
+                        duration=duration,
+                        description=description,
+                        importance=args.importance,
+                        development_direction=args.development_direction
+                    )
+                    annotations_added = True
+                    sys.stdout.write(f"Marked motif '{idea_id}' at {start}-{start+duration} beats\n")
+                
+                # Mark phrase
+                if args.mark_phrase:
+                    start, duration = parse_time_range(args.mark_phrase[0])
+                    description = args.mark_phrase[1]
+                    idea_id = args.idea_id or generate_idea_id("phrase")
+                    annotated_comp = add_key_idea(
+                        annotated_comp,
+                        idea_id=idea_id,
+                        idea_type="phrase",
+                        start=start,
+                        duration=duration,
+                        description=description,
+                        importance=args.importance,
+                        development_direction=args.development_direction
+                    )
+                    annotations_added = True
+                    sys.stdout.write(f"Marked phrase '{idea_id}' at {start}-{start+duration} beats\n")
+                
+                # Mark harmonic progression
+                if args.mark_harmonic_progression:
+                    start, duration = parse_time_range(args.mark_harmonic_progression[0])
+                    description = args.mark_harmonic_progression[1]
+                    idea_id = args.idea_id or generate_idea_id("harmonic_progression")
+                    annotated_comp = add_key_idea(
+                        annotated_comp,
+                        idea_id=idea_id,
+                        idea_type="harmonic_progression",
+                        start=start,
+                        duration=duration,
+                        description=description,
+                        importance=args.importance,
+                        development_direction=args.development_direction
+                    )
+                    annotations_added = True
+                    sys.stdout.write(f"Marked harmonic progression '{idea_id}' at {start}-{start+duration} beats\n")
+                
+                # Mark rhythmic pattern
+                if args.mark_rhythmic_pattern:
+                    start, duration = parse_time_range(args.mark_rhythmic_pattern[0])
+                    description = args.mark_rhythmic_pattern[1]
+                    idea_id = args.idea_id or generate_idea_id("rhythmic_pattern")
+                    annotated_comp = add_key_idea(
+                        annotated_comp,
+                        idea_id=idea_id,
+                        idea_type="rhythmic_pattern",
+                        start=start,
+                        duration=duration,
+                        description=description,
+                        importance=args.importance,
+                        development_direction=args.development_direction
+                    )
+                    annotations_added = True
+                    sys.stdout.write(f"Marked rhythmic pattern '{idea_id}' at {start}-{start+duration} beats\n")
+                
+                # Mark expansion point
+                if args.mark_expansion:
+                    if args.target_length is None:
+                        raise ValueError("--target-length is required with --mark-expansion")
+                    if args.development_strategy is None:
+                        raise ValueError("--development-strategy is required with --mark-expansion")
+                    
+                    # Calculate current length
+                    current_length = 0.0
+                    for track in annotated_comp.tracks:
+                        for event in track.events:
+                            event_end = event.start + (getattr(event, "duration", 0.0))
+                            current_length = max(current_length, event_end)
+                    
+                    preserve_list = None
+                    if args.preserve:
+                        preserve_list = [id.strip() for id in args.preserve.split(",")]
+                    
+                    annotated_comp = add_expansion_point(
+                        annotated_comp,
+                        section=args.mark_expansion,
+                        current_length=current_length,
+                        suggested_length=args.target_length,
+                        development_strategy=args.development_strategy,
+                        preserve=preserve_list
+                    )
+                    annotations_added = True
+                    sys.stdout.write(
+                        f"Marked expansion point for section '{args.mark_expansion}': "
+                        f"{current_length:.2f} → {args.target_length:.2f} beats\n"
+                    )
+                
+                # Set overall development direction
+                if args.overall_direction:
+                    annotated_comp = set_development_direction(annotated_comp, args.overall_direction)
+                    annotations_added = True
+                    sys.stdout.write(f"Set overall development direction\n")
+                
+                # Add to preserve list
+                if args.preserve and not args.mark_expansion:  # Only if not used for expansion point
+                    preserve_items = [item.strip() for item in args.preserve.split(",")]
+                    annotated_comp = add_to_preserve_list(annotated_comp, preserve_items)
+                    annotations_added = True
+                    sys.stdout.write(f"Added to preserve list: {', '.join(preserve_items)}\n")
+                
+                if not annotations_added and not args.auto_detect:
                     sys.stderr.write(
-                        "warning: Manual annotation flags not yet implemented. "
-                        "Schema extensions are required. Composition copied without changes.\n"
+                        "warning: No annotations specified. Use --mark-motif, --mark-expansion, "
+                        "--auto-detect, or other annotation flags.\n"
                     )
             
             # Determine output path
@@ -1029,11 +1254,6 @@ def main(argv: list[str] | None = None) -> int:
             annotated_json = composition_to_canonical_json(annotated_comp)
             _write_text(out_path, annotated_json)
             sys.stdout.write(f"Saved to: {out_path}\n")
-            
-            if args.auto_detect or (hasattr(args, "mark_motif") and args.mark_motif):
-                sys.stdout.write(
-                    "Note: Annotation functionality is limited until schema extensions are implemented.\n"
-                )
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)

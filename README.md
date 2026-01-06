@@ -173,15 +173,20 @@ For detailed API key management, see [docs/API_KEY_MANAGEMENT.md](docs/API_KEY_M
 
 **Commands that work WITHOUT any AI provider:**
 - `render` - Always works (pure JSON→MIDI conversion)
-- `fix-pedal` - Always works (algorithmic fix)
-- `iterate` - Works without `--provider` (converts MIDI→JSON, transposes, generates prompts)
+- `import` - Always works (converts MIDI→JSON)
+- `modify` - Works without `--provider` (transposes, generates prompts)
+- `fix` - Always works (algorithmic fixes, e.g., `fix --pedal`)
 - `analyze` - Works without `--provider` (extracts analysis, generates prompts)
 - `generate` - Works without `--provider` (generates prompt templates)
+- `annotate` - Always works (marks musical intent)
+- `expand` - Works without `--provider` (generates expansion strategy)
+- `diff` - Always works (compares compositions)
 
 **Commands that can USE an AI provider (optional):**
 - `generate --provider gemini` - Generates composition from description
-- `iterate --provider gemini` - Uses AI to modify existing composition
+- `modify --provider gemini` - Uses AI to modify existing composition
 - `analyze --provider gemini` - Uses AI to generate new composition from analysis
+- `expand --provider gemini` - Uses AI to expand incomplete compositions
 
 ### 1. Creating New Compositions
 
@@ -278,28 +283,28 @@ mkdir -p analysis
 
 Then paste the prompt into your preferred AI model and render the result.
 
-### 2. Iterating on Compositions
-
-#### Modify with AI Provider
-
-Iterate on an existing composition using the built-in AI provider:
-
-```bash
-./pianist iterate -i seed.json --provider gemini --instructions "Make it more lyrical and add an 8-beat coda." \
-  -o seed_updated.json --render
-# MIDI path auto-generated as seed_updated.mid
-```
-
-If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.gemini.txt`.
+### 2. Importing and Modifying Compositions
 
 #### Import from MIDI (No AI Required)
 
 Convert an existing MIDI file to Pianist JSON format:
 
 ```bash
-# From MIDI -> Pianist JSON seed
-./pianist iterate -i existing.mid -o seed.json
+# From MIDI -> Pianist JSON
+./pianist import -i existing.mid -o seed.json
 ```
+
+#### Modify with AI Provider
+
+Modify an existing composition using the built-in AI provider:
+
+```bash
+./pianist modify -i seed.json --provider gemini --instructions "Make it more lyrical and add an 8-beat coda." \
+  -o seed_updated.json --render
+# MIDI path auto-generated as seed_updated.mid
+```
+
+If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.gemini.txt`.
 
 #### Quick Tweaks (No AI Required)
 
@@ -307,19 +312,65 @@ Make simple modifications without using AI:
 
 ```bash
 # Transpose up a whole step
-./pianist iterate -i seed.json --transpose 2 -o seed_transposed.json
+./pianist modify -i seed.json --transpose 2 -o seed_transposed.json
 ```
 
-#### Generate Iteration Prompt for External AI (No AI Required)
+#### Generate Modification Prompt for External AI (No AI Required)
 
-Create a ready-to-paste prompt for iterating on a composition:
+Create a ready-to-paste prompt for modifying a composition:
 
 ```bash
 mkdir -p analysis
-./pianist iterate -i seed.json -p analysis/iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
+./pianist modify -i seed.json -p analysis/modify_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
 ```
 
 Then paste the prompt into your preferred AI model and render the result.
+
+### 2b. Annotating and Expanding Compositions
+
+#### Mark Musical Intent
+
+Annotate compositions to mark key ideas and expansion points:
+
+```bash
+# Mark a motif
+./pianist annotate -i sketch.json --mark-motif "0-4" "Opening motif" --importance high -o annotated.json
+
+# Mark an expansion point
+./pianist annotate -i sketch.json --mark-expansion "A" --target-length 120 \
+  --development-strategy "Develop opening motif with variations" -o annotated.json
+
+# Show current annotations
+./pianist annotate -i annotated.json --show
+```
+
+#### Expand Incomplete Compositions
+
+Expand a sketch into a complete composition:
+
+```bash
+# Expand with AI provider
+./pianist expand -i annotated.json --target-length 300 --provider gemini \
+  --preserve-motifs -o expanded.json --render
+
+# Or just generate expansion strategy (no AI)
+./pianist expand -i annotated.json --target-length 300 -o strategy.json
+```
+
+#### Compare Compositions
+
+See what changed between compositions:
+
+```bash
+# Basic diff
+./pianist diff original.json expanded.json
+
+# Musical diff with preservation highlights
+./pianist diff original.json expanded.json --musical --show-preserved
+
+# JSON format
+./pianist diff original.json expanded.json --format json -o diff.json
+```
 
 ### 3. Rendering to MIDI
 
@@ -335,17 +386,20 @@ By default, MIDI files are saved to `output/<input-name>/render/out.mid`. You ca
 
 ### 4. Fixing Issues
 
-#### Fix Pedal Patterns (No AI Required)
+#### Fix Composition Issues (No AI Required)
 
-Correct incorrect sustain pedal patterns in compositions:
+Correct issues in compositions:
 
 ```bash
 # Fix pedal patterns (overwrites input)
-./pianist fix-pedal -i "composition.json"
+./pianist fix --pedal -i "composition.json"
 
 # Fix and save to new file, also render to MIDI
-./pianist fix-pedal -i "composition.json" -o "composition_fixed.json" --render
+./pianist fix --pedal -i "composition.json" -o "composition_fixed.json" --render
 # MIDI path auto-generated as composition_fixed.mid
+
+# Fix all available issues
+./pianist fix --all -i "composition.json"
 ```
 
 See `docs/PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
@@ -426,13 +480,13 @@ By default, all generated files are saved to the `output/` directory, organized 
 
 - `output/<base-name>/<command>/` - Contains all output files for a command run
   - `<base-name>` is derived from the input file name (without extension)
-  - `<command>` is the command name (e.g., `render`, `iterate`, `analyze`, `fix-pedal`, `generate`)
+  - `<command>` is the command name (e.g., `render`, `import`, `modify`, `analyze`, `fix`, `generate`, `annotate`, `expand`, `diff`)
 
 **Why this structure?** This groups all operations on the same source material together, making it easy to find related files. For example, if you analyze `song.mid` and then iterate on it, both operations will be under `output/song/`, just in different command subdirectories. This also prevents filename conflicts between commands (e.g., both `analyze` and `iterate` might create `composition.json`).
 
 **Cross-command workflows:** If you use an output file as input to another command, the system will detect if it's already in the output directory and maintain the same base name. For example:
 - `analyze -i song.mid -o analysis.json` → `output/song/analyze/analysis.json`
-- `iterate -i output/song/analyze/analysis.json -o comp.json` → `output/song/iterate/comp.json`
+- `modify -i output/song/analyze/analysis.json -o comp.json` → `output/song/modify/comp.json`
 
 **Note:** If you provide an absolute path (e.g., `/path/to/file.json`), it will be used as-is. Relative paths are resolved relative to the output directory structure.
 
@@ -448,22 +502,22 @@ By default, if an output file already exists, Pianist will automatically create 
 **Example:**
 ```bash
 # First run
-./pianist iterate -i seed.json -o updated.json --provider gemini --instructions "Make it faster"
-# Creates: output/seed/iterate/updated.json and updated.json.gemini.txt
+./pianist modify -i seed.json -o updated.json --provider gemini --instructions "Make it faster"
+# Creates: output/seed/modify/updated.json and updated.json.gemini.txt
 
 # Second run with different instructions
-./pianist iterate -i seed.json -o updated.json --provider gemini --instructions "Make it slower"
-# Creates: output/seed/iterate/updated.v2.json and updated.v2.json.gemini.txt
+./pianist modify -i seed.json -o updated.json --provider gemini --instructions "Make it slower"
+# Creates: output/seed/modify/updated.v2.json and updated.v2.json.gemini.txt
 # Original files are preserved
 
 # To overwrite instead
-./pianist iterate -i seed.json -o updated.json --provider gemini --instructions "Try again" --overwrite
-# Overwrites: output/seed/iterate/updated.json
+./pianist modify -i seed.json -o updated.json --provider gemini --instructions "Try again" --overwrite
+# Overwrites: output/seed/modify/updated.json
 ```
 
 ### Model Selection
 
-The `generate`, `iterate`, and `analyze` commands support `--model` to choose a specific model for the provider. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
+The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to choose a specific model for the provider. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
 
 ```bash
 # Generate with a specific model
@@ -471,7 +525,7 @@ The `generate`, `iterate`, and `analyze` commands support `--model` to choose a 
   "Compose a complex sonata in C minor" -o composition.json
 
 # Iterate with a specific model
-./pianist iterate -i seed.json --provider gemini --model gemini-1.5-pro \
+./pianist modify -i seed.json --provider gemini --model gemini-1.5-pro \
   --instructions "Make it more complex." -o updated.json
 ```
 

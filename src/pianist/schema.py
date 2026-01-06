@@ -409,6 +409,73 @@ Event = Annotated[
 ]
 
 
+# Musical Intent & Annotation Models
+
+class KeyIdea(BaseModel):
+    """
+    Marks an important musical idea that should be preserved and/or developed.
+    
+    Types:
+    - "motif": Recurring melodic/rhythmic pattern
+    - "phrase": Musical phrase
+    - "harmonic_progression": Important chord progression
+    - "rhythmic_pattern": Important rhythmic pattern
+    """
+    id: str = Field(description="Unique identifier (e.g., 'motif_1', 'opening_phrase')")
+    type: Literal["motif", "phrase", "harmonic_progression", "rhythmic_pattern"] = Field(
+        description="Type of musical idea"
+    )
+    start: Beat = Field(description="Start time in beats")
+    duration: Annotated[float, Field(gt=0)] = Field(description="Duration in beats")
+    description: str = Field(description="Human-readable description")
+    importance: Literal["high", "medium", "low"] = Field(
+        default="medium",
+        description="Importance level for preservation/development"
+    )
+    development_direction: str | None = Field(
+        default=None,
+        description="How to develop (e.g., 'expand and vary', 'preserve exactly')"
+    )
+
+
+class ExpansionPoint(BaseModel):
+    """
+    Marks where and how the composition should be expanded.
+    """
+    section: str = Field(description="Section identifier (e.g., 'A', 'B', 'exposition')")
+    current_length: Beat = Field(description="Current length in beats")
+    suggested_length: Annotated[float, Field(gt=0)] = Field(description="Target length in beats")
+    development_strategy: str = Field(description="How to expand (e.g., 'develop motif_1 with variations')")
+    preserve: list[str] = Field(
+        default_factory=list,
+        description="List of key_idea IDs to preserve during expansion"
+    )
+
+
+class MusicalIntent(BaseModel):
+    """
+    Musical intent annotations for guiding AI expansion and development.
+    
+    This is optional - compositions without this field work as before.
+    """
+    key_ideas: list[KeyIdea] = Field(
+        default_factory=list,
+        description="List of key musical ideas (motifs, phrases, etc.)"
+    )
+    expansion_points: list[ExpansionPoint] = Field(
+        default_factory=list,
+        description="Points where the composition should be expanded"
+    )
+    preserve: list[str] = Field(
+        default_factory=list,
+        description="General list of things to preserve (idea IDs, characteristics, etc.)"
+    )
+    development_direction: str | None = Field(
+        default=None,
+        description="Overall development direction for the composition"
+    )
+
+
 class Track(BaseModel):
     name: str = "Piano"
     channel: int = Field(default=0, ge=0, le=15)
@@ -432,6 +499,10 @@ class Composition(BaseModel):
     key_signature: str | None = None
     ppq: int = Field(default=480, ge=24, le=32768)
     tracks: list[Track] = Field(default_factory=lambda: [Track()])
+    musical_intent: MusicalIntent | None = Field(
+        default=None,
+        description="Optional musical intent annotations for guiding AI expansion and development"
+    )
 
     @field_validator("tracks")
     @classmethod

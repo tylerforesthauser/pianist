@@ -52,6 +52,8 @@ def render_midi_mido(composition: Composition, out_path: str | Path) -> Path:
     Render a validated Composition into a standard MIDI file using mido.
     """
     out_path = Path(out_path)
+    # Ensure parent directory exists
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     mid = mido.MidiFile(ticks_per_beat=composition.ppq)
 
     # Global / conductor track

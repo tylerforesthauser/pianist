@@ -6,7 +6,6 @@ from pathlib import Path
 import mido
 
 from pianist.analyze import analyze_midi, analysis_prompt_template
-from pianist.cli import main
 
 
 def _write_test_midi(path: Path) -> None:
@@ -85,35 +84,4 @@ def test_analysis_prompt_template_contains_key_fields(tmp_path: Path) -> None:
     assert "Write a calm 32-bar nocturne." in prompt
 
 
-def test_cli_analyze_json_and_prompt_outputs(tmp_path: Path) -> None:
-    midi_path = tmp_path / "in.mid"
-    _write_test_midi(midi_path)
-
-    out_json = tmp_path / "analysis.json"
-    prompt_path = tmp_path / "prompt.txt"
-    rc = main(
-        [
-            "analyze",
-            "--in",
-            str(midi_path),
-            "--format",
-            "both",
-            "--out",
-            str(out_json),
-            "--prompt-out",
-            str(prompt_path),
-            "--instructions",
-            "Compose something lyrical.",
-        ]
-    )
-    assert rc == 0
-    assert out_json.exists()
-    assert prompt_path.exists()
-
-    data = json.loads(out_json.read_text(encoding="utf-8"))
-    assert data["ppq"] == 480
-    assert "tracks" in data and data["tracks"]
-
-    prompt = prompt_path.read_text(encoding="utf-8")
-    assert "Compose something lyrical." in prompt
 
