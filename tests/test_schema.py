@@ -141,17 +141,19 @@ def test_schema_errors_on_empty_pitches_list() -> None:
     assert "pitches must not be empty" in str(exc.value)
 
     # Pedal events explicitly allow duration=0 for instantaneous pedal press/release.
+    # Use value=0 (release) to avoid the warning about duration=0 with value=127.
     comp = validate_composition_dict(
         {
             "title": "x",
             "bpm": 120,
             "time_signature": {"numerator": 4, "denominator": 4},
-            "tracks": [{"events": [{"type": "pedal", "start": 0, "duration": 0}]}],
+            "tracks": [{"events": [{"type": "pedal", "start": 0, "duration": 0, "value": 0}]}],
         }
     )
     pedal = comp.tracks[0].events[0]
     assert pedal.type == "pedal"
     assert pedal.duration == 0
+    assert pedal.value == 0
 
 
 def test_schema_accepts_labeled_notes_and_coerces_pitches() -> None:
@@ -515,29 +517,58 @@ def test_schema_errors_when_note_missing_hand_in_notes_list() -> None:
     assert "hand" in msg and ("Field required" in msg or "field required" in msg)
 
 
-def test_schema_errors_when_group_missing_hand_in_groups_list() -> None:
-    with pytest.raises(ValueError) as exc:
-        validate_composition_dict(
-            {
-                "title": "x",
-                "bpm": 120,
-                "time_signature": {"numerator": 4, "denominator": 4},
-                "tracks": [
-                    {
-                        "events": [
-                            {
-                                "type": "note",
-                                "start": 0,
-                                "duration": 1,
-                                "groups": [{"pitches": ["C4"]}],
-                            }
-                        ]
-                    }
-                ],
-            }
-        )
-    msg = str(exc.value)
-    assert "hand" in msg and ("Field required" in msg or "field required" in msg)
+def test_schema_infers_hand_when_missing_in_groups_list() -> None:
+    """Test that groups missing hand field have it inferred from pitch range."""
+    # C4 is MIDI 60, which is at the threshold, so should be "rh" (>= 60)
+    comp = validate_composition_dict(
+        {
+            "title": "x",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {
+                            "type": "note",
+                            "start": 0,
+                            "duration": 1,
+                            "groups": [{"pitches": ["C4"]}],  # Missing hand - should be inferred
+                        }
+                    ]
+                }
+            ],
+        }
+    )
+    # Verify hand was inferred
+    event = comp.tracks[0].events[0]
+    assert event.groups is not None
+    assert len(event.groups) == 1
+    assert event.groups[0].hand == "rh"  # C4 (60) is at threshold, so "rh"
+    
+    # Test lower pitches (should infer "lh")
+    comp2 = validate_composition_dict(
+        {
+            "title": "x",
+            "bpm": 120,
+            "time_signature": {"numerator": 4, "denominator": 4},
+            "tracks": [
+                {
+                    "events": [
+                        {
+                            "type": "note",
+                            "start": 0,
+                            "duration": 1,
+                            "groups": [{"pitches": ["C3"]}],  # C3 is MIDI 48, below threshold
+                        }
+                    ]
+                }
+            ],
+        }
+    )
+    event2 = comp2.tracks[0].events[0]
+    assert event2.groups is not None
+    assert len(event2.groups) == 1
+    assert event2.groups[0].hand == "lh"  # C3 (48) is below threshold, so "lh"
 
 
 def test_tempo_event_instant_change() -> None:
