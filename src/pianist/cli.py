@@ -1084,14 +1084,69 @@ def main(argv: list[str] | None = None) -> int:
             
             annotated_comp = comp
             
-            # For --auto-detect, use analysis module (when implemented)
+            # For --auto-detect, use analysis module
             if args.auto_detect:
-                # TODO: Implement auto-detection using analysis module
-                sys.stderr.write(
-                    "warning: Auto-detection not yet fully implemented. "
-                    "Analysis module is required for automatic detection.\n"
-                )
-                # For now, just copy the composition
+                if not MUSIC21_AVAILABLE:
+                    sys.stderr.write(
+                        "error: Auto-detection requires music21. Install with: pip install music21\n"
+                    )
+                    return 1
+                
+                try:
+                    # Perform musical analysis
+                    musical_analysis = analyze_composition_musical(comp)
+                    
+                    # Initialize musical_intent if it doesn't exist
+                    if annotated_comp.musical_intent is None:
+                        from .schema import MusicalIntent
+                        annotated_comp.musical_intent = MusicalIntent()
+                    
+                    # Auto-detect and add motifs as key ideas
+                    for i, motif in enumerate(musical_analysis.motifs):
+                        motif_id = f"auto_motif_{i+1}"
+                        # Check if this motif already exists
+                        existing_ids = {idea.id for idea in annotated_comp.musical_intent.key_ideas}
+                        if motif_id not in existing_ids:
+                            from .schema import KeyIdea
+                            key_idea = KeyIdea(
+                                id=motif_id,
+                                type="motif",
+                                start=motif.start,
+                                duration=motif.duration,
+                                description=motif.description or f"Auto-detected motif {i+1}",
+                                importance="medium",
+                            )
+                            annotated_comp.musical_intent.key_ideas.append(key_idea)
+                    
+                    # Auto-detect and add phrases as key ideas
+                    for i, phrase in enumerate(musical_analysis.phrases):
+                        phrase_id = f"auto_phrase_{i+1}"
+                        # Check if this phrase already exists
+                        existing_ids = {idea.id for idea in annotated_comp.musical_intent.key_ideas}
+                        if phrase_id not in existing_ids:
+                            from .schema import KeyIdea
+                            key_idea = KeyIdea(
+                                id=phrase_id,
+                                type="phrase",
+                                start=phrase.start,
+                                duration=phrase.duration,
+                                description=phrase.description or f"Auto-detected phrase {i+1}",
+                                importance="medium",
+                            )
+                            annotated_comp.musical_intent.key_ideas.append(key_idea)
+                    
+                    if args.verbose:
+                        motifs_added = len([m for m in musical_analysis.motifs])
+                        phrases_added = len([p for p in musical_analysis.phrases])
+                        sys.stderr.write(
+                            f"Auto-detected {motifs_added} motif(s) and {phrases_added} phrase(s)\n"
+                        )
+                    
+                except Exception as e:
+                    if args.debug:
+                        traceback.print_exc(file=sys.stderr)
+                    sys.stderr.write(f"error: Auto-detection failed: {e}\n")
+                    return 1
             else:
                 # Process manual annotation flags
                 annotations_added = False
