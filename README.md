@@ -34,17 +34,17 @@ By default, all generated files are saved to the `output/` directory, organized 
 
 For example, running:
 ```bash
-./pianist iterate --in seed.json --gemini --instructions "Make it faster" --out updated.json --render
+./pianist iterate -i seed.json -g --instructions "Make it faster" -o updated.json --render
 ```
 
 Will create:
 - `output/seed/iterate/updated.json` - The updated composition JSON
 - `output/seed/iterate/updated.json.gemini.txt` - The raw Gemini response
-- `output/seed/iterate/composition.mid` - The rendered MIDI file (if `--out-midi` is not provided)
+- `output/seed/iterate/updated.mid` - The rendered MIDI file (auto-generated from output name if `--midi` is not provided)
 
 **Cross-command workflows:** If you use an output file as input to another command, the system will detect if it's already in the output directory and maintain the same base name. For example:
-- `analyze --in song.mid --out analysis.json` → `output/song/analyze/analysis.json`
-- `iterate --in output/song/analyze/analysis.json --out comp.json` → `output/song/iterate/comp.json`
+- `analyze -i song.mid -o analysis.json` → `output/song/analyze/analysis.json`
+- `iterate -i output/song/analyze/analysis.json -o comp.json` → `output/song/iterate/comp.json`
 
 **Note:** If you provide an absolute path (e.g., `/path/to/file.json`), it will be used as-is. Relative paths are resolved relative to the output directory structure.
 
@@ -60,16 +60,16 @@ By default, if an output file already exists, Pianist will automatically create 
 **Example:**
 ```bash
 # First run
-./pianist iterate --in seed.json --out updated.json --gemini --instructions "Make it faster"
+./pianist iterate -i seed.json -o updated.json -g --instructions "Make it faster"
 # Creates: output/seed/iterate/updated.json and updated.json.gemini.txt
 
 # Second run with different instructions
-./pianist iterate --in seed.json --out updated.json --gemini --instructions "Make it slower"
+./pianist iterate -i seed.json -o updated.json -g --instructions "Make it slower"
 # Creates: output/seed/iterate/updated.v2.json and updated.v2.json.gemini.txt
 # Original files are preserved
 
 # To overwrite instead
-./pianist iterate --in seed.json --out updated.json --gemini --instructions "Try again" --overwrite
+./pianist iterate -i seed.json -o updated.json -g --instructions "Try again" --overwrite
 # Overwrites: output/seed/iterate/updated.json
 ```
 
@@ -78,7 +78,7 @@ By default, if an output file already exists, Pianist will automatically create 
 Render a MIDI file from raw model output (supports fenced JSON code blocks and minor JSON mistakes):
 
 ```bash
-./pianist render --in examples/model_output.txt --out out.mid
+./pianist render -i examples/model_output.txt -o out.mid
 ```
 
 By default, the MIDI file will be saved to `output/<input-name>/render/out.mid`. You can still provide an absolute path to save elsewhere.
@@ -128,17 +128,19 @@ export GOOGLE_API_KEY="YOUR_KEY"
 Iterate (modify an existing seed JSON) with Gemini, saving the updated JSON, saving the raw Gemini response, and rendering to MIDI in one shot:
 
 ```bash
-./pianist iterate --in seed.json --gemini --instructions "Make it more lyrical and add an 8-beat coda." \
-  --out seed_updated.json --render --out-midi out.mid
+./pianist iterate -i seed.json -g --instructions "Make it more lyrical and add an 8-beat coda." \
+  -o seed_updated.json --render
+# MIDI path auto-generated as seed_updated.mid
 ```
 
-If you provide `--out` but omit `--raw-out`, Pianist will automatically save the raw Gemini response next to your JSON as `<out>.gemini.txt`. All files will be saved to `output/<input-name>/iterate/` by default.
+If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist will automatically save the raw Gemini response next to your JSON as `<out>.gemini.txt`. All files will be saved to `output/<input-name>/iterate/` by default.
 
 Analyze a reference MIDI and have Gemini generate a new inspired composition, then render:
 
 ```bash
-./pianist analyze --in existing.mid --gemini --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
-  --out composition.json --render --out-midi composition.mid
+./pianist analyze -i existing.mid -g --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
+  -o composition.json --render
+# MIDI path auto-generated as composition.mid
 ```
 
 All output files (JSON, raw Gemini response, MIDI) will be saved to `output/<input-name>/analyze/` by default.
@@ -146,8 +148,8 @@ All output files (JSON, raw Gemini response, MIDI) will be saved to `output/<inp
 **Model Selection**: Both `iterate` and `analyze` commands support `--gemini-model` to choose a specific Gemini model. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
 
 ```bash
-./pianist iterate --in seed.json --gemini --gemini-model gemini-1.5-pro \
-  --instructions "Make it more complex." --out updated.json
+./pianist iterate -i seed.json -g --gemini-model gemini-1.5-pro \
+  --instructions "Make it more complex." -o updated.json
 ```
 
 ### API Key Management
@@ -191,17 +193,17 @@ Iterate on an existing work by importing either a Pianist JSON (or raw LLM outpu
 
 ```bash
 # From MIDI -> Pianist JSON seed
-./pianist iterate --in existing.mid --out seed.json
+./pianist iterate -i existing.mid -o seed.json
 
 # Quick tweak example: transpose up a whole step
-./pianist iterate --in seed.json --transpose 2 --out seed_transposed.json
+./pianist iterate -i seed.json --transpose 2 -o seed_transposed.json
 
 # Generate a ready-to-paste LLM prompt (includes the seed JSON)
 mkdir -p analysis
-./pianist iterate --in seed.json --prompt-out analysis/iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
+./pianist iterate -i seed.json -p analysis/iterate_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
 
 # Then render the updated JSON back to MIDI
-./pianist render --in seed_transposed.json --out out.mid
+./pianist render -i seed_transposed.json -o out.mid
 ```
 
 Analyze an existing MIDI file to extract prompt-friendly musical constraints (tempo/time/key, note density, chord sizes, register, pedal usage, etc.) and generate a **NEW-composition prompt** inspired by that MIDI:
@@ -209,31 +211,32 @@ Analyze an existing MIDI file to extract prompt-friendly musical constraints (te
 ```bash
 # Generate a ready-to-paste prompt for a NEW composition
 mkdir -p analysis
-./pianist analyze --in existing.mid --format prompt --prompt-out analysis/new_piece_prompt.txt \
+./pianist analyze -i existing.mid -f prompt -p analysis/new_piece_prompt.txt \
   --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
 
 # Or export structured analysis JSON (for building UIs/tools)
-./pianist analyze --in existing.mid --format json --out analysis/analysis.json
+./pianist analyze -i existing.mid -f json -o analysis/analysis.json
 
 # Or both
-./pianist analyze --in existing.mid --format both --out analysis/analysis.json --prompt-out analysis/new_piece_prompt.txt
+./pianist analyze -i existing.mid -f both -o analysis/analysis.json -p analysis/new_piece_prompt.txt
 ```
 
 Fix incorrect sustain pedal patterns in existing compositions:
 
 ```bash
 # Fix pedal patterns (overwrites input)
-./pianist fix-pedal --in "composition.json"
+./pianist fix-pedal -i "composition.json"
 
 # Fix and save to new file, also render to MIDI
-./pianist fix-pedal --in "composition.json" --out "composition_fixed.json" --render --out-midi "composition_fixed.mid"
+./pianist fix-pedal -i "composition.json" -o "composition_fixed.json" --render
+# MIDI path auto-generated as composition_fixed.mid
 ```
 
 See `docs/PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
 **Alternative:** You can also use the Python module directly:
 
 ```bash
-python3 -m pianist render --in examples/model_output.txt --out out.mid
+python3 -m pianist render -i examples/model_output.txt -o out.mid
 ```
 
 `analyze` and `iterate` are also available via `python3 -m pianist ...`.

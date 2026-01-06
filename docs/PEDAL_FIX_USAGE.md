@@ -25,13 +25,14 @@ The fix function converts problematic patterns:
 
 ```bash
 # Fix a single file (overwrites input)
-./pianist fix-pedal --in "composition.json"
+./pianist fix-pedal -i "composition.json"
 
 # Fix and save to new file
-./pianist fix-pedal --in "composition.json" --out "composition_fixed.json"
+./pianist fix-pedal -i "composition.json" -o "composition_fixed.json"
 
 # Fix and also render to MIDI
-./pianist fix-pedal --in "composition.json" --out "composition_fixed.json" --render --out-midi "composition_fixed.mid"
+./pianist fix-pedal -i "composition.json" -o "composition_fixed.json" --render
+# MIDI path auto-generated as composition_fixed.mid
 ```
 
 ### Python API

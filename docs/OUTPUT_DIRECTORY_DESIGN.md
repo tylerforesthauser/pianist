@@ -21,28 +21,28 @@ Where:
 ### Use Cases Considered
 
 1. **Multiple iterations on the same seed**
-   - `iterate --in seed.json --out v1.json`
-   - `iterate --in seed.json --out v2.json`
+   - `iterate -i seed.json -o v1.json`
+   - `iterate -i seed.json -o v2.json`
    - **Result**: Both go to `output/seed/iterate/` - grouped together ✓
 
 2. **Analyze then iterate on the same MIDI**
-   - `analyze --in song.mid --out analysis.json` → `output/song/analyze/analysis.json`
-   - `iterate --in song.mid --out composition.json` → `output/song/iterate/composition.json`
+   - `analyze -i song.mid -o analysis.json` → `output/song/analyze/analysis.json`
+   - `iterate -i song.mid -o composition.json` → `output/song/iterate/composition.json`
    - **Result**: Both under `output/song/` - easy to find related files ✓
 
 3. **Using analyze output as iterate input**
-   - `analyze --in song.mid --out analysis.json` → `output/song/analyze/analysis.json`
-   - `iterate --in output/song/analyze/analysis.json --out comp.json` → `output/song/iterate/comp.json`
+   - `analyze -i song.mid -o analysis.json` → `output/song/analyze/analysis.json`
+   - `iterate -i output/song/analyze/analysis.json -o comp.json` → `output/song/iterate/comp.json`
    - **Result**: Detects original base name "song" from path, keeps files grouped ✓
 
 4. **Multiple renders from the same JSON**
-   - `render --in comp.json --out v1.mid` → `output/comp/render/v1.mid`
-   - `render --in comp.json --out v2.mid` → `output/comp/render/v2.mid`
+   - `render -i comp.json -o v1.mid` → `output/comp/render/v1.mid`
+   - `render -i comp.json -o v2.mid` → `output/comp/render/v2.mid`
    - **Result**: Both grouped together ✓
 
 5. **Filename conflicts between commands**
-   - `analyze --in song.mid --out composition.json` → `output/song/analyze/composition.json`
-   - `iterate --in song.mid --out composition.json` → `output/song/iterate/composition.json`
+   - `analyze -i song.mid -o composition.json` → `output/song/analyze/composition.json`
+   - `iterate -i song.mid -o composition.json` → `output/song/iterate/composition.json`
    - **Result**: No conflict - separated by command subdirectory ✓
 
 ### Alternative Structures Considered
@@ -50,7 +50,7 @@ Where:
 #### Option 1: `output/<command>/<base-name>/` (Original)
 - **Pros**: Clear command separation
 - **Cons**: Related operations on same source are separated
-- **Example**: `analyze --in song.mid` and `iterate --in song.mid` go to different top-level directories
+- **Example**: `analyze -i song.mid` and `iterate -i song.mid` go to different top-level directories
 
 #### Option 2: `output/<base-name>/` (No command separation)
 - **Pros**: All files for a source together
@@ -89,17 +89,17 @@ The `_derive_base_name_from_path()` function handles several cases:
 
 ### Example 1: Simple Iteration
 ```bash
-./pianist iterate --in seed.json --out updated.json --render
+./pianist iterate -i seed.json -o updated.json --render
 ```
 Creates:
 - `output/seed/iterate/updated.json`
-- `output/seed/iterate/updated.json.gemini.txt` (if using --gemini)
-- `output/seed/iterate/composition.mid` (if --out-midi not provided)
+- `output/seed/iterate/updated.json.gemini.txt` (if using -g/--gemini)
+- `output/seed/iterate/updated.mid` (auto-generated from output name if -m/--midi not provided)
 
 ### Example 2: Analyze then Iterate
 ```bash
-./pianist analyze --in song.mid --out analysis.json
-./pianist iterate --in song.mid --out composition.json
+./pianist analyze -i song.mid -o analysis.json
+./pianist iterate -i song.mid -o composition.json
 ```
 Creates:
 - `output/song/analyze/analysis.json`
@@ -109,8 +109,8 @@ Both are under `output/song/` for easy discovery.
 
 ### Example 3: Using Output as Input
 ```bash
-./pianist analyze --in song.mid --out analysis.json
-./pianist iterate --in output/song/analyze/analysis.json --out comp.json
+./pianist analyze -i song.mid -o analysis.json
+./pianist iterate -i output/song/analyze/analysis.json -o comp.json
 ```
 Creates:
 - `output/song/analyze/analysis.json`

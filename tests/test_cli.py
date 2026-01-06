@@ -15,9 +15,9 @@ def test_cli_render_with_input_file(tmp_path: Path) -> None:
     rc = main(
         [
             "render",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--out",
+            "-o",
             str(out),
         ]
     )
@@ -29,14 +29,14 @@ def test_cli_render_with_stdin(tmp_path: Path, monkeypatch) -> None:
     out = tmp_path / "out.mid"
     text = (Path("examples/model_output.txt")).read_text(encoding="utf-8")
     monkeypatch.setattr("sys.stdin", io.StringIO(text))
-    rc = main(["render", "--out", str(out)])
+    rc = main(["render", "-o", str(out)])
     assert rc == 0
     assert out.exists()
 
 
 def test_cli_errors_on_missing_input_file(tmp_path: Path) -> None:
     out = tmp_path / "out.mid"
-    rc = main(["render", "--in", "does-not-exist.txt", "--out", str(out)])
+    rc = main(["render", "-i", "does-not-exist.txt", "-o", str(out)])
     assert rc == 1
 
 
@@ -78,15 +78,15 @@ def test_cli_iterate_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) -
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Make it more lyrical.",
-            "--out",
+            "-o",
             str(out_json),
             "--render",
-            "--out-midi",
+            "-m",
             str(out_midi),
         ]
     )
@@ -124,17 +124,17 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Compose something similar.",
-            "--out",
+            "-o",
             str(out_json),
-            "--raw-out",
+            "-r",
             str(out_raw),
             "--render",
-            "--out-midi",
+            "-m",
             str(out_midi),
         ]
     )
@@ -159,14 +159,14 @@ def test_cli_iterate_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Make it more lyrical.",
-            "--out",
+            "-o",
             str(out_json),
-            "--verbose",
+            "-v",
         ]
     )
     assert rc == 0
@@ -198,14 +198,14 @@ def test_cli_analyze_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Compose something similar.",
-            "--out",
+            "-o",
             str(out_json),
-            "--verbose",
+            "-v",
         ]
     )
     assert rc == 0
@@ -227,12 +227,12 @@ def test_cli_iterate_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Make it more lyrical.",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -269,8 +269,8 @@ def test_cli_render_invalid_json(tmp_path: Path) -> None:
     assert not out.exists()
 
 
-def test_cli_iterate_requires_instructions_with_gemini(tmp_path: Path, monkeypatch, capsys) -> None:
-    """Test that iterate errors when --gemini is used without --instructions."""
+def test_cli_iterate_optional_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
+    """Test that iterate works when --gemini is used without --instructions (now optional)."""
     def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
@@ -280,45 +280,47 @@ def test_cli_iterate_requires_instructions_with_gemini(tmp_path: Path, monkeypat
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
-            "--out",
+            "-g",
+            "-o",
             str(out_json),
         ]
     )
-    assert rc == 1
-    assert not out_json.exists()
-    captured = capsys.readouterr()
-    assert "requires --instructions" in captured.err.lower()
+    # Should succeed now that instructions are optional
+    assert rc == 0
+    assert out_json.exists()
 
 
-def test_cli_iterate_render_requires_out_midi(tmp_path: Path) -> None:
-    """Test that iterate errors when --render is used without --out-midi."""
+def test_cli_iterate_render_auto_generates_midi(tmp_path: Path) -> None:
+    """Test that iterate auto-generates MIDI path when --render is used without --midi."""
     out_json = tmp_path / "out.json"
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--out",
+            "-o",
             str(out_json),
             "--render",
         ]
     )
-    assert rc == 1
+    # Should succeed - MIDI path auto-generated
+    assert rc == 0
+    # Check that MIDI file was created (path auto-generated from output name)
+    assert (tmp_path / "out.mid").exists() or any(tmp_path.glob("*.mid"))
 
 
 def test_cli_iterate_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:
-    """Test that iterate outputs to stdout when --out is omitted."""
-    rc = main(["iterate", "--in", "examples/model_output.txt"])
+    """Test that iterate outputs to stdout when --output is omitted."""
+    rc = main(["iterate", "-i", "examples/model_output.txt"])
     assert rc == 0
     captured = capsys.readouterr()
     assert "title" in captured.out.lower() or '"title"' in captured.out
 
 
-def test_cli_analyze_requires_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
-    """Test that analyze errors when --gemini is used without --instructions."""
+def test_cli_analyze_optional_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
+    """Test that analyze works when --gemini is used without --instructions (now optional)."""
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
     tr = mido.MidiTrack()
@@ -329,22 +331,29 @@ def test_cli_analyze_requires_instructions_with_gemini(tmp_path: Path, monkeypat
     tr.append(mido.MetaMessage("end_of_track", time=0))
     mid.save(midi_path)
     
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
     out_json = tmp_path / "out.json"
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
-            "--out",
+            "-g",
+            "-o",
             str(out_json),
         ]
     )
-    assert rc == 1
+    # Should succeed now that instructions are optional
+    assert rc == 0
+    assert out_json.exists()
 
 
-def test_cli_analyze_render_requires_out_midi(tmp_path: Path) -> None:
-    """Test that analyze errors when --render is used without --out-midi."""
+def test_cli_analyze_render_auto_generates_midi(tmp_path: Path, monkeypatch) -> None:
+    """Test that analyze auto-generates MIDI path when --render is used without --midi."""
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
     tr = mido.MidiTrack()
@@ -355,21 +364,29 @@ def test_cli_analyze_render_requires_out_midi(tmp_path: Path) -> None:
     tr.append(mido.MetaMessage("end_of_track", time=0))
     mid.save(midi_path)
     
+    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
     out_json = tmp_path / "out.json"
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
             "--render",
         ]
     )
-    assert rc == 1
+    # Should succeed - MIDI path auto-generated
+    assert rc == 0
+    # Check that MIDI file was created
+    assert (tmp_path / "out.mid").exists() or any(tmp_path.glob("*.mid"))
 
 
 def test_cli_analyze_render_requires_gemini(tmp_path: Path) -> None:
@@ -387,10 +404,10 @@ def test_cli_analyze_render_requires_gemini(tmp_path: Path) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
             "--render",
-            "--out-midi",
+            "-m",
             str(tmp_path / "out.mid"),
         ]
     )
@@ -402,7 +419,7 @@ def test_cli_analyze_rejects_non_midi_file(tmp_path: Path) -> None:
     text_file = tmp_path / "not_midi.txt"
     text_file.write_text("not a midi file", encoding="utf-8")
     
-    rc = main(["analyze", "--in", str(text_file)])
+    rc = main(["analyze", "-i", str(text_file)])
     assert rc == 1
 
 
@@ -418,7 +435,7 @@ def test_cli_analyze_format_prompt_stdout(tmp_path: Path, capsys) -> None:
     tr.append(mido.MetaMessage("end_of_track", time=0))
     mid.save(midi_path)
     
-    rc = main(["analyze", "--in", str(midi_path), "--format", "prompt"])
+    rc = main(["analyze", "-i", str(midi_path), "-f", "prompt"])
     assert rc == 0
     captured = capsys.readouterr()
     assert "REFERENCE ANALYSIS" in captured.out or "Output MUST be valid JSON" in captured.out
@@ -440,11 +457,11 @@ def test_cli_analyze_format_json_only(tmp_path: Path) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--format",
+            "-f",
             "json",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -485,7 +502,7 @@ def test_cli_fix_pedal_basic(tmp_path: Path) -> None:
     output_file = tmp_path / "output.json"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        rc = main(["fix-pedal", "--in", str(input_file), "--out", str(output_file)])
+        rc = main(["fix-pedal", "-i", str(input_file), "-o", str(output_file)])
     
     assert rc == 0
     assert output_file.exists()
@@ -498,7 +515,7 @@ def test_cli_fix_pedal_basic(tmp_path: Path) -> None:
 
 
 def test_cli_fix_pedal_overwrites_input(tmp_path: Path) -> None:
-    """Test that fix-pedal overwrites input when --out is not provided."""
+    """Test that fix-pedal overwrites input when --output is not provided."""
     import warnings
     
     comp_json = {
@@ -523,7 +540,7 @@ def test_cli_fix_pedal_overwrites_input(tmp_path: Path) -> None:
     
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        rc = main(["fix-pedal", "--in", str(input_file)])
+        rc = main(["fix-pedal", "-i", str(input_file)])
     
     assert rc == 0
     # File should be modified
@@ -532,8 +549,8 @@ def test_cli_fix_pedal_overwrites_input(tmp_path: Path) -> None:
     assert len(pedals) == 1
 
 
-def test_cli_fix_pedal_render_requires_out_midi(tmp_path: Path) -> None:
-    """Test that fix-pedal errors when --render is used without --out-midi."""
+def test_cli_fix_pedal_render_auto_generates_midi(tmp_path: Path) -> None:
+    """Test that fix-pedal auto-generates MIDI path when --render is used without --midi."""
     import warnings
     
     comp_json = {
@@ -547,8 +564,11 @@ def test_cli_fix_pedal_render_requires_out_midi(tmp_path: Path) -> None:
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
     
-    rc = main(["fix-pedal", "--in", str(input_file), "--render"])
-    assert rc == 1
+    rc = main(["fix-pedal", "-i", str(input_file), "--render"])
+    # Should succeed - MIDI path auto-generated
+    assert rc == 0
+    # Check that MIDI file was created
+    assert (tmp_path / "input.mid").exists() or any(tmp_path.glob("*.mid"))
 
 
 def test_cli_fix_pedal_with_render(tmp_path: Path) -> None:
@@ -576,10 +596,10 @@ def test_cli_fix_pedal_with_render(tmp_path: Path) -> None:
     rc = main(
         [
             "fix-pedal",
-            "--in",
+            "-i",
             str(input_file),
             "--render",
-            "--out-midi",
+            "-m",
             str(output_midi),
         ]
     )
@@ -653,12 +673,12 @@ def test_cli_iterate_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -690,12 +710,12 @@ def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -712,7 +732,7 @@ def test_cli_special_characters_in_paths(tmp_path: Path) -> None:
     special_name.write_text(_valid_composition_json(), encoding="utf-8")
 
     out_midi = tmp_path / "output with émojis 🎹.mid"
-    rc = main(["render", "--in", str(special_name), "--out", str(out_midi)])
+    rc = main(["render", "-i", str(special_name), "-o", str(out_midi)])
     
     assert rc == 0
     assert out_midi.exists()
@@ -725,7 +745,7 @@ def test_cli_unicode_characters_in_paths(tmp_path: Path) -> None:
     unicode_name.write_text(_valid_composition_json(), encoding="utf-8")
 
     out_midi = tmp_path / "输出_вывод_出力.mid"
-    rc = main(["render", "--in", str(unicode_name), "--out", str(out_midi)])
+    rc = main(["render", "-i", str(unicode_name), "-o", str(out_midi)])
     
     assert rc == 0
     assert out_midi.exists()
@@ -741,7 +761,7 @@ def test_cli_long_path(tmp_path: Path) -> None:
     long_input.write_text(_valid_composition_json(), encoding="utf-8")
     
     long_output = long_dir / "output.mid"
-    rc = main(["render", "--in", str(long_input), "--out", str(long_output)])
+    rc = main(["render", "-i", str(long_input), "-o", str(long_output)])
     
     assert rc == 0
     assert long_output.exists()
@@ -761,7 +781,7 @@ def test_cli_file_permission_error_read(tmp_path: Path) -> None:
         protected_file.chmod(0o000)  # No permissions
         
         out = tmp_path / "out.mid"
-        rc = main(["render", "--in", str(protected_file), "--out", str(out)])
+        rc = main(["render", "-i", str(protected_file), "-o", str(out)])
         
         # Should fail with permission error
         assert rc == 1
@@ -793,9 +813,9 @@ def test_cli_file_permission_error_write(tmp_path: Path) -> None:
         rc = main(
             [
                 "render",
-                "--in",
+                "-i",
                 "examples/model_output.txt",
-                "--out",
+                "-o",
                 str(protected_output),
             ]
         )
@@ -820,7 +840,7 @@ def test_cli_render_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
     invalid_file.write_text("not valid json", encoding="utf-8")
     out = tmp_path / "out.mid"
     
-    rc = main(["render", "--in", str(invalid_file), "--out", str(out), "--debug"])
+    rc = main(["render", "-i", str(invalid_file), "-o", str(out), "--debug"])
     
     assert rc == 1
     captured = capsys.readouterr()
@@ -833,7 +853,7 @@ def test_cli_iterate_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_text("not valid json", encoding="utf-8")
     
-    rc = main(["iterate", "--in", str(invalid_file), "--out", str(tmp_path / "out.json"), "--debug"])
+    rc = main(["iterate", "-i", str(invalid_file), "-o", str(tmp_path / "out.json"), "--debug"])
     
     assert rc == 1
     captured = capsys.readouterr()
@@ -844,7 +864,7 @@ def test_cli_iterate_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
 def test_cli_analyze_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
     """Test that --debug flag shows full traceback on errors in analyze command."""
     # Create a non-existent MIDI file
-    rc = main(["analyze", "--in", str(tmp_path / "nonexistent.mid"), "--debug"])
+    rc = main(["analyze", "-i", str(tmp_path / "nonexistent.mid"), "--debug"])
     
     assert rc == 1
     captured = capsys.readouterr()
@@ -857,7 +877,7 @@ def test_cli_fix_pedal_debug_flag_shows_traceback(tmp_path: Path, capsys) -> Non
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_text("not valid json", encoding="utf-8")
     
-    rc = main(["fix-pedal", "--in", str(invalid_file), "--debug"])
+    rc = main(["fix-pedal", "-i", str(invalid_file), "--debug"])
     
     assert rc == 1
     captured = capsys.readouterr()
@@ -879,12 +899,12 @@ def test_cli_iterate_custom_gemini_model(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
             "--gemini-model",
             "gemini-1.5-pro",
@@ -918,12 +938,12 @@ def test_cli_analyze_custom_gemini_model(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
             "--gemini-model",
             "gemini-2.0-flash-exp",
@@ -934,7 +954,7 @@ def test_cli_analyze_custom_gemini_model(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_cli_iterate_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
-    """Test that custom --raw-out path is used when provided."""
+    """Test that custom --raw path is used when provided."""
     out_json = tmp_path / "out.json"
     custom_raw = tmp_path / "custom_raw.txt"
 
@@ -946,14 +966,14 @@ def test_cli_iterate_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
-            "--raw-out",
+            "-r",
             str(custom_raw),
         ]
     )
@@ -964,7 +984,7 @@ def test_cli_iterate_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
-    """Test that custom --raw-out path is used when provided in analyze command."""
+    """Test that custom --raw path is used when provided in analyze command."""
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
     tr = mido.MidiTrack()
@@ -986,14 +1006,14 @@ def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
-            "--raw-out",
+            "-r",
             str(custom_raw),
         ]
     )
@@ -1010,13 +1030,13 @@ def test_cli_iterate_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
 
     monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
 
-    # Don't provide --out or --raw-out, so raw output won't be saved
+    # Don't provide --output or --raw, so raw output won't be saved
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
         ]
@@ -1044,13 +1064,13 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
 
     monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
 
-    # Don't provide --out or --raw-out, so raw output won't be saved
+    # Don't provide --output or --raw, so raw output won't be saved
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
         ]
@@ -1062,7 +1082,7 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
 
 
 def test_cli_analyze_prompt_out_with_format_prompt(tmp_path: Path) -> None:
-    """Test --prompt-out with --format prompt."""
+    """Test --prompt with --format prompt."""
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
     tr = mido.MidiTrack()
@@ -1077,11 +1097,11 @@ def test_cli_analyze_prompt_out_with_format_prompt(tmp_path: Path) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--format",
+            "-f",
             "prompt",
-            "--prompt-out",
+            "-p",
             str(prompt_path),
             "--instructions",
             "Test instructions",
@@ -1095,10 +1115,10 @@ def test_cli_analyze_prompt_out_with_format_prompt(tmp_path: Path) -> None:
 
 
 def test_cli_analyze_prompt_out_with_format_json(tmp_path: Path) -> None:
-    """Test --prompt-out with --format json.
+    """Test --prompt with --format json.
     
     Note: When format is 'json', the prompt section is not executed,
-    so --prompt-out is ignored. This is expected behavior.
+    so --prompt is ignored. This is expected behavior.
     """
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
@@ -1115,13 +1135,13 @@ def test_cli_analyze_prompt_out_with_format_json(tmp_path: Path) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--format",
+            "-f",
             "json",
-            "--out",
+            "-o",
             str(out_json),
-            "--prompt-out",
+            "-p",
             str(prompt_path),
             "--instructions",
             "Test instructions",
@@ -1129,13 +1149,13 @@ def test_cli_analyze_prompt_out_with_format_json(tmp_path: Path) -> None:
     )
     assert rc == 0
     assert out_json.exists()
-    # When format is 'json', prompt section is not executed, so --prompt-out is ignored
+    # When format is 'json', prompt section is not executed, so --prompt is ignored
     # This is expected behavior - prompt is only generated when format includes 'prompt'
     assert not prompt_path.exists()
 
 
 def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path) -> None:
-    """Test --prompt-out with --format both."""
+    """Test --prompt with --format both."""
     midi_path = tmp_path / "in.mid"
     mid = mido.MidiFile(ticks_per_beat=480)
     tr = mido.MidiTrack()
@@ -1151,13 +1171,13 @@ def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--format",
+            "-f",
             "both",
-            "--out",
+            "-o",
             str(out_json),
-            "--prompt-out",
+            "-p",
             str(prompt_path),
             "--instructions",
             "Test instructions",
@@ -1193,12 +1213,12 @@ def test_cli_iterate_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Make it different.",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1227,12 +1247,12 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "First",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1243,12 +1263,12 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Second",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1260,12 +1280,12 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Third",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1300,12 +1320,12 @@ def test_cli_iterate_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1342,12 +1362,12 @@ def test_cli_iterate_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
             "--overwrite",
         ]
@@ -1389,12 +1409,12 @@ def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1440,12 +1460,12 @@ def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1492,12 +1512,12 @@ def test_cli_analyze_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     rc = main(
         [
             "analyze",
-            "--in",
+            "-i",
             str(midi_path),
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
             "--overwrite",
         ]
@@ -1533,12 +1553,12 @@ def test_cli_versioning_with_cached_response(tmp_path: Path, monkeypatch) -> Non
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1570,12 +1590,12 @@ def test_cli_versioning_skips_when_file_not_exists(tmp_path: Path, monkeypatch) 
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(out_json),
         ]
     )
@@ -1606,12 +1626,12 @@ def test_cli_versioning_with_already_versioned_file(tmp_path: Path, monkeypatch)
     rc = main(
         [
             "iterate",
-            "--in",
+            "-i",
             "examples/model_output.txt",
-            "--gemini",
+            "-g",
             "--instructions",
             "Test",
-            "--out",
+            "-o",
             str(target_json),
         ]
     )

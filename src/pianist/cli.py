@@ -255,62 +255,77 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    # Common flags function
+    def add_common_flags(cmd_parser):
+        """Add common flags to a command parser."""
+        cmd_parser.add_argument(
+            "--debug",
+            action="store_true",
+            help="Print a full traceback on errors.",
+        )
+        cmd_parser.add_argument(
+            "--verbose", "-v",
+            action="store_true",
+            help="Show progress indicators and timing for Gemini API calls.",
+        )
+        cmd_parser.add_argument(
+            "--overwrite",
+            action="store_true",
+            help="Overwrite existing output files instead of creating versioned copies.",
+        )
+
     render = sub.add_parser("render", help="Parse model output and render a MIDI file.")
     render.add_argument(
-        "--in",
+        "-i", "--input",
         dest="in_path",
         type=Path,
         default=None,
         help="Input text file containing model output. If omitted, reads stdin.",
     )
     render.add_argument(
-        "--out",
+        "-o", "--output",
         dest="out_path",
         type=Path,
         required=True,
         help="Output MIDI path (e.g. out.mid).",
     )
-    render.add_argument(
-        "--debug",
-        action="store_true",
-        help="Print a full traceback on errors.",
-    )
+    add_common_flags(render)
 
     iterate = sub.add_parser(
         "iterate",
         help="Import an existing JSON/MIDI and emit a clean, tweakable composition JSON seed.",
     )
     iterate.add_argument(
-        "--in",
+        "-i", "--input",
         dest="in_path",
         type=Path,
         required=True,
         help="Input composition: a Pianist JSON (or raw LLM output text) OR a .mid/.midi file.",
     )
     iterate.add_argument(
-        "--out",
+        "-o", "--output",
         dest="out_path",
         type=Path,
         default=None,
         help="Output JSON path. If omitted, prints to stdout.",
     )
     iterate.add_argument(
-        "--transpose",
+        "--transpose", "-t",
         type=int,
         default=0,
         help="Transpose all notes by this many semitones (can be negative).",
     )
     iterate.add_argument(
-        "--prompt-out",
+        "-p", "--prompt",
         dest="prompt_out_path",
         type=Path,
         default=None,
-        help="Optional: write a ready-to-paste LLM prompt that includes the seed JSON.",
+        help="Write a ready-to-paste LLM prompt that includes the seed JSON.",
     )
     iterate.add_argument(
-        "--gemini",
+        "--gemini", "-g",
         action="store_true",
-        help="Call Google Gemini to apply --instructions to the seed, producing an updated composition JSON.",
+        help="Call Google Gemini to apply instructions to the seed, producing an updated composition JSON.",
     )
     iterate.add_argument(
         "--gemini-model",
@@ -319,81 +334,67 @@ def main(argv: list[str] | None = None) -> int:
         help="Gemini model name to use (default: gemini-flash-latest).",
     )
     iterate.add_argument(
-        "--raw-out",
+        "-r", "--raw",
         dest="raw_out_path",
         type=Path,
         default=None,
-        help="Optional: save the raw Gemini response text to this path (recommended).",
+        help="Save the raw Gemini response text to this path. Auto-generated if --output is provided.",
     )
     iterate.add_argument(
         "--render",
         action="store_true",
-        help="Also render the (possibly Gemini-updated) composition to MIDI (requires --out-midi).",
+        help="Also render the (possibly Gemini-updated) composition to MIDI.",
     )
     iterate.add_argument(
-        "--out-midi",
+        "-m", "--midi",
         dest="out_midi_path",
         type=Path,
         default=None,
-        help="Output MIDI path (only used with --render).",
+        help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
     iterate.add_argument(
         "--instructions",
         type=str,
-        default=None,
-        help="Optional: embed requested changes into the generated prompt template.",
+        default="",
+        help="Instructions for Gemini to modify the composition (optional, but recommended).",
     )
-    iterate.add_argument(
-        "--debug",
-        action="store_true",
-        help="Print a full traceback on errors.",
-    )
-    iterate.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Show progress indicators and timing for Gemini API calls.",
-    )
-    iterate.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Overwrite existing output files instead of creating versioned copies (e.g., file.v2.json).",
-    )
+    add_common_flags(iterate)
 
     analyze = sub.add_parser(
         "analyze",
         help="Analyze a .mid/.midi file and emit prompt-friendly output.",
     )
     analyze.add_argument(
-        "--in",
+        "-i", "--input",
         dest="in_path",
         type=Path,
         required=True,
         help="Input MIDI file (.mid/.midi).",
     )
     analyze.add_argument(
-        "--format",
+        "--format", "-f",
         choices=["prompt", "json", "both"],
         default="prompt",
         help="Output format: 'prompt' (default), 'json', or 'both'.",
     )
     analyze.add_argument(
-        "--out",
+        "-o", "--output",
         dest="out_path",
         type=Path,
         default=None,
-        help="Output path for JSON (or prompt if --format prompt and --prompt-out not provided). If omitted, prints to stdout.",
+        help="Output path for JSON (or prompt if --format prompt and --prompt not provided). If omitted, prints to stdout.",
     )
     analyze.add_argument(
-        "--prompt-out",
+        "-p", "--prompt",
         dest="prompt_out_path",
         type=Path,
         default=None,
-        help="Optional: write the prompt text to this path (recommended).",
+        help="Write the prompt text to this path.",
     )
     analyze.add_argument(
-        "--gemini",
+        "--gemini", "-g",
         action="store_true",
-        help="Call Google Gemini to generate a new composition inspired by the analysis (requires --instructions).",
+        help="Call Google Gemini to generate a new composition inspired by the analysis.",
     )
     analyze.add_argument(
         "--gemini-model",
@@ -402,59 +403,45 @@ def main(argv: list[str] | None = None) -> int:
         help="Gemini model name to use (default: gemini-flash-latest).",
     )
     analyze.add_argument(
-        "--raw-out",
+        "-r", "--raw",
         dest="raw_out_path",
         type=Path,
         default=None,
-        help="Optional: save the raw Gemini response text to this path (recommended).",
+        help="Save the raw Gemini response text to this path. Auto-generated if --output is provided.",
     )
     analyze.add_argument(
         "--render",
         action="store_true",
-        help="Also render the Gemini-generated composition to MIDI (requires --out-midi; only valid with --gemini).",
+        help="Also render the Gemini-generated composition to MIDI (only valid with --gemini).",
     )
     analyze.add_argument(
-        "--out-midi",
+        "-m", "--midi",
         dest="out_midi_path",
         type=Path,
         default=None,
-        help="Output MIDI path (only used with --render).",
+        help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
     analyze.add_argument(
         "--instructions",
         type=str,
-        default=None,
-        help="Optional: embed requested composition instructions into the generated prompt.",
+        default="",
+        help="Instructions for Gemini to compose a new piece (optional, but recommended).",
     )
-    analyze.add_argument(
-        "--debug",
-        action="store_true",
-        help="Print a full traceback on errors.",
-    )
-    analyze.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Show progress indicators and timing for Gemini API calls.",
-    )
-    analyze.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Overwrite existing output files instead of creating versioned copies (e.g., file.v2.json).",
-    )
+    add_common_flags(analyze)
 
     fix_pedal = sub.add_parser(
         "fix-pedal",
         help="Fix incorrect sustain pedal patterns in a composition JSON file.",
     )
     fix_pedal.add_argument(
-        "--in",
+        "-i", "--input",
         dest="in_path",
         type=Path,
         required=True,
         help="Input JSON file containing composition.",
     )
     fix_pedal.add_argument(
-        "--out",
+        "-o", "--output",
         dest="out_path",
         type=Path,
         default=None,
@@ -463,20 +450,16 @@ def main(argv: list[str] | None = None) -> int:
     fix_pedal.add_argument(
         "--render",
         action="store_true",
-        help="Also render the fixed composition to MIDI (requires --out-midi).",
+        help="Also render the fixed composition to MIDI.",
     )
     fix_pedal.add_argument(
-        "--out-midi",
+        "-m", "--midi",
         dest="out_midi_path",
         type=Path,
         default=None,
-        help="Output MIDI path (only used with --render).",
+        help="Output MIDI path. Auto-generated from input/output name if --render is used without this flag.",
     )
-    fix_pedal.add_argument(
-        "--debug",
-        action="store_true",
-        help="Print a full traceback on errors.",
-    )
+    add_common_flags(fix_pedal)
 
     if generate_openapi_schema is not None:
         schema_cmd = sub.add_parser(
@@ -484,17 +467,18 @@ def main(argv: list[str] | None = None) -> int:
             help="Generate OpenAPI and Gemini-compatible schema files for structured output.",
         )
         schema_cmd.add_argument(
-            "--format",
+            "--format", "-f",
             choices=["both", "openapi", "gemini"],
             default="both",
             help="Which schema format(s) to generate: 'both' (openapi+gemini), 'openapi', or 'gemini' (default: both).",
         )
         schema_cmd.add_argument(
-            "--output-dir",
+            "-o", "--output-dir",
             type=Path,
             default=None,
             help="Directory to write schema files (default: project root).",
         )
+        add_common_flags(schema_cmd)
 
     args = parser.parse_args(argv)
 
@@ -560,11 +544,18 @@ def main(argv: list[str] | None = None) -> int:
             # Optionally render to MIDI
             if args.render:
                 if args.out_midi_path is None:
-                    sys.stderr.write("error: --render requires --out-midi\n")
-                    return 1
-                out_midi_path = _resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "fix-pedal"
-                )
+                    # Auto-generate MIDI path from input/output name
+                    if args.out_path is not None:
+                        midi_name = args.out_path.stem + ".mid"
+                    else:
+                        midi_name = args.in_path.stem + "_fixed.mid"
+                    out_midi_path = _resolve_output_path(
+                        Path(midi_name), output_dir, "composition.mid", "fix-pedal"
+                    )
+                else:
+                    out_midi_path = _resolve_output_path(
+                        args.out_midi_path, output_dir, "composition.mid", "fix-pedal"
+                    )
                 render_midi_mido(fixed, out_midi_path)
                 sys.stdout.write(f"  Rendered to: {out_midi_path}\n")
         except Exception as exc:
@@ -599,11 +590,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 out_json_path = None
             
-            # For MIDI, default to output directory if --render is used
+            # For MIDI, auto-generate path if --render is used without explicit path
             if args.render:
-                out_midi_path = _resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "iterate"
-                )
+                if args.out_midi_path is None:
+                    # Auto-generate MIDI path from input/output name
+                    if args.out_path is not None:
+                        midi_name = args.out_path.stem + ".mid"
+                    else:
+                        midi_name = args.in_path.stem + ".mid"
+                    out_midi_path = _resolve_output_path(
+                        Path(midi_name), output_dir, "composition.mid", "iterate"
+                    )
+                else:
+                    out_midi_path = _resolve_output_path(
+                        args.out_midi_path, output_dir, "composition.mid", "iterate"
+                    )
             else:
                 out_midi_path = _resolve_output_path(
                     args.out_midi_path, output_dir, "composition.mid", "iterate"
@@ -614,9 +615,7 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.gemini:
                 instructions = (args.instructions or "").strip()
-                if not instructions:
-                    raise ValueError("--gemini requires --instructions.")
-
+                # Instructions are optional but recommended
                 template = iteration_prompt_template(comp, instructions=instructions)
                 prompt = _gemini_prompt_from_template(template)
 
@@ -656,8 +655,8 @@ def main(argv: list[str] | None = None) -> int:
                     elif raw_text is not None:
                         # No path to save raw response - show warning
                         sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw-out "
-                            "or also provide --out to enable an automatic default.\n"
+                            "warning: Gemini raw output was not saved. Provide --raw (-r) "
+                            "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
                     # Version output if file exists and --overwrite not set
@@ -725,11 +724,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 out_json_path = None
             
-            # For MIDI, default to output directory if --render is used with --gemini
+            # For MIDI, auto-generate path if --render is used without explicit path
             if args.render and args.gemini:
-                out_midi_path = _resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "analyze"
-                )
+                if args.out_midi_path is None:
+                    # Auto-generate MIDI path from input/output name
+                    if args.out_path is not None:
+                        midi_name = args.out_path.stem + ".mid"
+                    else:
+                        midi_name = args.in_path.stem + ".mid"
+                    out_midi_path = _resolve_output_path(
+                        Path(midi_name), output_dir, "composition.mid", "analyze"
+                    )
+                else:
+                    out_midi_path = _resolve_output_path(
+                        args.out_midi_path, output_dir, "composition.mid", "analyze"
+                    )
             else:
                 out_midi_path = _resolve_output_path(
                     args.out_midi_path, output_dir, "composition.mid", "analyze"
@@ -740,9 +749,7 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.gemini:
                 instructions = (args.instructions or "").strip()
-                if not instructions:
-                    raise ValueError("--gemini requires --instructions.")
-
+                # Instructions are optional but recommended
                 template = analysis_prompt_template(analysis, instructions=instructions)
                 prompt = _gemini_prompt_from_template(template)
 
@@ -782,8 +789,8 @@ def main(argv: list[str] | None = None) -> int:
                     elif raw_text is not None:
                         # No path to save raw response - show warning
                         sys.stderr.write(
-                            "warning: Gemini raw output was not saved. Provide --raw-out "
-                            "or also provide --out to enable an automatic default.\n"
+                            "warning: Gemini raw output was not saved. Provide --raw (-r) "
+                            "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
                     # Version output if file exists and --overwrite not set

@@ -36,17 +36,17 @@ Use `pianist iterate` to normalize either JSON or MIDI into a canonical, tweak-f
 
 ```bash
 # MIDI -> JSON seed
-./pianist iterate --in "existing.mid" --out "seed.json"
+./pianist iterate -i "existing.mid" -o "seed.json"
 
 # JSON/LLM output -> canonical JSON seed
-./pianist iterate --in "some_model_output.txt" --out "seed.json"
+./pianist iterate -i "some_model_output.txt" -o "seed.json"
 ```
 
 Optional quick tweak (without using an AI model):
 
 ```bash
 # Transpose all notes up by 2 semitones
-./pianist iterate --in "seed.json" --transpose 2 --out "seed_transposed.json"
+./pianist iterate -i "seed.json" --transpose 2 -o "seed_transposed.json"
 ```
 
 ### Step 2: Ask the model to revise the seed (recommended prompting pattern)
@@ -60,13 +60,13 @@ Tip: Pianist can generate a ready-to-paste iteration prompt file:
 
 ```bash
 mkdir -p analysis
-./pianist iterate --in "seed.json" --prompt-out "analysis/iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
+./pianist iterate -i "seed.json" -p "analysis/iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
 ```
 
 Then paste that prompt into your model and render the result:
 
 ```bash
-./pianist render --in "updated_seed.json" --out "updated.mid"
+./pianist render -i "updated_seed.json" -o "updated.mid"
 ```
 
 ## Creating NEW Works Inspired by an Existing MIDI (Analysis -> Prompt)
@@ -78,17 +78,17 @@ Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file an
 ```bash
 # Generate a prompt for a NEW composition (recommended)
 mkdir -p analysis
-./pianist analyze --in "existing.mid" --format prompt --prompt-out "analysis/new_piece_prompt.txt" \
+./pianist analyze -i "existing.mid" -f prompt -p "analysis/new_piece_prompt.txt" \
   --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
 
 # Optional: export structured analysis JSON (useful for building tools/UIs)
-./pianist analyze --in "existing.mid" --format json --out "analysis/analysis.json"
+./pianist analyze -i "existing.mid" -f json -o "analysis/analysis.json"
 ```
 
 Workflow:
 - Run `./pianist analyze ...` to get a prompt.
 - Paste the prompt into your model to produce a **new** Pianist composition JSON.
-- Render it with `./pianist render --in new.json --out new.mid`.
+- Render it with `./pianist render -i new.json -o new.mid`.
 
 ## Building Your User Prompt
 

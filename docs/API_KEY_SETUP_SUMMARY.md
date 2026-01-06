@@ -35,14 +35,14 @@ cp .env.example .env
 # Edit .env: GEMINI_API_KEY=your_key
 
 # Use pianist - key is automatically loaded
-./pianist analyze --in song.mid --gemini --instructions "..." --out out.json
+./pianist analyze -i song.mid -g --instructions "..." -o out.json
 ```
 
 ### CI/CD (Recommended)
 ```bash
 # Set environment variable
 export GEMINI_API_KEY="your_key"
-./pianist iterate --in seed.json --gemini --instructions "..." --out out.json
+./pianist iterate -i seed.json -g --instructions "..." -o out.json
 ```
 
 ### Integration Tests
