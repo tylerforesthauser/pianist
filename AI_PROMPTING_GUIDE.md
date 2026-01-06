@@ -88,6 +88,11 @@ Workflow:
 
 The user prompt is where you specify what you want. You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
 
+**Important considerations for cohesive compositions:**
+- **Thematic coherence**: When requesting longer works or multiple sections, emphasize that all themes should relate through motivic development. For example: "Develop 1-2 main motifs throughout all sections" or "Ensure all themes relate to the opening material."
+- **Continuous music**: The system prompt already emphasizes this, but you can reinforce it by requesting "continuous music with no gaps between sections" or "smooth transitions throughout."
+- **Regular phrase structure**: For works that need structural clarity, you can request "regular phrase lengths (4, 8, or 16 beats)" or "consistent measure structure within each section."
+
 ### User Prompt Template
 
 **Template structure:**
@@ -407,10 +412,12 @@ Structure:
 - Transitions: Use connecting passages and modulatory bridges between sections (approximately 20 beats total)
 
 Musical elements:
-- Introduce 2-3 contrasting motifs in the exposition, develop throughout
+- Introduce 1-2 primary motifs in the exposition. These motifs MUST be developed and referenced throughout all sections (exposition, development, recapitulation). Every theme must relate to these motifs.
 - Build dynamics: quiet opening → powerful climax in development → greater intensity in recapitulation
-- Include a lyrical, contrasting second theme
+- Second theme should contrast but still relate to primary motifs through development techniques
 - Use proper voice leading and functional harmony throughout
+- Use regular phrase structure (4, 8, or 16 beats) with consistent lengths within each section
+- Fill all 250 beats with continuous music—no gaps between sections, maximum 2-beat pauses only between phrases
 ```
 
 #### Example 2: Theme and Variations (300 beats)
@@ -438,11 +445,13 @@ Structure:
 - Coda (28 beats): Extended conclusion that references the theme and brings the work to a satisfying close
 
 Musical elements:
-- Each variation should transform the theme while remaining recognizable
+- Each variation must transform the theme while remaining recognizable. All variations must relate to the original theme—avoid introducing completely unrelated material.
 - Use different textures: homophonic, polyphonic, melody with accompaniment
 - Explore different registers and hand distributions
 - Build dynamic intensity: peak in variation 6, then reflective variation 7
+- Use regular phrase structure (4, 8, or 16 beats) consistently within each variation
 - Include smooth transitions between variations (2-4 beats each)
+- Fill all 300 beats with continuous music—no gaps between variations
 ```
 
 #### Example 3: Extended Rondo (180 beats)
@@ -554,11 +563,13 @@ Structure:
 
 Musical elements:
 - Narrative arc: mysterious beginning → lyrical theme → energetic contrast → dramatic development → return with resolution
-- Use 2-3 main motifs developed throughout
+- Use 1-2 main motifs introduced early. ALL sections must develop and reference these motifs—avoid unrelated themes. The composition must sound cohesive, not like separate pieces.
 - Climax in development section (around beat 120-140)
 - Dynamics: p → mf → f → ff (climax) → mf → p
 - Tempo changes: slight accelerando in development, ritardando in coda
-- Smooth transitions between all sections
+- Use regular phrase structure (4, 8, or 16 beats) consistently within each section
+- Smooth transitions between all sections—no gaps, maximum 2-beat pauses only between phrases
+- Fill all 250 beats with continuous music
 ```
 
 #### Example 7: Passacaglia with Variations (200 beats)
@@ -799,21 +810,26 @@ Pitch format:
 Time units:
 - start/duration are in beats, where 1 beat == a quarter note.
 
-Time continuity:
-- Fill the entire requested length with continuous music (no large gaps). Brief pauses (1-2 beats) between phrases are acceptable.
-- Use musical transitions (connecting passages, cadential extensions, modulatory bridges) between sections, not empty space.
-- The last event's (start + duration) should be close to the requested length.
+Time continuity (CRITICAL):
+- Fill the ENTIRE requested length with continuous music. NO large gaps or silences between sections.
+- Maximum gap between events: 2 beats (and only between phrases, never between sections).
+- Use musical transitions (connecting passages, cadential extensions, modulatory bridges) between sections—NEVER empty space.
+- The last event's (start + duration) MUST be within 5 beats of the requested length.
 - Plan section lengths proportionally (e.g., 250-beat sonata: exposition 60-80, development 80-100, recapitulation 60-80, transitions ~20).
+- If requested length is 250 beats, generate approximately 250 beats of actual music, not 200 beats with 50 beats of silence.
 
 Compositional approach:
 
-Motivic development and form:
-- Introduce a short, memorable motif early, then develop it (transposition, inversion, augmentation, diminution, fragmentation, sequence).
+Motivic development and thematic coherence (CRITICAL):
+- Introduce 1-2 short, memorable motifs early in the piece. These motifs MUST be developed and referenced throughout the entire composition.
+- Every new theme or section should relate to the original motifs through development techniques (transposition, inversion, augmentation, diminution, fragmentation, sequence, rhythmic variation).
+- Avoid introducing completely unrelated themes. If a contrasting section is needed, derive it from the original motifs or create clear motivic connections.
+- The composition must sound like a SINGLE COHESIVE WORK, not a collection of unrelated ideas. Maintain thematic relationships throughout.
 - Adhere to established formal principles (binary, ternary, sonata, rondo, theme and variations, etc.) as appropriate.
-- Use clear phrase structure (typically 4, 8, or 16 beats) with antecedent-consequent relationships.
-- For longer works, plan structure first, then fill in details.
+- Use clear, regular phrase structure (typically 4, 8, or 16 beats) with antecedent-consequent relationships. Maintain consistent phrase lengths within sections.
+- For longer works, plan structure first, then fill in details, ensuring motifs are developed across all sections.
 - Mark formal sections using the `section` field (e.g., "exposition", "A", "development", "B", "recapitulation").
-- Create contrast between sections (keys, textures, moods, registers) with musical transitions.
+- Create contrast between sections (keys, textures, moods, registers) with musical transitions that maintain motivic connections.
 - Maintain larger-scale coherence through motivic development and key relationships.
 
 Harmony and voice leading:
@@ -844,8 +860,13 @@ Sustain pedal:
 - For legato pedaling, overlap slightly (new pedal starts 0.1 beats before previous ends).
 - Do NOT use `duration: 0` for sustained pedaling.
 
-Rhythm:
+Rhythm and phrase structure:
 - Prefer simple rhythmic grids (quarters/eighths), then add syncopation where appropriate.
+- Use regular, consistent phrase lengths within each section (typically 4, 8, or 16 beats).
+- Maintain consistent measure structure: phrases should align with measure boundaries (e.g., 4-beat phrases in 4/4, 6-beat phrases in 6/8).
+- While occasional phrase extensions or contractions are acceptable, avoid erratic, inconsistent phrase lengths that create an unstable rhythmic feel.
+- Group phrases into larger units (e.g., two 8-beat phrases = 16-beat phrase group).
+- Ensure cadences align with phrase endings and measure boundaries for structural clarity.
 
 Tempo changes:
 - Use tempo events for ritardando or accelerando when musically appropriate.
@@ -860,7 +881,9 @@ Output quality:
 - Ensure harmonies are complete and properly voiced.
 - Maintain consistent key centers within sections unless intentionally modulating.
 - Use the `section` annotation field liberally to mark formal divisions.
-- CRITICAL: Fill the entire requested length with continuous music. Last event's (start + duration) should be close to requested length.
+- CRITICAL: Fill the entire requested length with continuous music. Last event's (start + duration) must be within 5 beats of requested length.
+- CRITICAL: Maintain thematic coherence—all sections must relate through motivic development, not unrelated ideas.
+- CRITICAL: Use regular phrase structure (4, 8, or 16 beats) with consistent lengths within sections. Avoid erratic, inconsistent phrase lengths.
 ```
 
 ## Schema Reference
