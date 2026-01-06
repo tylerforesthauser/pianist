@@ -16,6 +16,7 @@ from .iterate import (
 from .pedal_fix import fix_pedal_patterns
 from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
+from .gemini import GeminiError, generate_text
 
 try:
     from .generate_openapi_schema import generate_openapi_schema
@@ -39,6 +40,27 @@ def _read_text(path: Path | None) -> str:
         raise FileNotFoundError(f"Input file not found: {path}") from e
     except PermissionError as e:
         raise PermissionError(f"Input file not readable: {path}") from e
+
+
+def _write_text(path: Path, text: str) -> None:
+    path = Path(path)
+    if path.parent and not path.parent.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _derive_gemini_raw_path(out_path: Path) -> Path:
+    # Keep it simple and discoverable: next to the JSON output.
+    return out_path.with_name(out_path.name + ".gemini.txt")
+
+
+def _gemini_prompt_from_template(template: str) -> str:
+    """
+    The CLI prompt templates are optimized for copy/paste into chat UIs.
+    For Gemini CLI calls, we send a single text prompt that includes both the
+    "system" and "user" sections explicitly.
+    """
+    return template.strip() + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -101,6 +123,36 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional: write a ready-to-paste LLM prompt that includes the seed JSON.",
     )
     iterate.add_argument(
+        "--gemini",
+        action="store_true",
+        help="Call Google Gemini to apply --instructions to the seed, producing an updated composition JSON.",
+    )
+    iterate.add_argument(
+        "--gemini-model",
+        type=str,
+        default="gemini-flash-latest",
+        help="Gemini model name to use (default: gemini-flash-latest).",
+    )
+    iterate.add_argument(
+        "--raw-out",
+        dest="raw_out_path",
+        type=Path,
+        default=None,
+        help="Optional: save the raw Gemini response text to this path (recommended).",
+    )
+    iterate.add_argument(
+        "--render",
+        action="store_true",
+        help="Also render the (possibly Gemini-updated) composition to MIDI (requires --out-midi).",
+    )
+    iterate.add_argument(
+        "--out-midi",
+        dest="out_midi_path",
+        type=Path,
+        default=None,
+        help="Output MIDI path (only used with --render).",
+    )
+    iterate.add_argument(
         "--instructions",
         type=str,
         default=None,
@@ -110,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
         "--debug",
         action="store_true",
         help="Print a full traceback on errors.",
+    )
+    iterate.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show progress indicators and timing for Gemini API calls.",
     )
 
     analyze = sub.add_parser(
@@ -144,6 +201,36 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional: write the prompt text to this path (recommended).",
     )
     analyze.add_argument(
+        "--gemini",
+        action="store_true",
+        help="Call Google Gemini to generate a new composition inspired by the analysis (requires --instructions).",
+    )
+    analyze.add_argument(
+        "--gemini-model",
+        type=str,
+        default="gemini-flash-latest",
+        help="Gemini model name to use (default: gemini-flash-latest).",
+    )
+    analyze.add_argument(
+        "--raw-out",
+        dest="raw_out_path",
+        type=Path,
+        default=None,
+        help="Optional: save the raw Gemini response text to this path (recommended).",
+    )
+    analyze.add_argument(
+        "--render",
+        action="store_true",
+        help="Also render the Gemini-generated composition to MIDI (requires --out-midi; only valid with --gemini).",
+    )
+    analyze.add_argument(
+        "--out-midi",
+        dest="out_midi_path",
+        type=Path,
+        default=None,
+        help="Output MIDI path (only used with --render).",
+    )
+    analyze.add_argument(
         "--instructions",
         type=str,
         default=None,
@@ -153,6 +240,11 @@ def main(argv: list[str] | None = None) -> int:
         "--debug",
         action="store_true",
         help="Print a full traceback on errors.",
+    )
+    analyze.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show progress indicators and timing for Gemini API calls.",
     )
 
     fix_pedal = sub.add_parser(
@@ -283,17 +375,72 @@ def main(argv: list[str] | None = None) -> int:
             if args.transpose:
                 comp = transpose_composition(comp, args.transpose)
 
-            out_json = composition_to_canonical_json(comp)
+            if args.gemini:
+                instructions = (args.instructions or "").strip()
+                if not instructions:
+                    raise ValueError("--gemini requires --instructions.")
 
-            if args.out_path is None:
-                sys.stdout.write(out_json)
+                template = iteration_prompt_template(comp, instructions=instructions)
+                prompt = _gemini_prompt_from_template(template)
+
+                if args.prompt_out_path is not None:
+                    _write_text(args.prompt_out_path, template)
+
+                # Determine raw output path (for both reading cached and saving new)
+                raw_out_path: Path | None = args.raw_out_path
+                if raw_out_path is None and args.out_path is not None:
+                    raw_out_path = _derive_gemini_raw_path(args.out_path)
+                
+                # Check if we have a cached response
+                raw_text: str | None = None
+                if raw_out_path is not None and raw_out_path.exists():
+                    if args.verbose:
+                        sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
+                    raw_text = _read_text(raw_out_path)
+                
+                # If no cached response, call Gemini
+                if raw_text is None:
+                    raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
+                    
+                    # Save raw response wherever possible.
+                    if raw_out_path is not None:
+                        _write_text(raw_out_path, raw_text)
+                    else:
+                        sys.stderr.write(
+                            "warning: Gemini raw output was not saved. Provide --raw-out "
+                            "or also provide --out to enable an automatic default.\n"
+                        )
+
+                updated = parse_composition_from_text(raw_text)
+                out_json = composition_to_canonical_json(updated)
+
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    _write_text(args.out_path, out_json)
+                    sys.stdout.write(str(args.out_path) + "\n")
+
+                if args.render:
+                    if args.out_midi_path is None:
+                        raise ValueError("--render requires --out-midi.")
+                    render_midi_mido(updated, args.out_midi_path)
             else:
-                args.out_path.write_text(out_json, encoding="utf-8")
-                sys.stdout.write(str(args.out_path) + "\n")
+                out_json = composition_to_canonical_json(comp)
 
-            if args.prompt_out_path is not None:
-                prompt = iteration_prompt_template(comp, instructions=args.instructions)
-                args.prompt_out_path.write_text(prompt, encoding="utf-8")
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    _write_text(args.out_path, out_json)
+                    sys.stdout.write(str(args.out_path) + "\n")
+
+                if args.prompt_out_path is not None:
+                    template = iteration_prompt_template(comp, instructions=args.instructions)
+                    _write_text(args.prompt_out_path, template)
+
+                if args.render:
+                    if args.out_midi_path is None:
+                        raise ValueError("--render requires --out-midi.")
+                    render_midi_mido(comp, args.out_midi_path)
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)
@@ -309,25 +456,79 @@ def main(argv: list[str] | None = None) -> int:
 
             analysis = analyze_midi(args.in_path)
 
+            if args.gemini:
+                instructions = (args.instructions or "").strip()
+                if not instructions:
+                    raise ValueError("--gemini requires --instructions.")
+
+                template = analysis_prompt_template(analysis, instructions=instructions)
+                prompt = _gemini_prompt_from_template(template)
+
+                if args.prompt_out_path is not None:
+                    _write_text(args.prompt_out_path, template)
+
+                # Determine raw output path (for both reading cached and saving new)
+                raw_out_path: Path | None = args.raw_out_path
+                if raw_out_path is None and args.out_path is not None:
+                    raw_out_path = _derive_gemini_raw_path(args.out_path)
+                
+                # Check if we have a cached response
+                raw_text: str | None = None
+                if raw_out_path is not None and raw_out_path.exists():
+                    if args.verbose:
+                        sys.stderr.write(f"Using cached Gemini response from {raw_out_path}\n")
+                    raw_text = _read_text(raw_out_path)
+                
+                # If no cached response, call Gemini
+                if raw_text is None:
+                    raw_text = generate_text(model=args.gemini_model, prompt=prompt, verbose=args.verbose)
+                    
+                    # Save raw response wherever possible.
+                    if raw_out_path is not None:
+                        _write_text(raw_out_path, raw_text)
+                    else:
+                        sys.stderr.write(
+                            "warning: Gemini raw output was not saved. Provide --raw-out "
+                            "or also provide --out to enable an automatic default.\n"
+                        )
+
+                comp = parse_composition_from_text(raw_text)
+                out_json = composition_to_canonical_json(comp)
+
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    _write_text(args.out_path, out_json)
+                    sys.stdout.write(str(args.out_path) + "\n")
+
+                if args.render:
+                    if args.out_midi_path is None:
+                        raise ValueError("--render requires --out-midi.")
+                    render_midi_mido(comp, args.out_midi_path)
+                return 0
+
+            if args.render:
+                raise ValueError("--render is only supported with --gemini for 'analyze'.")
+
             if args.format in ("json", "both"):
                 out_json = analysis.to_pretty_json()
                 if args.out_path is None:
                     sys.stdout.write(out_json)
                 else:
-                    args.out_path.write_text(out_json, encoding="utf-8")
+                    _write_text(args.out_path, out_json)
                     sys.stdout.write(str(args.out_path) + "\n")
 
             if args.format in ("prompt", "both"):
                 prompt = analysis_prompt_template(analysis, instructions=args.instructions)
                 if args.prompt_out_path is not None:
-                    args.prompt_out_path.write_text(prompt, encoding="utf-8")
+                    _write_text(args.prompt_out_path, prompt)
                     # Only print the path if we didn't already print JSON path.
                     if args.format == "prompt":
                         sys.stdout.write(str(args.prompt_out_path) + "\n")
                 else:
                     # If --out was provided and we're in prompt-only mode, treat it as prompt output.
                     if args.format == "prompt" and args.out_path is not None:
-                        args.out_path.write_text(prompt, encoding="utf-8")
+                        _write_text(args.out_path, prompt)
                         sys.stdout.write(str(args.out_path) + "\n")
                     else:
                         sys.stdout.write(prompt)
