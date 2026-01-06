@@ -80,7 +80,7 @@ def test_cli_iterate_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) -
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -126,7 +126,7 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Compose something similar.",
             "-o",
@@ -161,7 +161,7 @@ def test_cli_iterate_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -200,7 +200,7 @@ def test_cli_analyze_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Compose something similar.",
             "-o",
@@ -229,7 +229,7 @@ def test_cli_iterate_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -282,7 +282,7 @@ def test_cli_iterate_optional_instructions_with_gemini(tmp_path: Path, monkeypat
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "-o",
             str(out_json),
         ]
@@ -342,7 +342,7 @@ def test_cli_analyze_optional_instructions_with_gemini(tmp_path: Path, monkeypat
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "-o",
             str(out_json),
         ]
@@ -375,7 +375,7 @@ def test_cli_analyze_render_auto_generates_midi(tmp_path: Path, monkeypatch) -> 
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -608,59 +608,6 @@ def test_cli_fix_pedal_with_render(tmp_path: Path) -> None:
     assert output_midi.exists()
 
 
-def test_cli_generate_schema_both_formats(tmp_path: Path) -> None:
-    """Test generate-schema command with both formats (default)."""
-    output_dir = tmp_path / "schemas"
-    rc = main(["generate-schema", "--output-dir", str(output_dir)])
-    
-    # May fail if schema generation not available, which is OK
-    if rc == 0:
-        openapi_path = output_dir / "schema.openapi.json"
-        gemini_path = output_dir / "schema.gemini.json"
-        assert openapi_path.exists()
-        assert gemini_path.exists()
-
-
-def test_cli_generate_schema_openapi_only(tmp_path: Path) -> None:
-    """Test generate-schema command with OpenAPI format only."""
-    output_dir = tmp_path / "schemas"
-    rc = main(
-        [
-            "generate-schema",
-            "--format",
-            "openapi",
-            "--output-dir",
-            str(output_dir),
-        ]
-    )
-    
-    if rc == 0:
-        openapi_path = output_dir / "schema.openapi.json"
-        gemini_path = output_dir / "schema.gemini.json"
-        assert openapi_path.exists()
-        assert not gemini_path.exists()
-
-
-def test_cli_generate_schema_gemini_only(tmp_path: Path) -> None:
-    """Test generate-schema command with Gemini format only."""
-    output_dir = tmp_path / "schemas"
-    rc = main(
-        [
-            "generate-schema",
-            "--format",
-            "gemini",
-            "--output-dir",
-            str(output_dir),
-        ]
-    )
-    
-    if rc == 0:
-        openapi_path = output_dir / "schema.openapi.json"
-        gemini_path = output_dir / "schema.gemini.json"
-        assert not openapi_path.exists()
-        assert gemini_path.exists()
-
-
 def test_cli_iterate_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that GeminiError is properly displayed in CLI."""
     def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
@@ -675,7 +622,7 @@ def test_cli_iterate_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -712,7 +659,7 @@ def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -901,7 +848,7 @@ def test_cli_iterate_custom_gemini_model(tmp_path: Path, monkeypatch) -> None:
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -940,7 +887,7 @@ def test_cli_analyze_custom_gemini_model(tmp_path: Path, monkeypatch) -> None:
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -968,7 +915,7 @@ def test_cli_iterate_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1008,7 +955,7 @@ def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1036,7 +983,7 @@ def test_cli_iterate_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
         ]
@@ -1070,7 +1017,7 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
         ]
@@ -1215,7 +1162,7 @@ def test_cli_iterate_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Make it different.",
             "-o",
@@ -1249,7 +1196,7 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "First",
             "-o",
@@ -1265,7 +1212,7 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Second",
             "-o",
@@ -1282,7 +1229,7 @@ def test_cli_iterate_versioning_incremental(tmp_path: Path, monkeypatch) -> None
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Third",
             "-o",
@@ -1322,7 +1269,7 @@ def test_cli_iterate_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1364,7 +1311,7 @@ def test_cli_iterate_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1411,7 +1358,7 @@ def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1462,7 +1409,7 @@ def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1514,7 +1461,7 @@ def test_cli_analyze_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
             "analyze",
             "-i",
             str(midi_path),
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1555,7 +1502,7 @@ def test_cli_versioning_with_cached_response(tmp_path: Path, monkeypatch) -> Non
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1592,7 +1539,7 @@ def test_cli_versioning_skips_when_file_not_exists(tmp_path: Path, monkeypatch) 
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",
@@ -1628,7 +1575,7 @@ def test_cli_versioning_with_already_versioned_file(tmp_path: Path, monkeypatch)
             "iterate",
             "-i",
             "examples/model_output.txt",
-            "-g",
+            "--gemini",
             "--instructions",
             "Test",
             "-o",

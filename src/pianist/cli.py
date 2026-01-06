@@ -19,11 +19,6 @@ from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
 from .gemini import GeminiError, generate_text
 
-try:
-    from .generate_openapi_schema import generate_openapi_schema
-except ImportError:
-    # Schema generation may not be available in all environments
-    generate_openapi_schema = None
 
 # Default output directory for all generated files
 _DEFAULT_OUTPUT_DIR = Path("output")
@@ -323,7 +318,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Write a ready-to-paste LLM prompt that includes the seed JSON.",
     )
     iterate.add_argument(
-        "--gemini", "-g",
+        "--gemini",
         action="store_true",
         help="Call Google Gemini to apply instructions to the seed, producing an updated composition JSON.",
     )
@@ -392,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Write the prompt text to this path.",
     )
     analyze.add_argument(
-        "--gemini", "-g",
+        "--gemini",
         action="store_true",
         help="Call Google Gemini to generate a new composition inspired by the analysis.",
     )
@@ -461,24 +456,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     add_common_flags(fix_pedal)
 
-    if generate_openapi_schema is not None:
-        schema_cmd = sub.add_parser(
-            "generate-schema",
-            help="Generate OpenAPI and Gemini-compatible schema files for structured output.",
-        )
-        schema_cmd.add_argument(
-            "--format", "-f",
-            choices=["both", "openapi", "gemini"],
-            default="both",
-            help="Which schema format(s) to generate: 'both' (openapi+gemini), 'openapi', or 'gemini' (default: both).",
-        )
-        schema_cmd.add_argument(
-            "-o", "--output-dir",
-            type=Path,
-            default=None,
-            help="Directory to write schema files (default: project root).",
-        )
-        add_common_flags(schema_cmd)
 
     args = parser.parse_args(argv)
 
@@ -843,37 +820,6 @@ def main(argv: list[str] | None = None) -> int:
                         sys.stdout.write(str(out_json_path) + "\n")
                     else:
                         sys.stdout.write(prompt)
-        except Exception as exc:
-            if args.debug:
-                traceback.print_exc(file=sys.stderr)
-            sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
-            return 1
-        return 0
-
-    if args.cmd == "generate-schema":
-        if generate_openapi_schema is None:
-            sys.stderr.write("error: Schema generation not available.\n")
-            return 1
-        try:
-            import json
-            from pianist.generate_openapi_schema import generate_gemini_schema
-
-            project_root = Path(__file__).parent.parent.parent
-            output_dir = args.output_dir or (project_root / "schemas")
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            if args.format in ("both", "openapi"):
-                openapi_schema = generate_openapi_schema()
-                openapi_path = output_dir / "schema.openapi.json"
-                openapi_path.write_text(json.dumps(openapi_schema, indent=2))
-                sys.stdout.write(f"Generated OpenAPI schema: {openapi_path}\n")
-
-            if args.format in ("both", "gemini"):
-                gemini_schema = generate_gemini_schema()
-                gemini_path = output_dir / "schema.gemini.json"
-                gemini_path.write_text(json.dumps(gemini_schema, indent=2))
-                sys.stdout.write(f"Generated Gemini-compatible schema: {gemini_path}\n")
-
         except Exception as exc:
             if args.debug:
                 traceback.print_exc(file=sys.stderr)

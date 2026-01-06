@@ -144,7 +144,7 @@ cp .env.example .env
 # Edit .env and add: GEMINI_API_KEY=your_key
 
 # Now pianist will automatically use the key
-./pianist analyze -i song.mid -g --instructions "..." -o out.json
+./pianist analyze -i song.mid --gemini --instructions "..." -o out.json
 ```
 
 ### CI/CD Setup (GitHub Actions example)
@@ -159,6 +159,6 @@ cp .env.example .env
 ```bash
 # Override .env file for this session
 export GEMINI_API_KEY="different_key"
-./pianist iterate -i seed.json -g --instructions "..." -o out.json
+./pianist iterate -i seed.json --gemini --instructions "..." -o out.json
 ```
 
