@@ -4,13 +4,17 @@
 
 This guide is structured in two parts:
 - **Part 1: For Users** - How to create effective prompts and use Pianist's tools
-- **Part 2: For AI Models** - System prompt templates, schema reference, and output requirements
+- **Part 2: Prompt Assets (Copy/Paste)** - System prompt templates, schema reference, and example output you can paste into your model prompts
 
 The key to success is splitting your prompt into two parts:
-- **System prompt**: Stable "rules of the game" (format + schema constraints). This is typically fixed and doesn't change.
-- **User prompt**: Your musical brief (style, form, length, key, tempo, etc.). This is where you specify what you want.
+- **System prompt (model-facing)**: Stable "rules of the game" (format + schema constraints). Typically fixed and reused.
+- **User prompt (model-facing)**: Your musical brief (style, form, length, key, tempo, etc.). This is where you specify what you want.
 
 This two-part approach typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
+
+**Separation rule (important):**
+- Anything in normal prose in this guide is written for **humans**.
+- Any instructions intended to be read by an **AI model** are provided as fenced prompt blocks that you copy/paste into your prompts.
 
 ---
 
@@ -96,6 +100,8 @@ The user prompt is where you specify what you want. You can phrase your request 
 ### User Prompt Template
 
 **Template structure:**
+
+**COPY/PASTE (User prompt):**
 
 ```
 [OPTIONAL OPENING - phrase naturally]
@@ -184,6 +190,8 @@ Here are diverse examples of prompts for shorter compositions covering various s
 
 #### Example 1: Playful Dance (Ternary)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a piano piece:
 
@@ -198,11 +206,15 @@ A cheerful piece with a bouncy main theme, a contrasting middle section, and a r
 
 #### Example 2: Lyrical Contemplation (Ternary)
 
+**COPY/PASTE (User prompt):**
+
 ```
 I'd like a gentle, flowing piano piece called "Morning Sketch" in C major. Something lyrical and contemplative, around 64 beats long, in ternary form.
 ```
 
 #### Example 3: Melancholic Expression (Binary)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Title: "Evening Prelude"
@@ -216,6 +228,8 @@ A short, expressive piece with a memorable melody that develops through the two 
 ```
 
 #### Example 4: Baroque-Inspired Fugue (Fugue)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Compose a piano piece:
@@ -233,6 +247,8 @@ A three-voice fugue with a clear subject, answer, and episodes. The subject shou
 
 #### Example 5: Impressionist Watercolor (Free-form)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Create a piano piece:
 
@@ -248,6 +264,8 @@ A dreamy piece with whole-tone and pentatonic elements. Use parallel chords, del
 ```
 
 #### Example 6: Virtuosic Étude (Ternary)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Compose a piano étude:
@@ -265,6 +283,8 @@ A technical étude focusing on right-hand arpeggiated passages across the keyboa
 
 #### Example 7: Minimalist Pattern Piece (Through-composed)
 
+**COPY/PASTE (User prompt):**
+
 ```
 I'd like a minimalist piano piece:
 
@@ -280,6 +300,8 @@ A piece built on a simple melodic pattern that gradually transforms through subt
 ```
 
 #### Example 8: Romantic Intermezzo (Ternary)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Compose a piano intermezzo:
@@ -297,6 +319,8 @@ A lyrical piece with a song-like melody in the outer sections and a more agitate
 
 #### Example 9: Jazz-Influenced Blues (12-bar Blues)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Create a piano piece:
 
@@ -312,6 +336,8 @@ A blues piece with a walking bass line in the left hand and a syncopated melody 
 ```
 
 #### Example 10: Mysterious Nocturne (Ternary)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Compose a piano nocturne:
@@ -394,6 +420,8 @@ Here are diverse examples of prompts for compositions in the 100-500+ beat range
 
 #### Example 1: Sonata Form (250 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a piano sonata:
 
@@ -421,6 +449,8 @@ Musical elements:
 ```
 
 #### Example 2: Theme and Variations (300 beats)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Create a piano composition:
@@ -456,6 +486,8 @@ Musical elements:
 
 #### Example 3: Extended Rondo (180 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a piano piece:
 
@@ -483,6 +515,8 @@ Musical elements:
 ```
 
 #### Example 4: Extended Ternary with Development (150 beats)
+
+**COPY/PASTE (User prompt):**
 
 ```
 I'd like a piano piece:
@@ -513,6 +547,8 @@ Musical elements:
 
 #### Example 5: Multi-Movement Work (400 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a multi-movement piano work:
 
@@ -539,6 +575,8 @@ Musical elements:
 ```
 
 #### Example 6: Free-Form Extended Work (250 beats)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Create an extended piano composition:
@@ -574,6 +612,8 @@ Musical elements:
 
 #### Example 7: Passacaglia with Variations (200 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a piano passacaglia:
 
@@ -607,6 +647,8 @@ Musical elements:
 
 #### Example 8: Romantic Fantasy (280 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Create a romantic piano fantasy:
 
@@ -639,6 +681,8 @@ Musical elements:
 
 #### Example 9: Modern Toccata (180 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a modern piano toccata:
 
@@ -670,6 +714,8 @@ Musical elements:
 
 #### Example 10: Suite of Character Pieces (320 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a suite of piano character pieces:
 
@@ -695,6 +741,8 @@ Musical elements:
 ```
 
 #### Example 11: Slow Meditative Piece (220 beats)
+
+**COPY/PASTE (User prompt):**
 
 ```
 Create a meditative piano composition:
@@ -729,6 +777,8 @@ Musical elements:
 
 #### Example 12: Complex Time Signature Piece (240 beats)
 
+**COPY/PASTE (User prompt):**
+
 ```
 Compose a piano piece with complex meters:
 
@@ -761,29 +811,37 @@ Musical elements:
 
 ---
 
-# Part 2: For AI Models
+# Part 2: Prompt Assets (Copy/Paste)
 
-This section contains the **System Prompt Template** (copy into your system prompt) and optional **reference material** (Schema Reference and Example Output) for more detailed documentation.
+This section contains **prompt assets** you can copy/paste into your model prompts, plus optional reference material.
+
+**Rule of thumb:** if something is *not* inside a fenced prompt block explicitly labeled as copy/paste content, treat it as **documentation for you**, not instructions for the model.
+
+- **Source of truth**: The system prompt(s) are stored in code-adjacent prompt files under `src/pianist/prompts/` and are synced into this guide. If you update prompt text, update the prompt files and run `python scripts/sync_prompts_to_guide.py`.
 
 - **System Prompt Template**: Primary content—copy into your system prompt.
-- **Schema Reference** and **Example Output**: Optional reference material in model-addressed language. If including in prompts, copy as-is. Otherwise, treat as documentation.
+- **Schema Reference** and **Example Output**: Optional reference material. Use it to understand the format and/or selectively copy pieces into your system prompt if you need extra strictness.
 
 ## System Prompt Template
 
-**Note for users**: Copy the template below into your system prompt. The template content is written to address the AI model directly.
+**Note for users**: Copy the template below into your system prompt. The content inside the fenced block is written to address the AI model directly.
 
-**Template content (copy this into your system prompt)**:
+**COPY/PASTE (System prompt):**
+
+<!-- BEGIN SYSTEM_PROMPT_FULL -->
 
 ```
 You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. When the user provides a composition request (which may be a simple description or include specific parameters), interpret their intent and apply the compositional principles below to create a musically coherent piece. Output MUST be valid JSON only.
 
 Hard requirements:
 - Output ONLY a single JSON object. No markdown. No explanations. No fenced code blocks.
+- Your response MUST start with `{` and end with `}` (no leading/trailing text).
+- Output must be strict JSON: double quotes, no comments, no trailing commas, and all numbers must be finite (no NaN/Infinity).
 - The JSON must validate against this schema:
   - title: string
   - bpm: number (20-300 recommended)
   - time_signature: { numerator: int, denominator: 1|2|4|8|16|32 }
-  - key_signature: optional string (e.g., "C", "Gm", "F#", "Bb")
+  - key_signature: optional string in MIDI key signature format (e.g., "C", "Gm", "F#", "Bb", "C#m")
   - ppq: int (suggest 480)
   - tracks: [{ name, program (0=piano), channel, events }]
   - At least one track is required. Default to a single Piano track (program: 0) if not specified.
@@ -907,14 +965,42 @@ Output quality:
 - CRITICAL: Use regular phrase structure (4, 8, or 16 beats) with consistent lengths within sections. Avoid erratic, inconsistent phrase lengths.
 - CRITICAL: Sections must connect with musical transitions (4-9 beats typical), never with silence or empty space.
 ```
+<!-- END SYSTEM_PROMPT_FULL -->
+
+**COPY/PASTE (System prompt - Short, when you have limited context/window):**
+
+<!-- BEGIN SYSTEM_PROMPT_SHORT -->
+
+```
+You generate a single Pianist composition as STRICT JSON.
+
+Output contract (HARD):
+- Output ONLY one JSON object (no markdown, no explanations, no code fences).
+- Start your response with `{` and end with `}` (no extra text).
+- Strict JSON only: double quotes, no comments, no trailing commas, and all numbers must be finite (no NaN/Infinity).
+
+Schema essentials (HARD):
+- Top-level: title (string), bpm (number), time_signature {numerator:int, denominator:1|2|4|8|16|32}, key_signature? (string like "C","Gm","F#","Bb","C#m"), ppq (int, default 480), tracks (non-empty).
+- Track: {name:"Piano", program:0, channel:0..15, events:[...]}.
+- Event types: "note" | "pedal" | "tempo" | "section".
+  - note: {type:"note", start>=0, duration>0, velocity 1..127, and pitches provided via ONE of: groups | notes | (legacy) pitch/pitches}
+  - pedal: {type:"pedal", start>=0, duration>0, value 0..127}. Use duration>0 (auto press+release). Do not use duration:0 for normal pedaling.
+  - tempo: {type:"tempo", start>=0, bpm:number} OR {type:"tempo", start>=0, start_bpm:number, end_bpm:number, duration>0}
+  - section: {type:"section", start>=0, label:string}
+
+Musical constraints (IMPORTANT):
+- Keep the piece continuous: avoid long silences; connect sections with musical transitions.
+- Ensure the final event ends close to the requested length (within ~5 beats).
+```
+<!-- END SYSTEM_PROMPT_SHORT -->
 
 ## Schema Reference
 
-**Note for users**: The schema reference below provides detailed technical information about the JSON format. You can optionally include relevant portions in your system prompt if you need more detailed schema documentation than what's in the template above. The content below is written to address the AI model directly, so if you include it in a prompt, copy it as-is.
+**Note for users**: This section is **human-readable documentation** for the JSON format. Do not paste it wholesale into prompts. If you need tighter behavior, copy *specific* constraints from here into your **system prompt** (ideally as short bullet rules).
 
 ### High-Level Structure
 
-The output JSON must have the following structure:
+High-level JSON structure:
 
 - Top level: `title`, `bpm`, `time_signature`, optional `key_signature`, `ppq`, `tracks`
 - Each `track` has `name`, `program` (0=piano), `channel`, and `events`
@@ -933,7 +1019,7 @@ Optional annotation fields (do not affect rendering): `motif`, `section`, `phras
 
 ### Pitch Format
 
-You may provide pitches as:
+Pitches can be provided as:
 - MIDI numbers (0–127), or
 - scientific pitch strings (`"C4"`, `"F#3"`, `"Bb2"`)
 
@@ -941,7 +1027,7 @@ Internally Pianist validates and converts pitches to MIDI numbers.
 
 ### Sustain Pedal Control
 
-ALWAYS use `duration > 0` for sustained pedaling. This automatically creates press-release pairs in MIDI output.
+Sustained pedaling is encoded with `duration > 0`. This automatically creates press-release pairs in MIDI output.
 
 **Standard Pattern**:
 - Use `duration > 0` to specify how long the pedal is held
@@ -955,23 +1041,23 @@ ALWAYS use `duration > 0` for sustained pedaling. This automatically creates pre
 - Change with harmony: End previous pedal's duration, start new at chord change
 - Legato: Overlap slightly (new pedal starts 0.1 beats before previous ends)
 
-**CRITICAL: What NOT to generate**:
-- ❌ Do NOT use `duration: 0` for sustained pedaling (creates instant actions without automatic release)
-- ❌ Do NOT create separate press/release events manually (use `duration > 0` instead)
-- ❌ Do NOT forget to release the pedal (specify `duration` ending before/at next chord change)
+Common mistakes to watch for:
+- Using `duration: 0` for sustained pedaling (creates instant actions without automatic release)
+- Creating separate press/release events manually (use `duration > 0` instead)
+- Forgetting to release the pedal (ensure `duration` ends before/at the next chord change)
 
 **Advanced (rare cases only)**:
 - `duration: 0` only for special cases requiring manual control (not recommended)
 
 ### Hand/Voice Labeling
 
-For piano writing, keep a **single Piano track** and label each generated note (or sub-chord) with:
+Recommended convention: keep a **single Piano track** and label each generated note (or sub-chord) with:
 - `hand`: `"lh"` or `"rh"` (required in `notes` / `groups`)
 - `voice`: optional integer 1–4 (useful for downstream notation/analysis)
 
 ## Example Output
 
-**Note for users**: Examples show valid JSON output format. Optionally include in system prompts. Content is model-addressed—copy as-is if including in prompts.
+**Note for users**: Examples show valid JSON output format. You typically do **not** need to include examples in your system prompt; use them as a reference when validating or debugging outputs.
 
 Examples of valid JSON output:
 
@@ -1037,7 +1123,7 @@ Examples of valid JSON output:
   "title": "Dramatic Piece with Ritardando",
   "bpm": 120,
   "time_signature": { "numerator": 4, "denominator": 4 },
-  "key_signature": "C minor",
+  "key_signature": "Cm",
   "ppq": 480,
   "tracks": [
     {

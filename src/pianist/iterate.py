@@ -306,17 +306,17 @@ def iteration_prompt_template(comp: Composition, instructions: str | None = None
     """
     seed = composition_to_canonical_json(comp).strip()
     requested = (instructions or "").strip() or "<describe the changes you want>"
+
+    from .prompt_templates import SYSTEM_PROMPT_SHORT
     return (
-        "SYSTEM:\n"
-        "You are an expert music composition generator. Output MUST be valid JSON only.\n"
-        "Hard requirements:\n"
-        "- Output ONLY a single JSON object. No markdown. No explanations.\n"
-        "- The JSON must validate against the Pianist composition schema (note/pedal/tempo/section events).\n"
-        "- Preserve existing motifs/structure unless asked; keep timing continuous (avoid long silences).\n"
+        "SYSTEM PROMPT (paste into your system message):\n"
+        f"{SYSTEM_PROMPT_SHORT}\n"
         "\n"
-        "USER:\n"
+        "USER PROMPT (paste into your user message):\n"
         "Here is the previous composition JSON (the 'seed'). Modify it according to the requested changes.\n"
         "Return a COMPLETE new composition JSON (not a patch/diff).\n"
+        "Output MUST be valid JSON only.\n"
+        "IMPORTANT: Preserve existing motifs/structure unless the requested changes explicitly override them.\n"
         "\n"
         "SEED JSON:\n"
         f"{seed}\n"

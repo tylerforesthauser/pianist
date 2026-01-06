@@ -532,17 +532,16 @@ def analysis_prompt_template(analysis: MidiAnalysis, instructions: str | None = 
 
     texture_block = "\n".join(texture_lines) if texture_lines else "- (insufficient note data)"
 
+    from .prompt_templates import SYSTEM_PROMPT_SHORT
+
     return (
-        "SYSTEM:\n"
-        "You are an expert music composition generator. Output MUST be valid JSON only.\n"
-        "Hard requirements:\n"
-        "- Output ONLY a single JSON object. No markdown. No explanations.\n"
-        "- The JSON must validate against the Pianist composition schema (note/pedal/tempo/section events).\n"
-        "- Keep timing continuous (avoid long silences). Use musical phrasing and coherent form.\n"
+        "SYSTEM PROMPT (paste into your system message):\n"
+        f"{SYSTEM_PROMPT_SHORT}\n"
         "\n"
-        "USER:\n"
+        "USER PROMPT (paste into your user message):\n"
         "Compose a NEW piece inspired by the following reference MIDI analysis.\n"
         "Use it as a style/constraint guide, not something to copy note-for-note.\n"
+        "Output MUST be valid JSON only.\n"
         "\n"
         "REFERENCE ANALYSIS (high-level):\n"
         f"- tempo: {(tempo0.bpm if tempo0 else 120.0):.1f} bpm\n"
