@@ -89,7 +89,7 @@ Hard requirements:
                 - notes:  [{ hand:"lh|rh", voice?: 1..4, pitch:  "C4" | 60 }, ...] (PREFERRED: enables hand/voice labeling)
                 - legacy pitches/pitch (allowed but not recommended: lacks hand/voice labels)
               optional: motif/section/phrase }
-    - pedal: { type:"pedal", start, duration, value 0-127 }
+    - pedal: { type:"pedal", start, duration>0 (use duration>0 for sustained pedaling), value 0-127 }
     - tempo: { type:"tempo", start: beats>=0,
                EITHER: bpm: number (instant tempo change at start beat)
                OR: start_bpm: number, end_bpm: number, duration: beats>0 (gradual tempo change from start_bpm to end_bpm over duration beats)
@@ -539,7 +539,7 @@ Musical elements:
     - **Preferred**: `groups` (sub-chords with shared `hand`/`voice`)
     - **Preferred**: `notes` (per-note `hand`/`voice`)
     - Legacy: `pitches` / `pitch` (no per-note labeling)
-  - `type: "pedal"` with `start`, `duration`, optional `value`
+  - `type: "pedal"` with `start`, `duration`, optional `value` (see **Sustain Pedal Control** below)
   - `type: "tempo"` with `start` (beats), and EITHER:
     - `bpm` (instant tempo change), OR
     - `start_bpm`, `end_bpm`, `duration` (gradual tempo change)
@@ -554,6 +554,35 @@ You may provide pitches as:
 - scientific pitch strings (`"C4"`, `"F#3"`, `"Bb2"`)
 
 Internally Pianist validates and converts pitches to MIDI numbers.
+
+#### Sustain Pedal Control
+
+For sustain pedal events, **always use `duration > 0`** to specify how long the pedal should be held down:
+
+```json
+{ "type": "pedal", "start": 0, "duration": 4, "value": 127 }
+```
+
+This automatically creates:
+- A pedal press (CC64=127) at `start`
+- A pedal release (CC64=0) at `start + duration`
+
+**Important Guidelines**:
+- **Use `duration > 0` for all normal pedaling** - this is the standard pattern
+- The renderer handles press/release automatically - you don't need separate events
+- Only use `duration = 0` in special cases where you need manual control (rare)
+- `value` defaults to 127 (full pedal down) if not specified
+
+**Common Patterns**:
+- Hold pedal for a measure (4 beats): `{"type": "pedal", "start": 0, "duration": 4, "value": 127}`
+- Hold pedal for a phrase (8 beats): `{"type": "pedal", "start": 0, "duration": 8, "value": 127}`
+- Change pedal with harmony: Release and press at chord changes by creating new pedal events
+- Legato pedaling: Overlap pedal events slightly (e.g., new pedal starts 0.1 beats before previous ends)
+
+**What NOT to do**:
+- ❌ Don't use `duration: 0` for sustained pedaling - this creates instant actions without automatic release
+- ❌ Don't create separate press/release events manually - use `duration > 0` instead
+- ❌ Don't forget to release the pedal - always specify a `duration` that ends before or at the next chord change
 
 #### Hand/Voice Labeling
 

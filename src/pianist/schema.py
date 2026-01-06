@@ -255,9 +255,22 @@ class NoteEvent(BaseModel):
 
 class PedalEvent(BaseModel):
     """
-    Sustain pedal (CC 64) event. `value` defaults to 127.
+    Sustain pedal (CC 64) event.
     
-    Duration can be 0 for instant pedal releases (value=0) or instant pedal presses.
+    For sustained pedaling (most common case):
+    - Set `duration` > 0 to specify how long the pedal should be held down
+    - The renderer will automatically create a press at `start` and release at `start+duration`
+    - Example: {"type": "pedal", "start": 0, "duration": 4, "value": 127}
+      This holds the pedal down for 4 beats, then releases it automatically.
+    
+    For instant press/release (rare, advanced use):
+    - Set `duration` = 0 for a single control_change message
+    - Use value=127 for instant press, value=0 for instant release
+    - You must manually manage press-release pairs with separate events
+    - Example: {"type": "pedal", "start": 0, "duration": 0, "value": 127}
+      This sends a single press message (no automatic release).
+    
+    Default value is 127 (full pedal down).
     """
 
     type: Literal["pedal"] = "pedal"
@@ -268,6 +281,24 @@ class PedalEvent(BaseModel):
     # Optional annotation fields
     section: str | None = None
     phrase: str | None = None
+
+    @model_validator(mode="after")
+    def _warn_duration_zero(self) -> "PedalEvent":
+        """
+        Warn when duration=0 is used with value=127, as this is likely a mistake.
+        Most pedaling should use duration>0 for automatic press-release pairs.
+        """
+        if self.duration == 0 and self.value == 127:
+            import warnings
+            warnings.warn(
+                f"PedalEvent at start={self.start} has duration=0 with value=127. "
+                "This creates an instant press with no automatic release. "
+                "For sustained pedaling, use duration>0 instead. "
+                "The renderer will automatically create a press at start and release at start+duration.",
+                UserWarning,
+                stacklevel=3
+            )
+        return self
 
 
 class TempoEvent(BaseModel):
