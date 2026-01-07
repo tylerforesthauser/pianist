@@ -565,16 +565,122 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
     - "bach-invention-8-bwv-779.mid" -> composer, title, catalog
     - "chopin-prelude-op28-no4.mid" -> composer, opus
     - "scriabin-etude-op2-no1.mid" -> composer, opus
+    - "Ludwig van Beethoven - Piano Sonata No.14 in C#-, Op.27, No.2 ('Moonlight') 3. Presto agitato.mid"
+      -> composer, title, opus, movement
     """
     info: dict[str, Any] = {
         "composer": None,
         "title": None,
         "catalog_number": None,
         "opus": None,
+        "movement": None,
     }
     
     filename_lower = filename.lower()
     
+    # Pattern 1: "Composer - Title" format (e.g., "Ludwig van Beethoven - Piano Sonata...")
+    dash_separator_match = re.search(r'^([^-]+?)\s*-\s*(.+?)(?:\.mid|\.midi)?$', filename, re.IGNORECASE)
+    if dash_separator_match:
+        composer_part = dash_separator_match.group(1).strip()
+        title_part = dash_separator_match.group(2).strip()
+        
+        # Extract composer from first part
+        composer_patterns = {
+            r'\bludwig\s+van\s+beethoven\b': "Beethoven",
+            r'\bjohann\s+sebastian\s+bach\b': "J.S. Bach",
+            r'\bj\.\s*s\.\s+bach\b': "J.S. Bach",
+            r'\bwolfgang\s+amadeus\s+mozart\b': "Mozart",
+            r'\bw\.\s*a\.\s+mozart\b': "Mozart",
+            r'\bfrédéric\s+chopin\b': "Chopin",
+            r'\bfrederic\s+chopin\b': "Chopin",
+            r'\balexander\s+scriabin\b': "Scriabin",
+            r'\bclaude\s+debussy\b': "Debussy",
+            r'\bsergei\s+rachmaninoff\b': "Rachmaninoff",
+            r'\bsergei\s+rachmaninov\b': "Rachmaninoff",
+            r'\bfranz\s+schubert\b': "Schubert",
+            r'\brobert\s+schumann\b': "Schumann",
+            r'\bfranz\s+liszt\b': "Liszt",
+            r'\bjohannes\s+brahms\b': "Brahms",
+        }
+        
+        for pattern, composer in composer_patterns.items():
+            if re.search(pattern, composer_part, re.IGNORECASE):
+                info["composer"] = composer
+                break
+        
+        # If no match, try simple composer name patterns
+        if not info["composer"]:
+            simple_composer_patterns = {
+                "beethoven": "Beethoven",
+                "bach": "J.S. Bach",
+                "mozart": "Mozart",
+                "chopin": "Chopin",
+                "scriabin": "Scriabin",
+                "debussy": "Debussy",
+                "rachmaninoff": "Rachmaninoff",
+                "rachmaninov": "Rachmaninoff",
+                "schubert": "Schubert",
+                "schumann": "Schumann",
+                "liszt": "Liszt",
+                "brahms": "Brahms",
+            }
+            for pattern, composer in simple_composer_patterns.items():
+                if pattern in composer_part.lower():
+                    info["composer"] = composer
+                    break
+        
+        # Extract title from second part (remove movement numbers, opus, etc.)
+        # Example: "Piano Sonata No.14 in C#-, Op.27, No.2 ('Moonlight') 3. Presto agitato"
+        # -> "Piano Sonata No.14 in C#- ('Moonlight')"
+        title_clean = title_part
+        
+        # Remove movement number at the end (e.g., "3. Presto agitato")
+        title_clean = re.sub(r'\s+\d+\.\s+[^.]*$', '', title_clean)
+        
+        # Extract opus number
+        opus_match = re.search(r'op\.?\s*(\d+)(?:\s*,\s*no\.?\s*(\d+))?', title_clean, re.IGNORECASE)
+        if opus_match:
+            opus_num = opus_match.group(1)
+            no_num = opus_match.group(2)
+            if no_num:
+                info["opus"] = f"Op. {opus_num} No. {no_num}"
+            else:
+                info["opus"] = f"Op. {opus_num}"
+            info["catalog_number"] = info["opus"]
+        
+        # Clean up title (remove opus references, keep the main title and nicknames)
+        # Keep everything up to the opus number or movement number, but preserve nicknames in quotes/parentheses
+        # Example: "Piano Sonata No.14 in C#-, Op.27, No.2 ('Moonlight') 3. Presto"
+        # -> "Piano Sonata No.14 in C#- ('Moonlight')"
+        
+        # First, extract nickname if present (in quotes or parentheses before opus/movement)
+        nickname_match = re.search(r'[(\'\"]([^)\'\"]+)[)\'\"]', title_clean)
+        nickname = nickname_match.group(1).strip() if nickname_match else None
+        
+        # Extract main title (everything before opus or movement number)
+        title_match = re.match(r'^(.+?)(?:\s*,\s*op\.|\.\s*\d+\.)', title_clean)
+        if title_match:
+            title_clean = title_match.group(1).strip()
+        else:
+            # Remove opus from anywhere in the string
+            title_clean = re.sub(r',\s*op\.?\s*\d+.*$', '', title_clean, flags=re.IGNORECASE)
+        
+        # If we found a nickname and it's not already in the title, add it
+        if nickname and nickname not in title_clean:
+            # Check if title already has quotes/parentheses
+            if '(' in title_clean or "'" in title_clean or '"' in title_clean:
+                title_clean = f"{title_clean} ('{nickname}')"
+            else:
+                title_clean = f"{title_clean} ('{nickname}')"
+        
+        if title_clean:
+            info["title"] = title_clean.strip()
+        
+        # If we found composer and title, return early
+        if info["composer"] and info["title"]:
+            return info
+    
+    # Pattern 2: Simple patterns (original logic for backward compatibility)
     # Common composer patterns
     composer_patterns = {
         "bach": "J.S. Bach",
@@ -584,16 +690,18 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
         "scriabin": "Scriabin",
         "debussy": "Debussy",
         "rachmaninoff": "Rachmaninoff",
+        "rachmaninov": "Rachmaninoff",
         "schubert": "Schubert",
         "schumann": "Schumann",
         "liszt": "Liszt",
         "brahms": "Brahms",
     }
     
-    for pattern, composer in composer_patterns.items():
-        if pattern in filename_lower:
-            info["composer"] = composer
-            break
+    if not info["composer"]:
+        for pattern, composer in composer_patterns.items():
+            if pattern in filename_lower:
+                info["composer"] = composer
+                break
     
     # Extract BWV numbers (Bach)
     bwv_match = re.search(r'bwv[.\s-]*(\d+)', filename_lower)
@@ -602,33 +710,35 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
         if not info["composer"]:
             info["composer"] = "J.S. Bach"
     
-    # Extract Opus numbers
-    opus_match = re.search(r'op[.\s-]*(\d+)(?:\s*no[.\s-]*(\d+))?', filename_lower)
-    if opus_match:
-        opus_num = opus_match.group(1)
-        no_num = opus_match.group(2)
-        if no_num:
-            info["opus"] = f"Op. {opus_num} No. {no_num}"
-        else:
-            info["opus"] = f"Op. {opus_num}"
-        info["catalog_number"] = info["opus"]
+    # Extract Opus numbers (if not already found)
+    if not info["opus"]:
+        opus_match = re.search(r'op[.\s-]*(\d+)(?:\s*no[.\s-]*(\d+))?', filename_lower)
+        if opus_match:
+            opus_num = opus_match.group(1)
+            no_num = opus_match.group(2)
+            if no_num:
+                info["opus"] = f"Op. {opus_num} No. {no_num}"
+            else:
+                info["opus"] = f"Op. {opus_num}"
+            info["catalog_number"] = info["opus"]
     
-    # Extract common piece types
-    piece_types = {
-        "invention": "Invention",
-        "prelude": "Prelude",
-        "etude": "Étude",
-        "sonata": "Sonata",
-        "nocturne": "Nocturne",
-        "waltz": "Waltz",
-        "mazurka": "Mazurka",
-        "impromptu": "Impromptu",
-    }
-    
-    for pattern, piece_type in piece_types.items():
-        if pattern in filename_lower:
-            info["title"] = piece_type
-            break
+    # Extract common piece types (if not already found)
+    if not info["title"]:
+        piece_types = {
+            "invention": "Invention",
+            "prelude": "Prelude",
+            "etude": "Étude",
+            "sonata": "Sonata",
+            "nocturne": "Nocturne",
+            "waltz": "Waltz",
+            "mazurka": "Mazurka",
+            "impromptu": "Impromptu",
+        }
+        
+        for pattern, piece_type in piece_types.items():
+            if pattern in filename_lower:
+                info["title"] = piece_type
+                break
     
     return info
 
@@ -656,6 +766,20 @@ def generate_suggested_name(
     """
     filename = metadata.filename
     ai_identified = False
+    
+    # Strategy 0: Check filename first (before AI) to see if it contains clear composer/title info
+    # This prevents AI-generated descriptive names from overriding clearly labeled filenames
+    filename_info = extract_info_from_filename(filename)
+    
+    # For original compositions, skip composer extraction from filename
+    if metadata.is_original:
+        filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None, "movement": None}
+    
+    # If filename contains clear composer and title/catalog info, use it (skip AI descriptive names)
+    has_clear_filename_info = (
+        filename_info.get("composer") and 
+        (filename_info.get("title") or filename_info.get("catalog_number"))
+    )
     
     # Strategy 1: Try AI identification/description if enabled
     # For original compositions, we still use AI but only for description (not identification)
@@ -705,43 +829,60 @@ def generate_suggested_name(
                 return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
             else:
                 # AI provided description (either couldn't identify, or it's an original composition)
-                suggested_name = ai_identification.get("suggested_title", "")
-                style_hint = ai_identification.get("style")
-                suggested_description = ai_identification.get("description", "")
-                
-                # For original compositions, ensure the name doesn't include composer
-                if metadata.is_original and suggested_name:
-                    # Remove any composer names that might have been suggested
-                    known_composers = ["Bach", "Beethoven", "Mozart", "Chopin", "Scriabin", "Debussy",
-                                     "Rachmaninoff", "Schubert", "Schumann", "Liszt", "Brahms"]
-                    for composer in known_composers:
-                        suggested_name = suggested_name.replace(composer, "").replace(composer.lower(), "")
-                    suggested_name = " ".join(suggested_name.split())  # Clean up extra spaces
-                    if not suggested_name or len(suggested_name) < 3:
-                        suggested_name = "Original Composition"
-                
-                if suggested_name:
-                    suggested_id = suggested_name.lower().replace(" ", "_")
-                    suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
-                    suggested_id = suggested_id[:50]
-                    return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
+                # Only use AI-generated descriptive names if filename doesn't have clear info
+                if has_clear_filename_info:
+                    # Filename has clear composer/title info, skip AI descriptive name
+                    # Fall through to filename extraction below
+                    pass
+                else:
+                    # Filename doesn't have clear info, use AI descriptive name
+                    suggested_name = ai_identification.get("suggested_title", "")
+                    style_hint = ai_identification.get("style")
+                    suggested_description = ai_identification.get("description", "")
+                    
+                    # For original compositions, ensure the name doesn't include composer
+                    if metadata.is_original and suggested_name:
+                        # Remove any composer names that might have been suggested
+                        known_composers = ["Bach", "Beethoven", "Mozart", "Chopin", "Scriabin", "Debussy",
+                                         "Rachmaninoff", "Schubert", "Schumann", "Liszt", "Brahms"]
+                        for composer in known_composers:
+                            suggested_name = suggested_name.replace(composer, "").replace(composer.lower(), "")
+                        suggested_name = " ".join(suggested_name.split())  # Clean up extra spaces
+                        if not suggested_name or len(suggested_name) < 3:
+                            suggested_name = "Original Composition"
+                    
+                    if suggested_name:
+                        suggested_id = suggested_name.lower().replace(" ", "_")
+                        suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
+                        suggested_id = suggested_id[:50]
+                        return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
     # Strategy 2: Extract info from filename (skip if original composition)
-    filename_info = extract_info_from_filename(filename)
-    
-    # For original compositions, skip composer extraction from filename
-    if metadata.is_original:
-        # Don't extract composer info for original compositions
-        filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None}
+    # Note: filename_info was already extracted above, but we check again here for clarity
+    if not has_clear_filename_info:
+        filename_info = extract_info_from_filename(filename)
+        if metadata.is_original:
+            filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None, "movement": None}
     
     if filename_info.get("composer") and (filename_info.get("title") or filename_info.get("catalog_number")):
         # We have composer + title/catalog from filename
-        parts = [filename_info["composer"]]
-        if filename_info.get("title"):
-            parts.append(filename_info["title"])
-        if filename_info.get("catalog_number"):
-            parts.append(f"({filename_info['catalog_number']})")
-        suggested_name = ": ".join(parts)
+        composer = filename_info["composer"]
+        title = filename_info.get("title", "")
+        catalog = filename_info.get("catalog_number", "")
+        
+        # Build title with catalog if available
+        if title and catalog:
+            # Check if catalog is already in the title
+            if catalog not in title:
+                suggested_name = f"{composer}: {title} ({catalog})"
+            else:
+                suggested_name = f"{composer}: {title}"
+        elif title:
+            suggested_name = f"{composer}: {title}"
+        elif catalog:
+            suggested_name = f"{composer}: {catalog}"
+        else:
+            suggested_name = composer
         
         # Infer style from composer
         composer_lower = filename_info["composer"].lower()
