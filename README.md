@@ -367,6 +367,21 @@ This creates:
 - `output/existing/analyze/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
 - `output/existing/analyze/composition.mid` - Rendered MIDI file
 
+**Comprehensive Analysis (No AI Generation):**
+
+Get detailed analysis including quality assessment, musical analysis, and improvement suggestions:
+
+```bash
+# Comprehensive analysis with quality scores and improvement suggestions
+./pianist analyze -i existing.mid -o analysis.json
+
+# Human-readable text output
+./pianist analyze -i existing.mid --format text
+
+# With AI-assisted naming and description
+./pianist analyze -i existing.mid --ai-naming -o analysis.json
+```
+
 **Without AI Provider (Generate Prompt for External AI):**
 
 If you prefer to use a different AI model, generate a ready-to-paste prompt:
@@ -374,7 +389,7 @@ If you prefer to use a different AI model, generate a ready-to-paste prompt:
 ```bash
 # Generate a prompt for a NEW composition
 mkdir -p output/analysis
-./pianist analyze -i existing.mid -f prompt -p output/analysis/new_piece_prompt.txt \
+./pianist analyze -i existing.mid --format prompt -p output/analysis/new_piece_prompt.txt \
   --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
 
 # Or export structured analysis JSON (for building UIs/tools)

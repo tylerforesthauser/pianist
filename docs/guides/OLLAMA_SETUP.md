@@ -81,7 +81,16 @@ Tempo: 84" -o composition.json --render
 ### Analyze Command
 
 ```bash
-# Analyze MIDI and generate new composition with Ollama
+# Comprehensive analysis with quality assessment and improvement suggestions
+./pianist analyze -i existing.mid -o analysis.json
+
+# Human-readable text output
+./pianist analyze -i existing.mid --format text
+
+# With AI-assisted naming using Ollama
+./pianist analyze -i existing.mid --ai-naming --ai-provider ollama -o analysis.json
+
+# Analyze and generate new composition with Ollama
 ./pianist analyze -i existing.mid --provider ollama \
   --instructions "Compose something similar" -o new_composition.json
 ```

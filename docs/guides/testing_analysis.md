@@ -45,9 +45,12 @@ Render to MIDI and run analysis:
 # Render to MIDI for aural comparison
 pianist render -i test_simple.json -o test_simple.mid
 
-# Run analysis
+# Run comprehensive analysis
 pianist analyze -i test_simple.json -o analysis_simple.json
 cat analysis_simple.json
+
+# Or get human-readable text output
+pianist analyze -i test_simple.json --format text
 
 # Listen to the MIDI file to compare with analysis
 # macOS: open test_simple.mid
@@ -84,8 +87,11 @@ EOF
 # Render to MIDI
 pianist render -i test_motif.json -o test_motif.mid
 
-# Analyze
+# Analyze with comprehensive analysis
 pianist analyze -i test_motif.json -o analysis_motif.json
+
+# Check quality scores and improvement suggestions
+pianist analyze -i test_motif.json --format text | grep -A 5 "Quality"
 
 # Listen and compare: does the detected motif match what you hear?
 ```
@@ -170,9 +176,16 @@ One of the most effective ways to evaluate analysis accuracy is to **listen to t
    pianist render -i composition.json -o composition.mid
    ```
 
-2. **Run analysis:**
+2. **Run comprehensive analysis:**
    ```bash
+   # JSON output with quality scores, musical analysis, and improvement suggestions
    pianist analyze -i composition.json -o analysis.json
+   
+   # Or human-readable text output
+   pianist analyze -i composition.json --format text
+   
+   # With AI-assisted naming and description
+   pianist analyze -i composition.json --ai-naming -o analysis.json
    ```
 
 3. **Listen to the MIDI file** while reviewing the analysis:
