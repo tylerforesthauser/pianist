@@ -5,10 +5,9 @@ import argparse
 import sys
 
 # Import refactored command modules
-from .commands import render, import_, modify, fix, diff
+from .commands import render, import_, modify, fix, diff, reference, generate
 
 # For commands not yet fully refactored, we'll import from legacy
-# This allows incremental refactoring while maintaining full compatibility
 from ..cli_legacy import main as legacy_main
 
 
@@ -25,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
         return legacy_main(argv)
     
     # Check for legacy commands and delegate to legacy implementation
-    legacy_commands = {"annotate", "expand", "analyze", "generate", "reference"}
+    legacy_commands = {"annotate", "expand", "analyze"}
     if argv_copy[0] in legacy_commands:
         return legacy_main(argv)
     
@@ -42,6 +41,8 @@ def main(argv: list[str] | None = None) -> int:
     modify.setup_parser(sub)
     fix.setup_parser(sub)
     diff.setup_parser(sub)
+    generate.setup_parser(sub)
+    reference.setup_parser(sub)
     
     # Parse arguments
     try:
@@ -61,6 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         return fix.handle(args)
     elif args.cmd == "diff":
         return diff.handle(args)
+    elif args.cmd == "generate":
+        return generate.handle(args)
+    elif args.cmd == "reference":
+        return reference.handle(args)
     else:
         # This shouldn't happen if we set up parsers correctly
         raise RuntimeError(f"Unknown command: {args.cmd}")
