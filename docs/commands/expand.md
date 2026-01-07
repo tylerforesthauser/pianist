@@ -19,8 +19,8 @@ pianist expand -i <input.json> --target-length <beats> [options]
 - `-i, --input` - Input composition JSON (preferably annotated) (required)
 - `--target-length` - Target length in beats (required)
 - `-o, --output` - Output expanded JSON path. If omitted, prints to stdout.
-- `--provider` - AI provider to use (currently: `gemini`). If omitted, only generates expansion strategy.
-- `--model` - Model name (default: `gemini-flash-latest`). Only used with `--provider`.
+- `--provider` - AI provider to use: `gemini` (cloud) or `ollama` (local). If omitted, only generates expansion strategy.
+- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
 - `--preserve-motifs` - Preserve all marked motifs and develop them throughout
 - `--preserve` - Comma-separated list of idea IDs to preserve
 - `--validate` - Validate expansion quality before returning (checks motif preservation, development quality, harmonic coherence, form consistency)
@@ -46,17 +46,21 @@ pianist expand -i sketch.json --target-length 300
 ### Expand with AI Provider
 
 ```bash
-# Expand composition using AI
+# Expand composition using AI (Gemini)
 pianist expand -i sketch.json --target-length 300 \
   --provider gemini -o expanded.json --render
 
-# Preserve specific motifs
-pianist expand -i annotated.json --target-length 300 \
-  --provider gemini --preserve-motifs -o expanded.json
+# Expand composition using AI (Ollama)
+pianist expand -i sketch.json --target-length 300 \
+  --provider ollama -o expanded.json --render
 
-# Preserve specific ideas by ID
+# Preserve specific motifs (with Ollama)
 pianist expand -i annotated.json --target-length 300 \
-  --provider gemini --preserve "motif_1,phrase_1" -o expanded.json
+  --provider ollama --preserve-motifs -o expanded.json
+
+# Preserve specific ideas by ID (with Ollama)
+pianist expand -i annotated.json --target-length 300 \
+  --provider ollama --preserve "motif_1,phrase_1" -o expanded.json
 ```
 
 ### Expand with Validation

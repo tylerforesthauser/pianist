@@ -18,8 +18,8 @@ pianist analyze -i <input.mid|input.json> [options]
 - `-f, --format` - Output format: prompt, json, or both (default: prompt)
 - `-o, --output` - Output path for JSON
 - `-p, --prompt` - Write prompt text to path
-- `--provider` - AI provider to generate new composition
-- `--model` - Model name
+- `--provider` - AI provider to generate new composition: `gemini` (cloud) or `ollama` (local)
+- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
 - `--instructions` - Instructions for composition
 - `--render` - Also render AI-generated composition to MIDI
 - `-r, --raw` - Save raw AI response
@@ -52,16 +52,25 @@ pianist analyze -i composition.json -o analysis.json
 # Output to stdout
 pianist analyze -i composition.json
 
-# Analyze and generate new composition with AI
+# Analyze and generate new composition with AI (Gemini)
 pianist analyze -i composition.json --provider gemini \
+  --instructions "Expand this into a full piece" -o expanded.json
+
+# Analyze and generate new composition with AI (Ollama)
+pianist analyze -i composition.json --provider ollama \
   --instructions "Expand this into a full piece" -o expanded.json
 ```
 
 ### Generate Composition from Analysis
 
 ```bash
-# Analyze MIDI and generate new composition with AI
+# Analyze MIDI and generate new composition with AI (Gemini)
 pianist analyze -i existing.mid --provider gemini \
+  --instructions "Compose something similar but more optimistic" \
+  -o new_composition.json --render
+
+# Analyze MIDI and generate new composition with AI (Ollama)
+pianist analyze -i existing.mid --provider ollama \
   --instructions "Compose something similar but more optimistic" \
   -o new_composition.json --render
 ```

@@ -6,7 +6,7 @@ Generate new compositions from text descriptions. Can work with or without an AI
 
 **Without AI Provider**: Generates a ready-to-paste prompt template that you can use with any AI model.
 
-**With AI Provider**: Directly generates a composition using the built-in AI provider (currently Gemini).
+**With AI Provider**: Directly generates a composition using the built-in AI provider (Gemini cloud or Ollama local).
 
 ## Syntax
 
@@ -19,8 +19,8 @@ The description can be provided as a positional argument or piped from stdin.
 ## Options
 
 - `description` (positional, optional) - Text description of the composition. If omitted, reads from stdin.
-- `--provider` - AI provider to use (currently: `gemini`). If omitted, only generates a prompt template.
-- `--model` - Model name (default: `gemini-flash-latest`). Only used with `--provider`.
+- `--provider` - AI provider to use: `gemini` (cloud) or `ollama` (local). If omitted, only generates a prompt template.
+- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
 - `-o, --output` - Output JSON path. If omitted, prints to stdout (prompt mode) or stdout (JSON mode).
 - `--render` - Also render the generated composition to MIDI. **Requires `--provider`**.
 - `-m, --midi` - MIDI output path. Auto-generated from output name if `--render` is used without this flag.
@@ -49,12 +49,22 @@ echo "Title: Test Piece" | pianist generate -p prompt.txt
 ### Generate with AI Provider
 
 ```bash
-# Generate and render in one command
+# Generate with Gemini (cloud)
 pianist generate --provider gemini "Title: Morning Sketch
 Form: ternary
 Length: ~64 beats
 Key: C major
 Tempo: 84" -o composition.json --render
+
+# Generate with Ollama (local)
+pianist generate --provider ollama "Title: Morning Sketch
+Form: ternary
+Length: ~64 beats
+Key: C major
+Tempo: 84" -o composition.json --render
+
+# Use a specific Ollama model
+pianist generate --provider ollama --model gemma3:4b "Title: Morning Sketch..." -o composition.json
 
 # MIDI path auto-generated as composition.mid
 ```

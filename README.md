@@ -25,7 +25,7 @@ Pianist provides a shared musical vocabulary (JSON schema) that both humans and 
 ### Key Features
 
 - **JSON → MIDI conversion**: Parses structured composition data and generates accurate MIDI files
-- **AI integration**: Optional provider support (currently Gemini) for generating and iterating on compositions directly
+- **AI integration**: Optional provider support (Gemini cloud or Ollama local) for generating and iterating on compositions directly
 - **MIDI analysis**: Extract musical characteristics from existing MIDI files to inspire new compositions
 - **Iteration tools**: Transpose, fix pedal patterns, and modify compositions programmatically
 - **Flexible input**: Handles JSON wrapped in markdown code blocks, minor formatting issues, and raw JSON
@@ -67,7 +67,7 @@ python3 -m pip install -e ".[dev]"
 
 Pianist works with JSON compositions. You can get JSON from:
 - **External AI models** (ChatGPT, Claude, etc.) - see [AI_PROMPTING_GUIDE.md](AI_PROMPTING_GUIDE.md)
-- **Built-in AI provider** (Gemini) - requires setup (see below)
+- **Built-in AI providers** (Gemini cloud or Ollama local) - requires setup (see below)
 - **Manual creation** - write JSON yourself
 - **MIDI import** - convert existing MIDI files to JSON
 
@@ -132,7 +132,8 @@ This parses the JSON (even if it's wrapped in markdown code blocks) and creates 
 Pianist can call AI providers directly to generate or modify compositions. This is completely optional—you can always use external AI tools or create JSON manually.
 
 Currently supported providers:
-- **Gemini** (Google)
+- **Gemini** (Google) - Cloud-based, requires API key
+- **Ollama** (Local) - Run AI models locally, no API key needed
 
 To enable Gemini integration:
 
@@ -169,6 +170,54 @@ export GOOGLE_API_KEY="YOUR_KEY"
 
 For detailed API key management, see [docs/API_KEY_MANAGEMENT.md](docs/API_KEY_MANAGEMENT.md).
 
+#### Ollama (Local AI)
+
+Ollama allows you to run AI models locally without any API keys or rate limits. This is great for:
+- Processing many files without hitting rate limits
+- Keeping your data private (all processing happens locally)
+- Avoiding API costs
+
+To enable Ollama integration:
+
+1. **Install Ollama:**
+   Visit https://ollama.ai and install Ollama for your platform, or use:
+   ```bash
+   # macOS (using Homebrew)
+   brew install ollama
+   ```
+
+2. **Start Ollama service:**
+   ```bash
+   ollama serve
+   ```
+   This starts a local server at `http://localhost:11434`
+
+3. **Download a model:**
+   ```bash
+   # Primary recommendation (best quality)
+   ollama pull gpt-oss:20b
+   
+   # Alternative options
+   ollama pull gemma3:4b
+   ollama pull deepseek-r1:8b
+   ```
+
+4. **Install Python requests (if not already installed):**
+   ```bash
+   pip install requests
+   ```
+
+5. **Use Ollama with pianist:**
+   ```bash
+   # Use Ollama with default model (gpt-oss:20b)
+   ./pianist generate --provider ollama "Title: Morning Sketch..." -o composition.json
+   
+   # Use a specific model
+   ./pianist generate --provider ollama --model gemma3:4b "Title: Morning Sketch..." -o composition.json
+   ```
+
+For detailed Ollama setup and usage, see [docs/guides/OLLAMA_SETUP.md](docs/guides/OLLAMA_SETUP.md).
+
 ## Core Workflows
 
 ### Understanding AI vs Non-AI Workflows
@@ -185,10 +234,10 @@ For detailed API key management, see [docs/API_KEY_MANAGEMENT.md](docs/API_KEY_M
 - `diff` - Always works (compares compositions)
 
 **Commands that can USE an AI provider (optional):**
-- `generate --provider gemini` - Generates composition from description
-- `modify --provider gemini` - Uses AI to modify existing composition
-- `analyze --provider gemini` - Uses AI to generate new composition from analysis
-- `expand --provider gemini` - Uses AI to expand incomplete compositions
+- `generate --provider gemini|ollama` - Generates composition from description
+- `modify --provider gemini|ollama` - Uses AI to modify existing composition
+- `analyze --provider gemini|ollama` - Uses AI to generate new composition from analysis
+- `expand --provider gemini|ollama` - Uses AI to expand incomplete compositions
 
 ### 1. Creating New Compositions
 
@@ -519,11 +568,23 @@ By default, if an output file already exists, Pianist will automatically create 
 
 ### Model Selection
 
-The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to choose a specific model for the provider. The default is `gemini-flash-latest` (always uses the latest Flash model). You can use other models like `gemini-1.5-pro` (more capable) or specific versions like `gemini-2.5-flash`:
+The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to choose a specific model for the provider.
+
+**For Gemini:**
+- Default: `gemini-flash-latest` (always uses the latest Flash model)
+- Other options: `gemini-1.5-pro` (more capable), `gemini-2.5-flash` (specific version)
+
+**For Ollama:**
+- Default: `gpt-oss:20b` (best quality for composition tasks)
+- Other options: `gemma3:4b` (faster, smaller), `deepseek-r1:8b` (excellent reasoning)
 
 ```bash
-# Generate with a specific model
+# Generate with Gemini using a specific model
 ./pianist generate --provider gemini --model gemini-1.5-pro \
+  "Compose a complex sonata in C minor" -o composition.json
+
+# Generate with Ollama using a specific model
+./pianist generate --provider ollama --model gemma3:4b \
   "Compose a complex sonata in C minor" -o composition.json
 
 # Iterate with a specific model

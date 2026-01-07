@@ -34,7 +34,11 @@ python3 scripts/check_midi_quality.py --dir references/ --verbose
 ### With AI Assessment
 
 ```bash
+# Using Gemini (cloud)
 python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+
+# Using Ollama (local, no API key needed)
+python3 scripts/check_midi_quality.py file.mid --ai --provider ollama
 ```
 
 ## Quality Metrics
@@ -304,8 +308,8 @@ python3 scripts/batch_import_references.py --dir references/ --metadata metadata
 ### AI Options
 
 - `--ai`: Use AI to assess musical quality
-- `--provider`: AI provider (default: `gemini`)
-- `--model`: Model name (default: `gemini-flash-latest`)
+- `--provider`: AI provider: `gemini` (cloud) or `ollama` (local). Default: `gemini`
+- `--model`: Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
 
 ### Output Options
 

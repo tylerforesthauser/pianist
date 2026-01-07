@@ -17,8 +17,8 @@ pianist modify -i <input.json> [options]
 - `-i, --input` - Input composition JSON (required)
 - `-o, --output` - Output JSON path
 - `--transpose, -t` - Transpose by semitones
-- `--provider` - AI provider for modification
-- `--model` - Model name
+- `--provider` - AI provider for modification: `gemini` (cloud) or `ollama` (local)
+- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
 - `--instructions` - Modification instructions
 - `--render` - Also render to MIDI
 - `-p, --prompt` - Save prompt template

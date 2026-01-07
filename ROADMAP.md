@@ -620,7 +620,7 @@ Tempo: 120" -o sketch.json --render
   --target-length 300 \
   --preserve-motifs \
   --develop-sections \
-  --provider gemini \
+  --provider gemini|ollama \
   -o expanded.json --render
 ```
 
@@ -641,7 +641,7 @@ Tempo: 120" -o sketch.json --render
 # Refine if needed
 ./pianist expand -i expanded.json \
   --refine-section "B" \
-  --provider gemini \
+  --provider gemini|ollama \
   -o expanded_v2.json
 ```
 
