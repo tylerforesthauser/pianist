@@ -267,7 +267,7 @@ def call_ollama(model: str, prompt: str, verbose: bool = False) -> str:
                 "prompt": prompt,
                 "stream": False,
             },
-            timeout=600,  # 10 minute timeout (large compositions can take several minutes)
+            timeout=3600,  # 1 hour timeout (large compositions and complex models like deepseek-r1 can take significant time)
         )
         response.raise_for_status()
         
@@ -279,7 +279,7 @@ def call_ollama(model: str, prompt: str, verbose: bool = False) -> str:
             "Make sure Ollama is installed and running. See: https://ollama.ai"
         )
     except requests.exceptions.Timeout:
-        raise RuntimeError(f"Ollama request timed out after 600 seconds (10 minutes). Large compositions may require more time.")
+        raise RuntimeError(f"Ollama request timed out after 3600 seconds (1 hour). Very large compositions or complex models may require more time.")
     except Exception as e:
         raise RuntimeError(f"Ollama request failed: {e}")
 

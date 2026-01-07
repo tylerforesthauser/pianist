@@ -68,7 +68,7 @@ def test_generate_text_ollama_timeout(monkeypatch) -> None:
     mock_requests.post.side_effect = mock_requests.exceptions.Timeout("Request timed out")
     
     with patch.dict("sys.modules", {"requests": mock_requests}):
-        with pytest.raises(OllamaError, match="timed out after 600 seconds"):
+        with pytest.raises(OllamaError, match="timed out after 3600 seconds"):
             generate_text_ollama(model="test-model", prompt="test", verbose=False)
 
 
@@ -109,7 +109,7 @@ def test_generate_text_ollama_success(monkeypatch) -> None:
         assert call_args[1]["json"]["model"] == "test-model"
         assert call_args[1]["json"]["prompt"] == "test"
         assert call_args[1]["json"]["stream"] is False
-        assert call_args[1]["timeout"] == 600
+        assert call_args[1]["timeout"] == 3600
 
 
 def test_generate_text_ollama_custom_url(monkeypatch) -> None:

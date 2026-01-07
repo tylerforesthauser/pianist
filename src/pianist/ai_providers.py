@@ -209,7 +209,7 @@ def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> s
                 "prompt": prompt,
                 "stream": False,
             },
-            timeout=600,  # 10 minute timeout (large compositions can take several minutes)
+            timeout=3600,  # 1 hour timeout (large compositions and complex models like deepseek-r1 can take significant time)
         )
         response.raise_for_status()
         
@@ -233,7 +233,7 @@ def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> s
             "Make sure Ollama is installed and running. See: https://ollama.ai"
         )
     except requests.exceptions.Timeout:
-        raise OllamaError(f"Ollama request timed out after 600 seconds (10 minutes). Large compositions may require more time.")
+        raise OllamaError(f"Ollama request timed out after 3600 seconds (1 hour). Very large compositions or complex models may require more time.")
     except OllamaError:
         raise
     except Exception as e:
