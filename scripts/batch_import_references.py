@@ -37,9 +37,9 @@ from pianist.iterate import composition_from_midi
 
 def parse_metadata_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
     """
-    Parse metadata CSV file.
+    Parse metadata CSV file (supports both basic and enhanced metadata from review script).
     
-    Expected columns:
+    Expected columns (basic):
     - filename: Name of the file (required)
     - id: Reference ID (optional, auto-generated if not provided)
     - title: Title (optional, uses composition title if not provided)
@@ -48,10 +48,29 @@ def parse_metadata_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
     - form: Musical form (optional)
     - techniques: Comma-separated list of techniques (optional)
     
+    Enhanced columns (from review script, optional):
+    - detected_key, tempo_bpm, duration_beats, quality_score, etc.
+    
     Returns:
         Dictionary mapping filename to metadata dict
     """
     metadata: dict[str, dict[str, Any]] = {}
+    
+    def safe_float(value: Any, default: float | None = None) -> float | None:
+        if value == '' or value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    def safe_int(value: Any, default: int | None = None) -> int | None:
+        if value == '' or value is None:
+            return default
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return default
     
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -65,7 +84,8 @@ def parse_metadata_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
             if row.get("techniques"):
                 techniques = [t.strip() for t in row["techniques"].split(",") if t.strip()]
             
-            metadata[filename] = {
+            # Basic metadata
+            meta = {
                 "id": row.get("id", "").strip() or None,
                 "title": row.get("title", "").strip() or None,
                 "description": row.get("description", "").strip() or "",
@@ -73,6 +93,38 @@ def parse_metadata_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
                 "form": row.get("form", "").strip() or None,
                 "techniques": techniques,
             }
+            
+            # Enhanced metadata (from review script)
+            if "detected_key" in row:
+                meta["detected_key"] = row.get("detected_key", "").strip() or None
+            if "tempo_bpm" in row:
+                meta["tempo_bpm"] = safe_float(row.get("tempo_bpm"))
+            if "duration_beats" in row:
+                meta["duration_beats"] = safe_float(row.get("duration_beats"))
+            if "quality_score" in row:
+                meta["quality_score"] = safe_float(row.get("quality_score"))
+            if "technical_score" in row:
+                meta["technical_score"] = safe_float(row.get("technical_score"))
+            if "musical_score" in row:
+                meta["musical_score"] = safe_float(row.get("musical_score"))
+            if "structure_score" in row:
+                meta["structure_score"] = safe_float(row.get("structure_score"))
+            if "motif_count" in row:
+                meta["motif_count"] = safe_int(row.get("motif_count"))
+            if "phrase_count" in row:
+                meta["phrase_count"] = safe_int(row.get("phrase_count"))
+            if "chord_count" in row:
+                meta["chord_count"] = safe_int(row.get("chord_count"))
+            if "harmonic_progression" in row:
+                prog = row.get("harmonic_progression", "").strip()
+                if prog:
+                    meta["harmonic_progression"] = " ".join(prog.split()[:10])
+            if "time_signature" in row:
+                meta["time_signature"] = row.get("time_signature", "").strip() or None
+            if "bars" in row:
+                meta["bars"] = safe_float(row.get("bars"))
+            
+            metadata[filename] = meta
     
     return metadata
 
@@ -116,20 +168,33 @@ def import_reference(
         else:
             return False, f"Unsupported file type: {suffix}"
         
-        # Extract metadata
+        # Extract basic metadata
         ref_id = metadata.get("id") if metadata else None
         if not ref_id:
-            # Generate ID from filename or title
-            if comp.title:
-                ref_id = comp.title.lower().replace(" ", "_").replace("-", "_")
-            else:
-                ref_id = file_path.stem.lower().replace(" ", "_").replace("-", "_")
+            ref_id = (comp.title or file_path.stem).lower().replace(" ", "_").replace("-", "_")
         
         title = metadata.get("title") if metadata else comp.title or file_path.stem
-        description = metadata.get("description") if metadata else ""
+        description = metadata.get("description", "")
         style = metadata.get("style") if metadata else None
         form = metadata.get("form") if metadata else None
         techniques = metadata.get("techniques") if metadata else None
+        
+        # Extract enhanced metadata fields
+        enhanced_fields = {
+            "detected_key": metadata.get("detected_key") if metadata else None,
+            "tempo_bpm": metadata.get("tempo_bpm") if metadata else None,
+            "duration_beats": metadata.get("duration_beats") if metadata else None,
+            "quality_score": metadata.get("quality_score") if metadata else None,
+            "technical_score": metadata.get("technical_score") if metadata else None,
+            "musical_score": metadata.get("musical_score") if metadata else None,
+            "structure_score": metadata.get("structure_score") if metadata else None,
+            "motif_count": metadata.get("motif_count") if metadata else None,
+            "phrase_count": metadata.get("phrase_count") if metadata else None,
+            "chord_count": metadata.get("chord_count") if metadata else None,
+            "harmonic_progression": metadata.get("harmonic_progression") if metadata else None,
+            "time_signature": metadata.get("time_signature") if metadata else None,
+            "bars": metadata.get("bars") if metadata else None,
+        }
         
         # Create reference
         reference = MusicalReference(
@@ -141,6 +206,7 @@ def import_reference(
             form=form,
             techniques=techniques,
             metadata=None,
+            **enhanced_fields,
         )
         
         # Add to database

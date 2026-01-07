@@ -71,7 +71,15 @@ def handle_reference(args) -> int:
                 technique=args.technique,
                 title_contains=args.title_contains,
                 description_contains=args.description_contains,
-                limit=args.limit
+                key=getattr(args, 'key', None),
+                key_base_only=getattr(args, 'key_base_only', False),
+                tempo_min=getattr(args, 'tempo_min', None),
+                tempo_max=getattr(args, 'tempo_max', None),
+                min_quality=getattr(args, 'min_quality', None),
+                min_motif_count=getattr(args, 'min_motif_count', None),
+                min_phrase_count=getattr(args, 'min_phrase_count', None),
+                limit=args.limit,
+                order_by_quality=getattr(args, 'order_by_quality', False),
             )
             
             if not references:
@@ -88,9 +96,42 @@ def handle_reference(args) -> int:
                     sys.stdout.write(f"Style: {ref.style}\n")
                 if ref.form:
                     sys.stdout.write(f"Form: {ref.form}\n")
+                if ref.detected_key:
+                    sys.stdout.write(f"Key: {ref.detected_key}\n")
+                if ref.tempo_bpm:
+                    sys.stdout.write(f"Tempo: {ref.tempo_bpm:.1f} BPM\n")
+                if ref.quality_score is not None:
+                    sys.stdout.write(f"Quality: {ref.quality_score:.3f}\n")
                 if ref.techniques:
                     sys.stdout.write(f"Techniques: {', '.join(ref.techniques)}\n")
                 sys.stdout.write("\n")
+            
+            return 0
+        
+        elif args.reference_cmd == "coverage":
+            ref_db = get_default_database()
+            coverage = ref_db.get_coverage()
+            
+            sys.stdout.write("Reference Database Coverage:\n\n")
+            sys.stdout.write(f"Total references: {coverage['total']}\n\n")
+            
+            sys.stdout.write("By Style:\n")
+            for style, count in sorted(coverage['by_style'].items(), key=lambda x: -x[1]):
+                sys.stdout.write(f"  {style}: {count}\n")
+            
+            sys.stdout.write("\nBy Form:\n")
+            for form, count in sorted(coverage['by_form'].items(), key=lambda x: -x[1]):
+                sys.stdout.write(f"  {form}: {count}\n")
+            
+            sys.stdout.write("\nBy Technique:\n")
+            for tech, count in sorted(coverage['by_technique'].items(), key=lambda x: -x[1]):
+                sys.stdout.write(f"  {tech}: {count}\n")
+            
+            sys.stdout.write("\nQuality Distribution:\n")
+            qd = coverage['quality_distribution']
+            sys.stdout.write(f"  High (≥0.8): {qd['high']}\n")
+            sys.stdout.write(f"  Medium (0.6-0.8): {qd['medium']}\n")
+            sys.stdout.write(f"  Low (<0.6): {qd['low']}\n")
             
             return 0
         
@@ -231,6 +272,52 @@ def setup_parser(parser):
         default=10,
         help="Maximum number of results (default: 10).",
     )
+    ref_search.add_argument(
+        "--key",
+        type=str,
+        default=None,
+        help="Filter by detected key (e.g., 'C major', 'A minor').",
+    )
+    ref_search.add_argument(
+        "--key-base-only",
+        action="store_true",
+        help="Match base key only (e.g., 'C' matches both 'C major' and 'C minor').",
+    )
+    ref_search.add_argument(
+        "--tempo-min",
+        type=float,
+        default=None,
+        help="Minimum tempo (BPM).",
+    )
+    ref_search.add_argument(
+        "--tempo-max",
+        type=float,
+        default=None,
+        help="Maximum tempo (BPM).",
+    )
+    ref_search.add_argument(
+        "--min-quality",
+        type=float,
+        default=None,
+        help="Minimum quality score (0.0-1.0).",
+    )
+    ref_search.add_argument(
+        "--min-motif-count",
+        type=int,
+        default=None,
+        help="Minimum motif count.",
+    )
+    ref_search.add_argument(
+        "--min-phrase-count",
+        type=int,
+        default=None,
+        help="Minimum phrase count.",
+    )
+    ref_search.add_argument(
+        "--order-by-quality",
+        action="store_true",
+        help="Rank results by quality score (descending).",
+    )
     
     # Get reference
     ref_get = reference_sub.add_parser("get", help="Get a reference by ID and output its composition.")
@@ -257,3 +344,6 @@ def setup_parser(parser):
     
     # Count references
     reference_sub.add_parser("count", help="Count total references in the database.")
+    
+    # Coverage report
+    reference_sub.add_parser("coverage", help="Show coverage statistics by style, form, and technique.")
