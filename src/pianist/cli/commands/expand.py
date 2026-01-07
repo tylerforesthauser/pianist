@@ -15,7 +15,7 @@ from ..util import (
     write_text,
 )
 from ...ai_providers import GeminiError, OllamaError, generate_text_unified
-from ...expansion_strategy import ExpansionStrategy, generate_expansion_strategy
+from ...expansion_strategy import generate_expansion_strategy
 from ...iterate import composition_to_canonical_json, iteration_prompt_template
 from ...musical_analysis import MUSIC21_AVAILABLE, analyze_composition as analyze_composition_musical
 from ...output_util import write_output_with_sidecar
