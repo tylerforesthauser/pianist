@@ -61,7 +61,8 @@ def generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
     google_api_key = os.getenv("GOOGLE_API_KEY")
     
     if api_key and google_api_key:
-        if verbose:
+        # Only show message in non-verbose mode (suppress when --verbose is used)
+        if not verbose:
             sys.stderr.write("Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GEMINI_API_KEY.\n")
     elif google_api_key and not api_key:
         api_key = google_api_key
@@ -208,7 +209,7 @@ def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> s
                 "prompt": prompt,
                 "stream": False,
             },
-            timeout=120,  # 2 minute timeout
+            timeout=600,  # 10 minute timeout (large compositions can take several minutes)
         )
         response.raise_for_status()
         
@@ -232,7 +233,7 @@ def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> s
             "Make sure Ollama is installed and running. See: https://ollama.ai"
         )
     except requests.exceptions.Timeout:
-        raise OllamaError(f"Ollama request timed out after 120 seconds")
+        raise OllamaError(f"Ollama request timed out after 600 seconds (10 minutes). Large compositions may require more time.")
     except OllamaError:
         raise
     except Exception as e:
