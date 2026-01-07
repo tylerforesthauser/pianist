@@ -193,13 +193,19 @@ def composition_from_midi(path: Path) -> Composition:
                     )
 
     # Build tempo events + initial bpm.
+    # Clamp tempo values to valid range (5-400 BPM) to handle MIDI encoding errors
     if 0 in tempo_events_by_tick:
-        initial_bpm = tempo_events_by_tick[0]
+        initial_bpm = max(5.0, min(399.0, tempo_events_by_tick[0]))
+    else:
+        initial_bpm = 120.0
+    
     tempo_events: list[TempoEvent] = []
     for tick, bpm in sorted(tempo_events_by_tick.items()):
         if tick == 0:
             continue
-        tempo_events.append(TempoEvent(start=_ticks_to_beats(tick, ppq), bpm=bpm))
+        # Clamp BPM to valid range (5-400)
+        clamped_bpm = max(5.0, min(399.0, bpm))
+        tempo_events.append(TempoEvent(start=_ticks_to_beats(tick, ppq), bpm=clamped_bpm))
 
     # Group notes into chords when start/end/velocity align.
     by_channel: DefaultDict[int, list[_RawNote]] = defaultdict(list)

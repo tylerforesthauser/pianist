@@ -345,11 +345,13 @@ class TempoEvent(BaseModel):
     start: Beat
 
     # Instant tempo change: provide bpm only
-    bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
+    # Note: Minimum lowered to 5 to handle MIDI encoding errors (values are clamped during import)
+    bpm: Annotated[float, Field(ge=5, lt=400)] | None = None
 
     # Gradual tempo change: provide start_bpm, end_bpm, and duration
-    start_bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
-    end_bpm: Annotated[float, Field(ge=20, lt=400)] | None = None
+    # Note: Minimum lowered to 5 to handle MIDI encoding errors (values are clamped during import)
+    start_bpm: Annotated[float, Field(ge=5, lt=400)] | None = None
+    end_bpm: Annotated[float, Field(ge=5, lt=400)] | None = None
     duration: Annotated[float, Field(gt=0)] | None = None
 
     # Optional annotation fields

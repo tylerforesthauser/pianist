@@ -101,7 +101,7 @@ def _safe_quantile(xs: list[float], q: float) -> float | None:
 
 class TempoPoint(BaseModel):
     tick: int = Field(ge=0)
-    bpm: float = Field(ge=20, lt=400)
+    bpm: float = Field(ge=5, lt=400)  # Lowered from 20 to 5 to handle slow tempos (with clamping in analyze_midi)
 
 
 class TimeSignaturePoint(BaseModel):
@@ -304,7 +304,21 @@ def analyze_midi(path: str | Path) -> MidiAnalysis:
     if 0 not in tempo_by_tick:
         tempo_by_tick[0] = 120.0
 
-    tempo_points = [TempoPoint(tick=t, bpm=b) for t, b in sorted(tempo_by_tick.items())]
+    # Clamp tempo values to valid range (5-400 BPM) to handle MIDI encoding errors
+    # Very slow tempos (< 5 BPM) are likely errors, clamp to minimum
+    # Very fast tempos (> 400 BPM) are also likely errors, clamp to maximum
+    clamped_tempo_by_tick: dict[int, float] = {}
+    for tick, bpm in tempo_by_tick.items():
+        if bpm < 5:
+            # Very slow tempo, likely encoding error - clamp to minimum
+            clamped_tempo_by_tick[tick] = 5.0
+        elif bpm >= 400:
+            # Very fast tempo, likely encoding error - clamp to maximum
+            clamped_tempo_by_tick[tick] = 399.0
+        else:
+            clamped_tempo_by_tick[tick] = bpm
+
+    tempo_points = [TempoPoint(tick=t, bpm=b) for t, b in sorted(clamped_tempo_by_tick.items())]
     ts_points = [
         TimeSignaturePoint(tick=t, numerator=n, denominator=d)
         for t, (n, d) in sorted(ts_by_tick.items())
@@ -321,9 +335,9 @@ def analyze_midi(path: str | Path) -> MidiAnalysis:
 
     duration_beats = _ticks_to_beats(end_tick_global, ppq)
 
-    # Integrate tempo map into total seconds.
+    # Integrate tempo map into total seconds (use clamped values for calculation).
     total_seconds = 0.0
-    tempo_sorted = sorted(tempo_by_tick.items())
+    tempo_sorted = sorted(clamped_tempo_by_tick.items())
     for i, (tick, bpm) in enumerate(tempo_sorted):
         next_tick = tempo_sorted[i + 1][0] if i + 1 < len(tempo_sorted) else end_tick_global
         if next_tick <= tick:
