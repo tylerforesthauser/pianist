@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from pianist.output_util import (
     version_path_if_exists,
     derive_sidecar_path,
