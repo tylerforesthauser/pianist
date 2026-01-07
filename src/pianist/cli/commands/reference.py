@@ -257,4 +257,4 @@ def setup_parser(parser):
     )
     
     # Count references
-    ref_count = reference_sub.add_parser("count", help="Count total references in the database.")
+    reference_sub.add_parser("count", help="Count total references in the database.")
