@@ -194,6 +194,23 @@ This approach allows for rapid iteration and keeps the codebase lean without the
 
 ## Development Workflow
 
+**Quick Start:**
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Install/update package in editable mode
+pip install -e . --force-reinstall --no-deps
+
+# Fix entry point script (required after installation)
+# Note: This is needed because pyproject.toml + setuptools.build_meta doesn't
+# execute setup.py's custom commands, so the entry point script needs manual fixing
+python scripts/fix_entry_point.py
+
+# Verify installation
+pianist --version
+```
+
 ### Virtual Environment
 
 This project uses a Python virtual environment (`.venv`) for dependency management:
@@ -211,13 +228,73 @@ python3 -m pip install -e ".[gemini,dotenv]"
 
 **Always activate the virtual environment before running scripts or tests.**
 
+### Troubleshooting Module Import Errors
+
+If you encounter `ModuleNotFoundError: No module named 'pianist'` when running commands:
+
+1. **Ensure the virtual environment is activated:**
+   ```bash
+   source .venv/bin/activate
+   ```
+
+2. **Install/update the package in editable mode:**
+   ```bash
+   pip install -e . --force-reinstall --no-deps
+   ```
+
+3. **Fix the entry point script (required after installation):**
+   ```bash
+   python scripts/fix_entry_point.py
+   ```
+   
+   This ensures the `pianist` command properly processes `.pth` files for editable installs.
+   
+   **Why this is needed:** When using `pyproject.toml` with `setuptools.build_meta`, 
+   setuptools reads metadata from `pyproject.toml` and doesn't execute `setup.py`'s 
+   custom command classes. This means the automatic fix in `setup.py` never runs. 
+   The manual fix script ensures the entry point script processes `.pth` files correctly 
+   (especially important in Python 3.14+).
+
+4. **Verify the installation:**
+   ```bash
+   pianist --version
+   ```
+   
+   The `pianist` command should work. For direct Python imports, use:
+   ```bash
+   python -c "import site; site.main(); import pianist; print('✓ OK')"
+   ```
+   
+   Or add the path manually:
+   ```bash
+   python -c "import sys; sys.path.insert(0, 'src'); import pianist; print('✓ OK')"
+   ```
+
+5. **If issues persist, check the `.pth` file:**
+   ```bash
+   cat .venv/lib/python*/site-packages/__editable__.pianist-*.pth
+   ```
+   
+   It should contain the path to the `src` directory.
+
+**Note:** 
+- The `pianist` command should work after running `fix_entry_point.py`
+- Direct Python imports (`python -c "import pianist"`) may not work because `.pth` files are only processed during Python startup, not in every session
+- Use the `pianist` command for CLI operations, or manually process `.pth` files for direct imports
+- After making code changes, you typically don't need to reinstall (that's the benefit of editable installs)
+
 ### Making Changes
 
 1. **Create a feature branch** (if using git)
-2. **Implement changes** following code quality guidelines
-3. **Write/update tests** to maintain coverage
-4. **Update documentation** to reflect changes
-5. **Run tests** to ensure everything passes
+2. **Ensure package is installed** (if you encounter import errors):
+   ```bash
+   source .venv/bin/activate
+   pip install -e . --force-reinstall --no-deps
+   ```
+3. **Implement changes** following code quality guidelines
+4. **Write/update tests** to maintain coverage
+5. **Update documentation** to reflect changes
+6. **Run tests** to ensure everything passes
 
 ### Before Committing
 

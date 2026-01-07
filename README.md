@@ -57,9 +57,15 @@ source .venv/bin/activate
 
 # Install pianist in development mode
 python3 -m pip install -e ".[dev]"
+
+# Fix entry point script (required after installation)
+# This ensures the 'pianist' command works correctly with editable installs
+python scripts/fix_entry_point.py
 ```
 
 **Note:** All scripts and commands should be run with the virtual environment activated. The project uses `.venv` as the virtual environment directory.
+
+**Why the fix script is needed:** When using `pyproject.toml` with `setuptools.build_meta`, the entry point script needs to be configured to process `.pth` files correctly for editable installs (especially in Python 3.14+). The `fix_entry_point.py` script handles this automatically.
 
 ## Quick Start
 
