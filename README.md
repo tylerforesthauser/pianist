@@ -125,7 +125,14 @@ Then paste the prompt into your preferred AI model.
 
 This parses the JSON (even if it's wrapped in markdown code blocks) and creates a playable MIDI file.
 
-**For detailed prompting guidance**, including system prompt templates, user prompt examples, and tips for different musical styles, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+**For detailed prompting guidance**, including:
+- How to generate new compositions from scratch
+- How to modify existing compositions
+- How to generate new compositions inspired by existing MIDI files
+- System prompt templates and user prompt examples
+- Tips for different musical styles and forms
+
+See [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 
 ## AI Provider Setup (Optional)
 
@@ -295,7 +302,7 @@ Then paste the prompt into your preferred AI model (ChatGPT, Claude, etc.) and r
 
 **Option 3: Use External AI Directly**
 
-Use the two-part prompt structure (system + user prompts) described in the Quick Start section. For comprehensive guidance, examples, and system prompt templates, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+Use the two-part prompt structure (system + user prompts) described in the Quick Start section. The AI Prompting Guide covers generating new compositions, modifying existing ones, and creating new works from existing MIDI files. For comprehensive guidance, examples, and system prompt templates, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 
 #### From an Existing MIDI (Analysis → Generation)
 
@@ -521,7 +528,12 @@ A gentle, flowing piece with a memorable melody that develops throughout.
 - **Continuous music**: Request "continuous music with no gaps between sections" or "smooth transitions throughout."
 - **Regular phrase structure**: Request "regular phrase lengths (4, 8, or 16 beats)" for structural clarity.
 
-For comprehensive prompting guidance, including detailed examples, system prompt templates, and tips for different musical styles, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+The AI Prompting Guide is organized into three main workflows:
+1. **Generating New Compositions** - Creating original works from scratch
+2. **Modifying Existing Compositions** - Refining and extending existing works
+3. **Generating from Existing MIDI** - Creating new compositions inspired by existing files
+
+For comprehensive guidance, including detailed examples, system prompt templates, and tips for different musical styles, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 
 ## Advanced Features
 
@@ -617,7 +629,12 @@ prompt = analysis_prompt_template(analysis, instructions="Write a calm nocturne.
 
 ### Prompting Guide
 
-See `AI_PROMPTING_GUIDE.md` for a comprehensive schema-aligned prompt template that encourages motif development and musical form.
+See `AI_PROMPTING_GUIDE.md` for comprehensive guidance on:
+- **Generating new compositions** from scratch with effective prompts
+- **Modifying existing compositions** to refine and extend them
+- **Generating new works** inspired by existing MIDI files
+- System prompt templates that encourage motif development and musical form
+- User prompt examples for various styles, forms, and lengths
 
 For piano output, Pianist supports a **single Piano track** where each note (or sub-chord) can be annotated with explicit `hand` (`"lh"`/`"rh"`) and optional `voice` (1–4) via `NoteEvent` objects using the `groups` or `notes` fields.
 

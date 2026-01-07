@@ -22,75 +22,11 @@ This two-part approach typically improves **schema adherence** and reduces outpu
 
 This section contains instructions and guidance for **human users** creating prompts and using Pianist.
 
-## Iterating on Existing Works (JSON or MIDI)
+## 1. Generating New Compositions
 
-Pianist supports an iteration workflow where you can start from either:
-- An existing **Pianist composition JSON** (or raw model output that contains such JSON), or
-- A **MIDI file** (`.mid`/`.midi`)
+The most common use case is generating a new composition from scratch. This section covers how to build effective prompts for creating original works.
 
-The goal is to produce a **clean, schema-valid JSON seed** you can edit by hand or feed back into an AI model to revise/extend.
-
-### Step 1: Import your starting point into a JSON seed
-
-Use `pianist iterate` to normalize either JSON or MIDI into a canonical, tweak-friendly JSON file:
-
-```bash
-# MIDI -> JSON seed
-./pianist iterate -i "existing.mid" -o "seed.json"
-
-# JSON/LLM output -> canonical JSON seed
-./pianist iterate -i "some_model_output.txt" -o "seed.json"
-```
-
-Optional quick tweak (without using an AI model):
-
-```bash
-# Transpose all notes up by 2 semitones
-./pianist iterate -i "seed.json" --transpose 2 -o "seed_transposed.json"
-```
-
-### Step 2: Ask the model to revise the seed (recommended prompting pattern)
-
-Keep your **System prompt** mostly the same, but change your **User prompt** to:
-- Provide the *existing seed JSON*
-- Specify *requested changes*
-- Require the model to output a **complete new JSON object**, not a diff
-
-Tip: Pianist can generate a ready-to-paste iteration prompt file:
-
-```bash
-mkdir -p analysis
-./pianist iterate -i "seed.json" -p "analysis/iterate_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
-```
-
-Then paste that prompt into your model and render the result:
-
-```bash
-./pianist render -i "updated_seed.json" -o "updated.mid"
-```
-
-## Creating NEW Works Inspired by an Existing MIDI (Analysis -> Prompt)
-
-Sometimes you don't want to *edit* an existing piece—you want to create something **new** that inherits its tempo/texture/density/registration tendencies.
-
-Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file and generate a ready-to-paste prompt for composing a new work:
-
-```bash
-# Generate a prompt for a NEW composition (recommended)
-mkdir -p analysis
-./pianist analyze -i "existing.mid" -f prompt -p "analysis/new_piece_prompt.txt" \
-  --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
-
-# Optional: export structured analysis JSON (useful for building tools/UIs)
-./pianist analyze -i "existing.mid" -f json -o "analysis/analysis.json"
-```
-
-Workflow:
-- Run `./pianist analyze ...` to get a prompt.
-- Paste the prompt into your model to produce a **new** Pianist composition JSON.
-- Render it with `./pianist render -i new.json -o new.mid`.
-
-## Building Your User Prompt
+### Building Your User Prompt
 
 The user prompt is where you specify what you want. You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
 
@@ -810,6 +746,120 @@ Musical elements:
 - Theme recognizable in each variation
 - Smooth transitions between sections
 ```
+
+---
+
+## 2. Modifying Existing Compositions
+
+Once you have a composition (either generated or imported), you can modify it using AI. This workflow is useful for refining, extending, or changing existing works.
+
+### Importing Your Starting Point
+
+Pianist supports modifying compositions from either:
+- An existing **Pianist composition JSON** (or raw model output that contains such JSON), or
+- A **MIDI file** (`.mid`/`.midi`)
+
+The goal is to produce a **clean, schema-valid JSON seed** you can edit by hand or feed back into an AI model to revise/extend.
+
+#### Step 1: Import your starting point into a JSON seed
+
+Use `pianist import` to normalize either JSON or MIDI into a canonical, tweak-friendly JSON file:
+
+```bash
+# MIDI -> JSON seed
+./pianist import -i "existing.mid" -o "seed.json"
+
+# JSON/LLM output -> canonical JSON seed
+./pianist import -i "some_model_output.txt" -o "seed.json"
+```
+
+Optional quick tweak (without using an AI model):
+
+```bash
+# Transpose all notes up by 2 semitones
+./pianist modify -i "seed.json" --transpose 2 -o "seed_transposed.json"
+```
+
+#### Step 2: Ask the model to revise the seed (recommended prompting pattern)
+
+Keep your **System prompt** mostly the same, but change your **User prompt** to:
+- Provide the *existing seed JSON*
+- Specify *requested changes*
+- Require the model to output a **complete new JSON object**, not a diff
+
+Tip: Pianist can generate a ready-to-paste modification prompt file:
+
+```bash
+mkdir -p analysis
+./pianist modify -i "seed.json" -p "analysis/modify_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
+```
+
+Then paste that prompt into your model and render the result:
+
+```bash
+./pianist render -i "updated_seed.json" -o "updated.mid"
+```
+
+### Modification Prompt Template
+
+When modifying an existing composition, structure your user prompt like this:
+
+**COPY/PASTE (User prompt for modification):**
+
+```
+Modify this composition:
+
+[PASTE THE EXISTING COMPOSITION JSON HERE]
+
+Requested changes:
+- Make it more lyrical
+- Add an 8-beat coda at the end
+- Increase the tempo by 10 BPM
+- [Add your specific modification requests]
+
+Output a complete new JSON object with all the requested changes applied.
+```
+
+**Key points for modification prompts:**
+- Always include the full existing composition JSON
+- Be specific about what you want changed
+- Request a complete new JSON object (not a diff or partial update)
+- You can request multiple changes in one prompt
+
+---
+
+## 3. Generating New Compositions from Existing MIDI Files
+
+Sometimes you don't want to *edit* an existing piece—you want to create something **new** that inherits its tempo/texture/density/registration tendencies. This workflow analyzes an existing MIDI file and generates a prompt for creating a new composition inspired by it.
+
+### Using Analysis to Generate New Composition Prompts
+
+Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file and generate a ready-to-paste prompt for composing a new work:
+
+```bash
+# Generate a prompt for a NEW composition (recommended)
+mkdir -p analysis
+./pianist analyze -i "existing.mid" -f prompt -p "analysis/new_piece_prompt.txt" \
+  --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
+
+# Optional: export structured analysis JSON (useful for building tools/UIs)
+./pianist analyze -i "existing.mid" -f json -o "analysis/analysis.json"
+```
+
+Workflow:
+- Run `./pianist analyze ...` to get a prompt.
+- Paste the prompt into your model to produce a **new** Pianist composition JSON.
+- Render it with `./pianist render -i new.json -o new.mid`.
+
+### What Analysis Provides
+
+The analysis extracts:
+- **Musical characteristics**: Key, tempo, time signature, form
+- **Texture and density**: Note density, register usage, hand distribution
+- **Harmonic patterns**: Chord progressions, cadences
+- **Structural elements**: Phrases, motifs, sections
+
+These are then incorporated into a prompt that guides the AI to create a new composition with similar characteristics but different musical content.
 
 ---
 
