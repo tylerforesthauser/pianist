@@ -124,6 +124,9 @@ class FileMetadata:
     technical_score: float
     musical_score: float
     structure_score: float
+    
+    # Original composition flag
+    is_original: bool
 
 
 def extract_melodic_signature(composition: Any) -> list[int]:
@@ -298,12 +301,17 @@ def identify_composition_with_ai(
     model: str = "gemini-flash-latest",
     verbose: bool = False,
     delay_seconds: float = 0.0,
+    is_original: bool = False,
 ) -> dict[str, Any] | None:
     """
-    Use AI to identify a well-known composition based on musical characteristics.
+    Use AI to identify a well-known composition or describe an original composition.
+    
+    Args:
+        is_original: If True, this is known to be an original composition. 
+                     AI will provide description only, no identification attempt.
     
     Returns:
-        Dictionary with identified composition info, or None if not identified
+        Dictionary with identified composition info or description, or None if not identified
     """
     if not MUSIC21_AVAILABLE:
         if verbose:
@@ -314,7 +322,10 @@ def identify_composition_with_ai(
         from pianist.iterate import composition_to_canonical_json
         
         if verbose:
-            print(f"  [AI] Attempting to identify composition using {provider}...", file=sys.stderr)
+            if is_original:
+                print(f"  [AI] Analyzing original composition and generating description using {provider}...", file=sys.stderr)
+            else:
+                print(f"  [AI] Attempting to identify composition using {provider}...", file=sys.stderr)
         
         # Add delay to avoid rate limits
         if delay_seconds > 0:
@@ -329,9 +340,12 @@ def identify_composition_with_ai(
         if harmonic_prog and len(harmonic_prog) > 200:
             harmonic_prog = harmonic_prog[:200] + "..."
         
-        prompt = f"""You are a musicologist identifying classical piano compositions.
+        if is_original:
+            # Special prompt for original compositions - description only, no identification
+            prompt = f"""You are a musicologist analyzing an original/unknown piano composition.
 
-Analyze this MIDI file and try to identify if it's a well-known composition.
+This MIDI file is known to be an original composition (not a well-known work by a famous composer).
+Please provide a detailed musical analysis and description.
 
 Filename: {filename}
 Key: {metadata.detected_key or 'Unknown'}
@@ -346,7 +360,44 @@ Harmonic progression (first part): {harmonic_prog}
 Musical content (first 2000 characters):
 {comp_json[:2000]}
 
-If you can identify this as a well-known composition, respond with JSON:
+Provide a detailed analysis and description. Respond with JSON:
+{{
+  "identified": false,
+  "suggested_title": "Descriptive title based on musical characteristics (NO composer name)",
+  "style": "Baroque|Classical|Romantic|Modern|Other",
+  "form": "{metadata.detected_form or 'unknown'}",
+  "description": "Detailed description of the piece's musical characteristics, style, mood, technical features, and what it demonstrates. Be specific about harmonic progressions, melodic patterns, form, and overall character."
+}}
+
+CRITICAL: This is an original composition. Do NOT attempt to identify a composer or well-known work.
+Focus on providing a rich, detailed description of the musical content.
+
+Respond ONLY with valid JSON, no other text."""
+        else:
+            # Standard prompt for potentially known compositions
+            prompt = f"""You are a musicologist identifying classical piano compositions.
+
+Analyze this MIDI file and try to identify if it's a well-known composition.
+
+IMPORTANT: Only identify compositions if you are VERY CONFIDENT they are well-known, 
+canonical works by established composers. If this appears to be an original composition, 
+a student work, an unknown piece, or you have any doubt, you MUST respond with 
+"identified": false.
+
+Filename: {filename}
+Key: {metadata.detected_key or 'Unknown'}
+Form: {metadata.detected_form or 'Unknown'}
+Time Signature: {metadata.time_signature or 'Unknown'}
+Tempo: {metadata.tempo_bpm or 'Unknown'} BPM
+Duration: {metadata.duration_beats:.1f} beats (~{metadata.bars:.1f} bars)
+Motifs: {metadata.motif_count}
+Phrases: {metadata.phrase_count}
+Harmonic progression (first part): {harmonic_prog}
+
+Musical content (first 2000 characters):
+{comp_json[:2000]}
+
+If you can identify this as a well-known, canonical composition with HIGH confidence, respond with JSON:
 {{
   "identified": true,
   "composer": "Composer name (e.g., 'J.S. Bach', 'Chopin', 'Beethoven')",
@@ -358,14 +409,18 @@ If you can identify this as a well-known composition, respond with JSON:
   "confidence": "high|medium|low"
 }}
 
-If you cannot identify it as a well-known composition, respond with:
+If you cannot identify it as a well-known composition, or if it appears to be an original/unknown work, respond with:
 {{
   "identified": false,
-  "suggested_title": "Descriptive title based on characteristics",
+  "suggested_title": "Descriptive title based on characteristics (NO composer name)",
   "style": "Baroque|Classical|Romantic|Modern|Other",
   "form": "{metadata.detected_form or 'unknown'}",
   "description": "Brief description based on musical analysis"
 }}
+
+CRITICAL: Do NOT guess composer names. Only set "identified": true if you are certain 
+this is a well-known, canonical composition. Original compositions, student works, 
+and unknown pieces should have "identified": false.
 
 Respond ONLY with valid JSON, no other text."""
         
@@ -450,6 +505,55 @@ Respond ONLY with valid JSON, no other text."""
             traceback.print_exc()
     
     return None
+
+
+def is_original_composition(filename: str) -> bool:
+    """
+    Detect if a MIDI file should be marked as an original/unknown composition.
+    
+    Checks filename patterns that indicate original compositions:
+    - Contains "original", "unknown", "composition", "piece", "work"
+    - Contains "my_", "custom_", "new_", "untitled"
+    - Does NOT contain known composer names or catalog numbers
+    
+    Returns:
+        True if file should be treated as original/unknown composition
+    """
+    filename_lower = filename.lower()
+    
+    # Patterns that indicate original compositions
+    original_indicators = [
+        "original",
+        "unknown",
+        "composition",
+        "piece",
+        "work",
+        "my_",
+        "custom_",
+        "new_",
+        "untitled",
+        "sketch",
+        "draft",
+    ]
+    
+    # Check for original indicators
+    has_original_indicator = any(indicator in filename_lower for indicator in original_indicators)
+    
+    # Known composer patterns (if found, likely NOT original)
+    known_composers = [
+        "bach", "beethoven", "mozart", "chopin", "scriabin", "debussy",
+        "rachmaninoff", "schubert", "schumann", "liszt", "brahms",
+        "haydn", "handel", "vivaldi", "tchaikovsky", "ravel", "satie",
+    ]
+    
+    # Catalog number patterns (BWV, Op., etc.) indicate known compositions
+    has_catalog = bool(re.search(r'\b(bwv|op\.?|opus|k\.?|kv\.?|d\.?)\s*\d+', filename_lower))
+    
+    # If filename has original indicators AND no known composer/catalog, mark as original
+    if has_original_indicator and not any(composer in filename_lower for composer in known_composers) and not has_catalog:
+        return True
+    
+    return False
 
 
 def extract_info_from_filename(filename: str) -> dict[str, Any]:
@@ -552,7 +656,8 @@ def generate_suggested_name(
     filename = metadata.filename
     ai_identified = False
     
-    # Strategy 1: Try AI identification if enabled
+    # Strategy 1: Try AI identification/description if enabled
+    # For original compositions, we still use AI but only for description (not identification)
     if use_ai and MUSIC21_AVAILABLE:
         # Set default model if not provided
         if ai_model is None:
@@ -569,45 +674,64 @@ def generate_suggested_name(
             model=ai_model,
             verbose=verbose,
             delay_seconds=ai_delay,
+            is_original=metadata.is_original,
         )
-        if ai_identification and ai_identification.get("identified"):
-            # We identified a well-known composition!
-            ai_identified = True
-            composer = ai_identification.get("composer", "")
-            title = ai_identification.get("title", "")
-            catalog = ai_identification.get("catalog_number", "")
-            
-            # Build full title
-            if composer and title:
-                if catalog:
-                    suggested_name = f"{composer}: {title} ({catalog})"
+        if ai_identification:
+            if ai_identification.get("identified") and not metadata.is_original:
+                # We identified a well-known composition! (only if not marked as original)
+                ai_identified = True
+                composer = ai_identification.get("composer", "")
+                title = ai_identification.get("title", "")
+                catalog = ai_identification.get("catalog_number", "")
+                
+                # Build full title
+                if composer and title:
+                    if catalog:
+                        suggested_name = f"{composer}: {title} ({catalog})"
+                    else:
+                        suggested_name = f"{composer}: {title}"
                 else:
-                    suggested_name = f"{composer}: {title}"
-            else:
-                suggested_name = title or composer or "Identified Composition"
-            
-            style_hint = ai_identification.get("style")
-            suggested_description = ai_identification.get("description", "Well-known classical composition")
-            
-            # Generate ID
-            suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
-            suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
-            suggested_id = suggested_id[:50]
-            
-            return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
-        elif ai_identification and not ai_identification.get("identified"):
-            # AI couldn't identify but provided suggestions
-            suggested_name = ai_identification.get("suggested_title", "")
-            style_hint = ai_identification.get("style")
-            suggested_description = ai_identification.get("description", "")
-            if suggested_name:
-                suggested_id = suggested_name.lower().replace(" ", "_")
-                suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
+                    suggested_name = title or composer or "Identified Composition"
+                
+                style_hint = ai_identification.get("style")
+                suggested_description = ai_identification.get("description", "Well-known classical composition")
+                
+                # Generate ID
+                suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+                suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
                 suggested_id = suggested_id[:50]
+                
                 return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
+            else:
+                # AI provided description (either couldn't identify, or it's an original composition)
+                suggested_name = ai_identification.get("suggested_title", "")
+                style_hint = ai_identification.get("style")
+                suggested_description = ai_identification.get("description", "")
+                
+                # For original compositions, ensure the name doesn't include composer
+                if metadata.is_original and suggested_name:
+                    # Remove any composer names that might have been suggested
+                    known_composers = ["Bach", "Beethoven", "Mozart", "Chopin", "Scriabin", "Debussy",
+                                     "Rachmaninoff", "Schubert", "Schumann", "Liszt", "Brahms"]
+                    for composer in known_composers:
+                        suggested_name = suggested_name.replace(composer, "").replace(composer.lower(), "")
+                    suggested_name = " ".join(suggested_name.split())  # Clean up extra spaces
+                    if not suggested_name or len(suggested_name) < 3:
+                        suggested_name = "Original Composition"
+                
+                if suggested_name:
+                    suggested_id = suggested_name.lower().replace(" ", "_")
+                    suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
+                    suggested_id = suggested_id[:50]
+                    return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
-    # Strategy 2: Extract info from filename
+    # Strategy 2: Extract info from filename (skip if original composition)
     filename_info = extract_info_from_filename(filename)
+    
+    # For original compositions, skip composer extraction from filename
+    if metadata.is_original:
+        # Don't extract composer info for original compositions
+        filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None}
     
     if filename_info.get("composer") and (filename_info.get("title") or filename_info.get("catalog_number")):
         # We have composer + title/catalog from filename
@@ -647,42 +771,62 @@ def generate_suggested_name(
     base_name = Path(filename).stem
     base_name = base_name.replace("_", " ").replace("-", " ").title()
     
+    # For original compositions, ensure no composer names are included
+    if metadata.is_original:
+        # Remove any composer names that might have been extracted
+        known_composers_lower = [c.lower() for c in [
+            "bach", "beethoven", "mozart", "chopin", "scriabin", "debussy",
+            "rachmaninoff", "schubert", "schumann", "liszt", "brahms"
+        ]]
+        for composer in known_composers_lower:
+            base_name = base_name.replace(composer.title(), "").replace(composer.upper(), "")
+        base_name = " ".join(base_name.split())  # Clean up extra spaces
+    
     # Build descriptive name
     name_parts: list[str] = []
     
-    # Add key if detected
-    if metadata.detected_key:
-        name_parts.append(metadata.detected_key)
-    
-    # Add form if detected
-    if metadata.detected_form:
-        name_parts.append(metadata.detected_form.capitalize())
+    # For original compositions, add "Original" prefix or use descriptive name
+    if metadata.is_original:
+        if len(base_name) > 3 and base_name.lower() not in ["midi", "track", "song", "piece", "composition"]:
+            suggested_name = f"Original: {base_name}"
+        else:
+            suggested_name = "Original Composition"
+    else:
+        # Add key if detected
+        if metadata.detected_key:
+            name_parts.append(metadata.detected_key)
+        
+        # Add form if detected
+        if metadata.detected_form:
+            name_parts.append(metadata.detected_form.capitalize())
     
     # Add style hint if available
     style_hint = ""
-    if metadata.detected_key:
+    if not metadata.is_original and metadata.detected_key:
         # Simple heuristic: minor keys often suggest Romantic/Baroque
         if "minor" in metadata.detected_key.lower():
             style_hint = "Romantic"
         elif metadata.detected_form in ["binary", "ternary"]:
             style_hint = "Classical"
     
-    # If we have a good base name, use it; otherwise generate
-    if len(base_name) > 3 and base_name.lower() not in ["midi", "track", "song", "piece"]:
-        suggested_name = f"{base_name}"
-        if metadata.detected_key:
-            suggested_name += f" in {metadata.detected_key}"
-    else:
-        # Generate from analysis
-        parts = []
-        if metadata.detected_key:
-            parts.append(metadata.detected_key)
-        if metadata.detected_form:
-            parts.append(metadata.detected_form)
-        if metadata.motif_count > 0:
-            parts.append(f"{metadata.motif_count} motifs")
-        
-        suggested_name = " - ".join(parts) if parts else "Musical Piece"
+    # If we haven't set suggested_name yet (non-original compositions)
+    if not metadata.is_original:
+        # If we have a good base name, use it; otherwise generate
+        if len(base_name) > 3 and base_name.lower() not in ["midi", "track", "song", "piece"]:
+            suggested_name = f"{base_name}"
+            if metadata.detected_key:
+                suggested_name += f" in {metadata.detected_key}"
+        else:
+            # Generate from analysis
+            parts = []
+            if metadata.detected_key:
+                parts.append(metadata.detected_key)
+            if metadata.detected_form:
+                parts.append(metadata.detected_form)
+            if metadata.motif_count > 0:
+                parts.append(f"{metadata.motif_count} motifs")
+            
+            suggested_name = " - ".join(parts) if parts else "Musical Piece"
     
     # Generate ID (sanitized version of name)
     suggested_id = suggested_name.lower().replace(" ", "_").replace("-", "_")
@@ -691,6 +835,8 @@ def generate_suggested_name(
     
     # Generate description
     description_parts: list[str] = []
+    if metadata.is_original:
+        description_parts.append("Original composition")
     if metadata.detected_form:
         description_parts.append(f"{metadata.detected_form.capitalize()} form")
     if metadata.motif_count > 0:
@@ -700,7 +846,7 @@ def generate_suggested_name(
     if metadata.chord_count > 0:
         description_parts.append(f"{metadata.chord_count} chord(s)")
     
-    suggested_description = ", ".join(description_parts) if description_parts else "Musical composition"
+    suggested_description = ", ".join(description_parts) if description_parts else ("Original composition" if metadata.is_original else "Musical composition")
     
     return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
 
@@ -713,6 +859,7 @@ def analyze_file(
     ai_provider: str = "gemini",
     ai_model: str | None = None,
     ai_delay: float = 0.0,
+    mark_original: bool = False,
 ) -> tuple[FileMetadata, list[int], bool, bool]:
     """
     Analyze a single MIDI file and extract metadata.
@@ -778,6 +925,10 @@ def analyze_file(
     ai_attempted = False
     ai_identified = False
     
+    # Check if this is an original composition
+    # Use command-line flag if provided, otherwise auto-detect from filename
+    is_original = mark_original or is_original_composition(file_path.name)
+    
     # Generate suggested name
     if composition:
         # Create temporary metadata for name generation
@@ -810,6 +961,7 @@ def analyze_file(
             technical_score=quality_report.scores.get("technical", 0.0),
             musical_score=quality_report.scores.get("musical", 0.0),
             structure_score=quality_report.scores.get("structure", 0.0),
+            is_original=is_original,
         )
         
         # Track if AI is being used
@@ -860,6 +1012,7 @@ def analyze_file(
         technical_score=quality_report.scores.get("technical", 0.0),
         musical_score=quality_report.scores.get("musical", 0.0),
         structure_score=quality_report.scores.get("structure", 0.0),
+        is_original=is_original,
     )
     
     return metadata, melodic_signature, ai_attempted, ai_identified
@@ -986,6 +1139,7 @@ def write_csv_report(
                 "technical_score",
                 "musical_score",
                 "structure_score",
+                "is_original",
             ],
         )
         writer.writeheader()
@@ -1013,6 +1167,7 @@ def write_csv_report(
                 "technical_score": f"{meta.technical_score:.3f}",
                 "musical_score": f"{meta.musical_score:.3f}",
                 "structure_score": f"{meta.structure_score:.3f}",
+                "is_original": "Yes" if meta.is_original else "No",
             })
 
 
@@ -1105,6 +1260,9 @@ def load_file_result(
         
         # Reconstruct metadata
         metadata_dict = data["metadata"]
+        # Handle backward compatibility: if is_original field is missing, auto-detect from filename
+        if "is_original" not in metadata_dict:
+            metadata_dict["is_original"] = is_original_composition(Path(metadata_dict.get("filepath", "")).name)
         metadata = FileMetadata(**metadata_dict)
         signature = data.get("signature", [])
         ai_attempted = data.get("ai_attempted", False)
@@ -1130,6 +1288,9 @@ def load_all_results(temp_dir: Path) -> tuple[list[FileMetadata], list[list[int]
                 data = json.load(f)
             
             metadata_dict = data["metadata"]
+            # Handle backward compatibility: if is_original field is missing, auto-detect from filename
+            if "is_original" not in metadata_dict:
+                metadata_dict["is_original"] = is_original_composition(Path(metadata_dict.get("filepath", "")).name)
             metadata = FileMetadata(**metadata_dict)
             signature = data.get("signature", [])
             
@@ -1259,6 +1420,12 @@ def main() -> int:
         help="Force AI re-identification on all cached files, even if AI already successfully identified them (requires --resume and --ai)",
     )
     
+    parser.add_argument(
+        "--mark-original",
+        action="store_true",
+        help="Mark all files as original/unknown compositions (skip AI identification and composer name suggestions)",
+    )
+    
     args = parser.parse_args()
     
     # Validate flag combinations
@@ -1310,6 +1477,9 @@ def main() -> int:
                 source_file = data.get("source_file")
                 if source_file:
                     metadata_dict = data["metadata"]
+                    # Handle backward compatibility: if is_original field is missing, auto-detect from filename
+                    if "is_original" not in metadata_dict:
+                        metadata_dict["is_original"] = is_original_composition(Path(source_file).name)
                     metadata = FileMetadata(**metadata_dict)
                     signature = data.get("signature", [])
                     ai_attempted = data.get("ai_attempted", False)
@@ -1410,6 +1580,7 @@ def main() -> int:
                 ai_provider=args.ai_provider,
                 ai_model=ai_model,
                 ai_delay=args.ai_delay,
+                mark_original=args.mark_original,
             )
             
             elapsed_time = time.time() - start_time
