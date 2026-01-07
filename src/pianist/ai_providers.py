@@ -256,7 +256,7 @@ def generate_text_openrouter(*, model: str, prompt: str, verbose: bool = False) 
     See https://openrouter.ai/docs/quickstart for more information.
     
     Args:
-        model: The OpenRouter model identifier (e.g., "openai/gpt-4o", "anthropic/claude-3.5-sonnet").
+        model: The OpenRouter model identifier. Free options: "mistralai/devstral-2512:free" (recommended), "xiaomi/mimo-v2-flash:free", "tngtech/deepseek-r1t2-chimera:free", "nex-agi/deepseek-v3.1-nex-n1:free". Paid options: "openai/gpt-4o", "anthropic/claude-3.5-sonnet", etc.
         prompt: The prompt text to send to the model.
         verbose: If True, print progress indicators and timing information.
     
