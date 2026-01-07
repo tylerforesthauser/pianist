@@ -546,11 +546,11 @@ def analysis_prompt_template(analysis: MidiAnalysis, instructions: str | None = 
 
     texture_block = "\n".join(texture_lines) if texture_lines else "- (insufficient note data)"
 
-    from .prompt_templates import SYSTEM_PROMPT_SHORT
+    from .prompt_templates import SYSTEM_PROMPT
 
     return (
         "SYSTEM PROMPT (paste into your system message):\n"
-        f"{SYSTEM_PROMPT_SHORT}\n"
+        f"{SYSTEM_PROMPT}\n"
         "\n"
         "USER PROMPT (paste into your user message):\n"
         "Compose a NEW piece inspired by the following reference MIDI analysis.\n"

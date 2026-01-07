@@ -17,9 +17,6 @@ def _read_prompt_asset(filename: str) -> str:
     return resources.files("pianist.prompts").joinpath(filename).read_text(encoding="utf-8")
 
 
-# Keep this intentionally compact: CLI prompt generation often includes large seed JSON
-# or analysis blocks, so we prefer a short, high-signal system prompt.
-SYSTEM_PROMPT_SHORT = _read_prompt_asset("system_prompt_short.txt").strip()
-SYSTEM_PROMPT_FULL = _read_prompt_asset("system_prompt_full.txt").strip()
+SYSTEM_PROMPT = _read_prompt_asset("system_prompt.txt").strip()
 
 

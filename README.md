@@ -703,7 +703,7 @@ How to use the results:
 - **Motifs / phrases**: treat as experimental unless you've validated the detectors on a few pieces.
 
 Updating the system prompt from analysis:
-- Edit `src/pianist/prompts/system_prompt_full.txt` / `src/pianist/prompts/system_prompt_short.txt`
+- Edit `src/pianist/prompts/system_prompt.txt`
 - Run `make sync-prompts` and `make check-prompts`
 
 Dataset curation prompt (short version):

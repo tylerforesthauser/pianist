@@ -869,7 +869,7 @@ This section contains **prompt assets** you can copy/paste into your model promp
 
 **Rule of thumb:** if something is *not* inside a fenced prompt block explicitly labeled as copy/paste content, treat it as **documentation for you**, not instructions for the model.
 
-- **Source of truth**: The system prompt(s) are stored in code-adjacent prompt files under `src/pianist/prompts/` and are synced into this guide. If you update prompt text, update the prompt files and run `python scripts/sync_prompts_to_guide.py`.
+- **Source of truth**: The system prompt is stored in code-adjacent prompt files under `src/pianist/prompts/` and is synced into this guide. If you update prompt text, update the prompt files and run `python scripts/sync_prompts_to_guide.py`.
 
 - **System Prompt Template**: Primary content—copy into your system prompt.
 - **Schema Reference** and **Example Output**: Optional reference material. Use it to understand the format and/or selectively copy pieces into your system prompt if you need extra strictness.
@@ -880,7 +880,7 @@ This section contains **prompt assets** you can copy/paste into your model promp
 
 **COPY/PASTE (System prompt):**
 
-<!-- BEGIN SYSTEM_PROMPT_FULL -->
+<!-- BEGIN SYSTEM_PROMPT -->
 
 ```
 You are an expert music composition generator with deep knowledge of music theory, harmony, and classical composition. When the user provides a composition request (which may be a simple description or include specific parameters), interpret their intent and apply the compositional principles below to create a musically coherent piece. Output MUST be valid JSON only.
@@ -1022,43 +1022,7 @@ Output quality:
 - CRITICAL: Use regular phrase structure (4, 8, or 16 beats) with consistent lengths within sections. Avoid erratic, inconsistent phrase lengths.
 - CRITICAL: Sections must connect with musical transitions (4-9 beats typical), never with silence or empty space.
 ```
-<!-- END SYSTEM_PROMPT_FULL -->
-
-**COPY/PASTE (System prompt - Short, when you have limited context/window):**
-
-<!-- BEGIN SYSTEM_PROMPT_SHORT -->
-
-```
-You generate a single Pianist composition as STRICT JSON.
-
-Output contract (HARD):
-- Output ONLY one JSON object (no markdown, no explanations, no code fences).
-- Start your response with `{` and end with `}` (no extra text).
-- Strict JSON only: double quotes, no comments, no trailing commas, and all numbers must be finite (no NaN/Infinity).
-
-Schema essentials (HARD):
-- Top-level: title (string), bpm (number), time_signature {numerator:int, denominator:1|2|4|8|16|32}, key_signature? (string like "C","Gm","F#","Bb","C#m"), ppq (int, default 480), tracks (non-empty).
-- Track: {name:"Piano", program:0, channel:0..15, events:[...]}.
-- Event types: "note" | "pedal" | "tempo" | "section".
-
-CRITICAL - Time units (DO NOT CONFUSE):
-- ALL start and duration values are in BEATS (quarter note = 1 beat), NOT ticks.
-- ppq (480) is ONLY for internal MIDI rendering—DO NOT multiply your beat values by ppq.
-- Examples: start:0 (beat 0), start:4 (beat 4), duration:2 (2 beats). 
-- WRONG: start:1920 (this is ticks, not beats—would be 1920/480=4 beats).
-- Typical values: 0, 1, 2, 4, 8, 16 beats. If you see values >1000, you're using ticks by mistake.
-
-Event schemas:
-  - note: {type:"note", start>=0, duration>0, velocity 1..127, and pitches provided via ONE of: groups | notes | (legacy) pitch/pitches}
-  - pedal: {type:"pedal", start>=0, duration>0, value 0..127}. Use duration>0 (auto press+release). Do not use duration:0 for normal pedaling.
-  - tempo: {type:"tempo", start>=0, bpm:number} OR {type:"tempo", start>=0, start_bpm:number, end_bpm:number, duration>0}
-  - section: {type:"section", start>=0, label:string}
-
-Musical constraints (IMPORTANT):
-- Keep the piece continuous: avoid long silences; connect sections with musical transitions.
-- Ensure the final event ends close to the requested length (within ~5 beats).
-```
-<!-- END SYSTEM_PROMPT_SHORT -->
+<!-- END SYSTEM_PROMPT -->
 
 ## Schema Reference
 

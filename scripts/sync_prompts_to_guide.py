@@ -55,24 +55,18 @@ def _extract_between_markers(text: str, marker: str) -> str:
 def sync(write: bool) -> int:
     guide = GUIDE_PATH.read_text(encoding="utf-8")
 
-    short_prompt = _read_prompt("system_prompt_short.txt")
-    full_prompt = _read_prompt("system_prompt_full.txt")
+    prompt = _read_prompt("system_prompt.txt")
 
     if not write:
-        guide_short = _extract_between_markers(guide, "SYSTEM_PROMPT_SHORT")
-        guide_full = _extract_between_markers(guide, "SYSTEM_PROMPT_FULL")
+        guide_prompt = _extract_between_markers(guide, "SYSTEM_PROMPT")
 
         ok = True
-        if guide_short != short_prompt:
-            print("Mismatch: SYSTEM_PROMPT_SHORT (guide vs prompts file)")
-            ok = False
-        if guide_full != full_prompt:
-            print("Mismatch: SYSTEM_PROMPT_FULL (guide vs prompts file)")
+        if guide_prompt != prompt:
+            print("Mismatch: SYSTEM_PROMPT (guide vs prompts file)")
             ok = False
         return 0 if ok else 1
 
-    guide = _replace_between_markers(guide, "SYSTEM_PROMPT_FULL", full_prompt)
-    guide = _replace_between_markers(guide, "SYSTEM_PROMPT_SHORT", short_prompt)
+    guide = _replace_between_markers(guide, "SYSTEM_PROMPT", prompt)
     GUIDE_PATH.write_text(guide, encoding="utf-8")
     return 0
 

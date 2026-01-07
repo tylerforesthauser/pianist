@@ -15,6 +15,7 @@ from .musical_analysis import (
 from .iterate import (
     composition_from_midi,
     composition_to_canonical_json,
+    generation_prompt_for_api,
     generation_prompt_template,
     iteration_prompt_template,
     transpose_composition,
@@ -2359,7 +2360,8 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
             
             # Generate composition using AI provider
-            prompt = _gemini_prompt_from_template(template)
+            # Use the full prompt for API calls (better quality)
+            prompt = generation_prompt_for_api(description)
             
             # Determine raw output path (for both reading cached and saving new)
             raw_out_path: Path | None = args.raw_out_path

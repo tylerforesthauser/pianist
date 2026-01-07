@@ -313,10 +313,10 @@ def iteration_prompt_template(comp: Composition, instructions: str | None = None
     seed = composition_to_canonical_json(comp).strip()
     requested = (instructions or "").strip() or "<describe the changes you want>"
 
-    from .prompt_templates import SYSTEM_PROMPT_SHORT
+    from .prompt_templates import SYSTEM_PROMPT
     return (
         "SYSTEM PROMPT (paste into your system message):\n"
-        f"{SYSTEM_PROMPT_SHORT}\n"
+        f"{SYSTEM_PROMPT}\n"
         "\n"
         "USER PROMPT (paste into your user message):\n"
         "Here is the previous composition JSON (the 'seed'). Modify it according to the requested changes.\n"
@@ -338,15 +338,32 @@ def generation_prompt_template(description: str) -> str:
 
     This does NOT call an LLM. It just packages the description in a way that's
     easy to feed into your model of choice.
+    
+    Args:
+        description: The composition description
     """
-    from .prompt_templates import SYSTEM_PROMPT_SHORT
+    from .prompt_templates import SYSTEM_PROMPT
     return (
         "SYSTEM PROMPT (paste into your system message):\n"
-        f"{SYSTEM_PROMPT_SHORT}\n"
+        f"{SYSTEM_PROMPT}\n"
         "\n"
         "USER PROMPT (paste into your user message):\n"
         "Compose a piano piece:\n"
         "\n"
+        f"{description}\n"
+    )
+
+
+def generation_prompt_for_api(description: str) -> str:
+    """
+    Build a prompt formatted for direct API calls (no instructional text).
+    
+    Returns a single string combining system and user prompts.
+    """
+    from .prompt_templates import SYSTEM_PROMPT
+    return (
+        f"{SYSTEM_PROMPT}\n\n"
+        "Compose a piano piece:\n\n"
         f"{description}\n"
     )
 

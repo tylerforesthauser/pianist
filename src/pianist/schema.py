@@ -232,8 +232,11 @@ class NoteEvent(BaseModel):
                         # Convert singular "pitch" to list format
                         group_pitches = [g.get("pitch")]
                     else:
+                        # Show what fields the group actually has for debugging
+                        actual_fields = list(g.keys()) if isinstance(g, dict) else []
                         raise ValueError(
-                            f"Group at index {idx} is missing required 'pitches' or 'pitch' field."
+                            f"Group at index {idx} is missing required 'pitches' or 'pitch' field. "
+                            f"Group has fields: {actual_fields if actual_fields else 'none'}"
                         )
                 else:
                     # For non-dict objects, check for both attributes
