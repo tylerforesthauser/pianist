@@ -1643,7 +1643,6 @@ def main(argv: list[str] | None = None) -> int:
                                 # Include reference compositions as examples
                                 expansion_instructions += "\nReference Compositions (study these examples):\n"
                                 for ref in references[:2]:  # Limit to 2 to avoid prompt bloat
-                                    from .iterate import composition_to_canonical_json
                                     ref_json = composition_to_canonical_json(ref.composition)
                                     expansion_instructions += f"\n{ref.title}:\n{ref_json}\n"
                                 expansion_instructions += "\n"
@@ -2260,7 +2259,6 @@ def main(argv: list[str] | None = None) -> int:
                     sys.stderr.write(f"Reference '{args.id}' not found.\n")
                     return 1
                 
-                from .iterate import composition_to_canonical_json
                 comp_json = composition_to_canonical_json(reference.composition)
                 
                 if args.out_path:
