@@ -1943,8 +1943,23 @@ def main(argv: list[str] | None = None) -> int:
                             for p in musical_analysis.phrases
                         ],
                         "harmony": {
-                            "chords": musical_analysis.harmonic_progression.chords if musical_analysis.harmonic_progression else [],
+                            "chords": [
+                                {
+                                    "start": c.start,
+                                    "pitches": c.pitches,
+                                    "name": c.name,
+                                    "roman_numeral": c.roman_numeral,
+                                    "function": c.function,
+                                    "inversion": c.inversion,
+                                    "is_cadence": c.is_cadence,
+                                    "cadence_type": c.cadence_type,
+                                }
+                                for c in musical_analysis.harmonic_progression.chords
+                            ] if musical_analysis.harmonic_progression else [],
                             "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
+                            "roman_numerals": musical_analysis.harmonic_progression.roman_numerals if musical_analysis.harmonic_progression else None,
+                            "progression": musical_analysis.harmonic_progression.progression if musical_analysis.harmonic_progression else None,
+                            "cadences": musical_analysis.harmonic_progression.cadences if musical_analysis.harmonic_progression else None,
                         } if musical_analysis.harmonic_progression else None,
                         "form": musical_analysis.form,
                         "key_ideas": musical_analysis.key_ideas,

@@ -10,69 +10,73 @@ The musical analysis system uses **music21** to convert compositions into a form
 
 ### How It Works
 
-The current motif detection algorithm uses a **sliding window approach**:
+The enhanced motif detection algorithm uses a **multi-window, transposition-aware approach**:
 
-1. **Window Extraction**: The system groups notes into small windows (default: 3 notes)
-2. **Pattern Extraction**: For each window, it extracts the set of pitches (ignoring timing and order)
-3. **Pattern Matching**: It looks for pitch sets that appear multiple times in the composition
-4. **Motif Creation**: Patterns that appear at least twice are considered motifs
+1. **Multi-Window Extraction**: The system tries multiple window sizes (2-5 notes) to catch motifs of different lengths
+2. **Melodic Line Extraction**: Extracts the melodic line (lowest pitch at each time point for simplicity)
+3. **Pattern Matching**: For each window size, extracts all patterns and compares them using:
+   - **Exact matching**: Same pitches in same order
+   - **Transposition-aware matching**: Same interval pattern, different starting pitch
+   - **Interval pattern matching**: Same melodic contour (intervals between notes)
+4. **Motif Creation**: Patterns that appear at least twice (exact, transposed, or interval-matched) are considered motifs
 
 **Algorithm Details:**
 ```python
-window_size = 3  # Look for 3-note patterns
-patterns: dict[tuple[int, ...], list[float]] = {}
-
-for i in range(len(all_notes) - window_size + 1):
-    window = all_notes[i:i+window_size]
-    # Extract pitch pattern (sorted set of all pitches in window)
-    pitch_pattern = tuple(sorted(set(p for _, pitches in window for p in pitches)))
+# Try different window sizes (2-5 notes)
+for window_size in range(2, 6):
+    patterns = extract_patterns(melodic_line, window_size)
     
-    if pitch_pattern not in patterns:
-        patterns[pitch_pattern] = []
-    patterns[pitch_pattern].append(window[0][0])  # Start time
-
-# Find patterns that appear multiple times
-for pattern, occurrences in patterns.items():
-    if len(occurrences) >= 2:  # Pattern appears at least twice
-        # Create motif
+    # Find matching patterns
+    for pattern1, pattern2 in all_pairs(patterns):
+        if exact_match(pattern1, pattern2) or \
+           transposed_match(pattern1, pattern2) or \
+           interval_match(pattern1, pattern2):
+            # Create motif
 ```
+
+**Transposition Detection:**
+- Normalizes pitch sequences to start at 0 (removes key differences)
+- Compares interval patterns (e.g., C-D-E and G-A-B both have intervals [2, 2])
+- Detects patterns that are the same when transposed
 
 ### Limitations
 
-1. **Pitch-Only Matching**: Currently ignores:
+1. **Melodic Line Only**: Currently analyzes the lowest pitch at each time point:
+   - May miss motifs in upper voices
+   - Doesn't handle polyphonic textures well
+   - Chords are simplified to their lowest note
+
+2. **No Rhythmic Analysis**: Still ignores:
    - Rhythmic patterns (timing between notes)
-   - Note order within the window
    - Duration of notes
-   - Octave differences (C4 and C5 are treated the same)
+   - Syncopation
 
-2. **Fixed Window Size**: Uses a fixed 3-note window, which may miss:
-   - Longer motifs (4+ notes)
-   - Shorter motifs (2 notes)
-   - Motifs with varying lengths
+3. **No Inversion/Retrograde**: Does not detect:
+   - Inverted motifs (intervals reversed)
+   - Retrograde motifs (pattern played backwards)
+   - Rhythmic variations
 
-3. **Simple Pattern Matching**: Does not account for:
-   - Transposed motifs (same pattern in different keys)
-   - Inverted or retrograde motifs
-   - Rhythmic variations of the same melodic pattern
-
-4. **False Positives**: May detect random coincidences as motifs if:
-   - The same pitch set happens to appear multiple times by chance
-   - The composition is very short or repetitive
+4. **False Positives**: May still detect random coincidences:
+   - Similar interval patterns by chance
+   - Very short compositions may produce many false matches
 
 ### What to Expect
 
-- **Good at detecting**: Simple repeating pitch patterns (e.g., C-E-G appearing multiple times)
+- **Good at detecting**: 
+  - Repeating melodic patterns (exact matches)
+  - Transposed patterns (same pattern in different keys)
+  - Patterns with same interval structure
 - **May miss**: 
   - Rhythmic motifs
-  - Transposed or varied motifs
-  - Complex melodic patterns
-- **May produce false positives**: Random pitch coincidences in sparse compositions
+  - Inverted or retrograde motifs
+  - Complex polyphonic patterns
+- **May produce false positives**: Random interval coincidences
 
 ### Parameters
 
 - `min_length`: Minimum motif duration in beats (default: 0.5)
 - `max_length`: Maximum motif duration in beats (default: 4.0)
-- `window_size`: Number of notes in pattern window (hardcoded: 3)
+- `window_sizes`: Multiple window sizes tested (2, 3, 4, 5 notes)
 
 ## Phrase Detection
 
@@ -137,125 +141,224 @@ for start, duration in all_events:
 
 ### How It Works
 
-Harmonic analysis extracts chord information from the composition:
+Enhanced harmonic analysis provides comprehensive chord and functional harmony information:
 
 1. **Conversion to music21**: Compositions are converted to music21 Stream format
-2. **Chord Extraction**: For each note/chord event, extracts:
+2. **Key Detection**: Automatically detects key using music21's key analysis, or uses composition's `key_signature`
+3. **Chord Extraction**: For each note/chord event, extracts:
    - Pitches (MIDI note numbers)
    - Timing (offset in beats)
    - Chord name (using music21's `pitchedCommonName`)
-3. **Key Detection**: Uses the composition's `key_signature` field if provided
+4. **Roman Numeral Analysis**: Uses music21's `roman.romanNumeralFromChord` to determine:
+   - Roman numeral (I, ii, V, etc.)
+   - Function (tonic, dominant, subdominant)
+   - Inversion (0 = root position, 1 = first inversion, etc.)
+5. **Cadence Detection**: Identifies common cadence patterns:
+   - Authentic cadence (V → I)
+   - Plagal cadence (IV → I)
+   - Deceptive cadence (V → vi)
+6. **Voice Leading Analysis**: Analyzes how chords connect:
+   - Common tones between consecutive chords
+   - Stepwise motion vs. leaps
+   - Voice leading quality (smooth vs. disjunct)
 
 **Algorithm Details:**
 ```python
-# Extract chords from all parts
-for part in stream.parts:
-    for element in part.flatten().notes:
-        if isinstance(element, chord.Chord):
-            chord_pitches = [p.midi for p in element.pitches]
-            chord_name = element.pitchedCommonName
-            chords_list.append({
-                'start': offset,
-                'pitches': chord_pitches,
-                'name': chord_name,
-            })
+# Detect key
+detected_key = stream.analyze('key') or composition.key_signature
+
+# Analyze each chord
+for chord in chords:
+    # Roman numeral analysis
+    rn = roman.romanNumeralFromChord(chord, key)
+    roman_numeral = rn.figure
+    function = determine_function(rn.scaleDegree)  # tonic/dominant/subdominant
+    inversion = chord.inversion()
+    
+    # Store as ChordAnalysis object
+    chord_analysis = ChordAnalysis(
+        start=offset,
+        pitches=chord_pitches,
+        name=chord_name,
+        roman_numeral=roman_numeral,
+        function=function,
+        inversion=inversion,
+    )
+
+# Detect cadences
+for i in range(len(chords) - 1):
+    if chords[i].roman_numeral == "V" and chords[i+1].roman_numeral == "I":
+        # Authentic cadence detected
+        mark_cadence(chords[i], chords[i+1], "authentic")
+
+# Analyze voice leading
+for i in range(len(chords) - 1):
+    common_tones = count_common_pitches(chords[i], chords[i+1])
+    stepwise_motion = count_stepwise_moves(chords[i], chords[i+1])
+    voice_leading.append({
+        'common_tones': common_tones,
+        'stepwise_motion': stepwise_motion,
+        'quality': 'smooth' if stepwise_motion > leaps else 'disjunct'
+    })
 ```
 
 ### Limitations
 
-1. **No Roman Numeral Analysis**: Currently does not provide functional harmony analysis (I, IV, V, etc.)
-   - Requires more sophisticated key detection and analysis
-   - Would need to establish key context more reliably
+1. **Key Detection Accuracy**: Automatic key detection may not always be correct:
+   - Works best with clear tonal centers
+   - May struggle with modal or atonal music
+   - Requires sufficient musical material
 
-2. **No Voice Leading**: Doesn't analyze:
-   - How chords connect to each other
-   - Voice leading patterns
-   - Harmonic rhythm
+2. **Roman Numeral Analysis**: Depends on accurate key detection:
+   - May produce incorrect analysis if key is wrong
+   - Doesn't handle modulations well
+   - May miss chromatic chords or non-functional harmony
 
-3. **Simple Chord Naming**: Uses music21's basic chord naming, which:
-   - May not always match common practice naming
-   - Doesn't consider inversions in naming
-   - May produce verbose names for complex chords
+3. **Cadence Detection**: Simple pattern matching:
+   - Only detects common cadence types (authentic, plagal, deceptive)
+   - May miss more complex cadences
+   - Requires Roman numeral analysis to work
 
-4. **No Harmonic Context**: Doesn't consider:
-   - Chord function within a key
-   - Harmonic progressions
-   - Cadences
+4. **Voice Leading**: Simplified analysis:
+   - Doesn't track individual voices
+   - May not accurately represent complex textures
+   - Treats chords as pitch sets, not voice-leading lines
 
 ### What to Expect
 
-- **Good at**: Identifying basic chord names from pitch sets (e.g., "C-major triad")
+- **Good at**: 
+  - Identifying chord names and basic harmony
+  - Roman numeral analysis when key is clear
+  - Detecting common cadence patterns
+  - Basic voice leading analysis
 - **Limited in**: 
-  - Functional harmony analysis
-  - Complex chord naming
-  - Harmonic progression analysis
-- **Requires**: Key signature to be set in composition for best results
+  - Complex or ambiguous harmony
+  - Music without clear tonal center
+  - Polyphonic voice leading
+- **Requires**: Key signature or clear tonal center for best results
 
-### Future Enhancements
+### Output Structure
 
-- Roman numeral analysis (I, ii, V, etc.)
-- Inversion detection
-- Harmonic progression analysis
-- Cadence detection
+Each chord analysis includes:
+- `start`: Timing in beats
+- `pitches`: List of MIDI note numbers
+- `name`: Chord name (e.g., "C-major triad")
+- `roman_numeral`: Roman numeral (e.g., "I", "V", "ii")
+- `function`: Functional harmony (e.g., "tonic", "dominant", "subdominant")
+- `inversion`: Inversion number (0 = root position)
+- `is_cadence`: Whether this chord is part of a cadence
+- `cadence_type`: Type of cadence if applicable
+
+The harmonic analysis also includes:
+- `roman_numerals`: List of all Roman numerals in the progression
+- `progression`: Harmonic progression as Roman numerals
+- `cadences`: List of detected cadences with timing and type
+- `voice_leading`: Voice leading analysis between consecutive chords
 
 ## Form Detection
 
 ### How It Works
 
-Form detection is currently **very basic** and relies on section markers:
+Enhanced form detection uses both explicit section markers and automatic detection:
 
-1. **Section Extraction**: Looks for `SectionEvent` objects in the composition
-2. **Pattern Matching**: Counts sections and matches to common forms:
+1. **Explicit Section Markers**: First checks for `SectionEvent` objects in the composition
+2. **Automatic Section Detection**: If no explicit markers, automatically detects sections based on:
+   - **Phrase boundaries**: Large gaps between phrases (>3 beats)
+   - **Cadences**: Harmonic cadences (authentic, plagal, deceptive) often mark section endings
+   - **Repetition patterns**: Similar phrases may indicate section returns
+3. **Form Classification**: Analyzes section count and patterns:
    - 2 sections → "binary"
-   - 3 sections → "ternary"
-   - Other → "custom"
+   - 3 sections → "ternary" (may check if first and third are similar for A-B-A)
+   - 4+ sections → Checks for rondo pattern (A-B-A-C-A) or returns "custom"
 
 **Algorithm Details:**
 ```python
-sections: list[str] = []
+# First, check for explicit sections
+explicit_sections = find_section_events(composition)
+if explicit_sections:
+    return classify_form_from_sections(explicit_sections)
 
-for track in composition.tracks:
-    for event in track.events:
-        if event.type == 'section':
-            sections.append(event.label)
+# Otherwise, detect sections automatically
+phrases = detect_phrases(composition)
+harmony = analyze_harmony(composition)
+cadences = harmony.cadences
 
+sections = []
+current_section_start = phrases[0].start
+
+for phrase in phrases:
+    is_boundary = False
+    
+    # Large gap indicates section boundary
+    if gap_after_phrase > 3.0:
+        is_boundary = True
+    
+    # Cadence at phrase end indicates section boundary
+    if cadence_near(phrase.end):
+        is_boundary = True
+    
+    # Repetition may indicate section return
+    if similar_to_earlier_phrase(phrase):
+        is_boundary = True
+    
+    if is_boundary:
+        sections.append({
+            'start': current_section_start,
+            'end': phrase.end,
+            'label': f"Section {len(sections) + 1}"
+        })
+        current_section_start = next_phrase.start
+
+# Classify form
 if len(sections) == 2:
     return "binary"
 elif len(sections) == 3:
     return "ternary"
-else:
+elif len(sections) >= 4:
+    if is_rondo_pattern(sections):
+        return "rondo"
     return "custom"
 ```
 
 ### Limitations
 
-1. **Requires Manual Marking**: Only works if sections are explicitly marked with `SectionEvent` objects
-2. **No Automatic Detection**: Does not analyze:
-   - Repetition patterns
-   - Harmonic structure
-   - Melodic similarity
-   - Section relationships
+1. **Automatic Detection Heuristics**: Relies on simple heuristics:
+   - May miss subtle section boundaries
+   - May create false boundaries in dense textures
+   - Doesn't analyze musical similarity deeply
 
-3. **Very Simple**: Only counts sections, doesn't verify:
-   - If sections actually repeat (A-B-A vs A-B-C)
-   - Section lengths
-   - Musical similarity between sections
+2. **Form Classification**: Simple pattern matching:
+   - Doesn't verify that sections actually repeat (A-B-A vs A-B-C)
+   - May misclassify complex forms
+   - Doesn't detect sonata form or other sophisticated structures
+
+3. **No Musical Similarity Analysis**: Doesn't deeply analyze:
+   - Melodic similarity between sections
+   - Harmonic relationships
+   - Thematic development
+
+4. **Phrase-Dependent**: Automatic detection depends on phrase detection:
+   - If phrase detection fails, form detection may fail
+   - Works best with clear phrase boundaries
 
 ### What to Expect
 
-- **Only works if**: You manually add section markers to your composition
-- **Will not detect**: Form automatically from musical content
-- **Very limited**: Only identifies binary/ternary based on section count
+- **Good at**: 
+  - Detecting form from explicit section markers
+  - Basic automatic section detection in clear compositions
+  - Classifying simple forms (binary, ternary, rondo)
+- **May miss**: 
+  - Subtle section boundaries
+  - Complex forms (sonata, etc.)
+  - Sections that don't have clear phrase/cadence boundaries
+- **Works best with**: Explicit section markers or compositions with clear phrase structure
 
-### Future Enhancements
+### Supported Forms
 
-- Automatic section detection based on:
-  - Repetition patterns
-  - Harmonic analysis
-  - Melodic similarity
-  - Key changes
-- Verification that sections actually repeat (A-B-A vs A-B-C)
-- Detection of more complex forms (sonata, rondo, etc.)
+- **Binary**: Two sections (A-B)
+- **Ternary**: Three sections, typically A-B-A
+- **Rondo**: Multiple sections with recurring A section (A-B-A-C-A)
+- **Custom**: Any other form or pattern
 
 ## Key Idea Identification
 
