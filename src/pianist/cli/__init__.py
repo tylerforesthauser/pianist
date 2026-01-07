@@ -33,6 +33,9 @@ from ..ai_providers import (
     generate_text_unified,
 )
 
+# Re-export MUSIC21_AVAILABLE for test compatibility
+from ..musical_analysis import MUSIC21_AVAILABLE
+
 __all__ = [
     "main",
     # Internal utilities (underscore-prefixed for backward compat)
@@ -51,4 +54,6 @@ __all__ = [
     "OllamaError",
     "generate_text",
     "generate_text_unified",
+    # Music analysis
+    "MUSIC21_AVAILABLE",
 ]
