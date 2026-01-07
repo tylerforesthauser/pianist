@@ -19,13 +19,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
+  "pytest>=8.0.0",
 ]
 gemini = [
-    "google-genai",
+  "google-genai",
 ]
 dotenv = [
-    "python-dotenv>=1.0.0",
+  "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
@@ -39,6 +39,10 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "pianist.prompts" = ["*.txt"]
+
+# Note: Custom command classes from setup.py are not automatically used
+# when using setuptools.build_meta. The fix_entry_point.py script must
+# be run manually after pip install -e . to fix the entry point script.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

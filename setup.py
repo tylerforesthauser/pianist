@@ -90,6 +90,8 @@ class InstallCommand(PostInstallMixin, install):
 
 # When using pyproject.toml, setuptools reads metadata from there
 # We only need to customize the install commands
+# Note: When using setuptools.build_meta, setup.py is NOT executed automatically
+# The custom commands only work when setup.py is invoked directly or via legacy backend
 if __name__ == "__main__":
     setup(
         cmdclass={
@@ -97,3 +99,8 @@ if __name__ == "__main__":
             "install": InstallCommand,
         }
     )
+else:
+    # When imported by setuptools.build_meta, we need to register the commands differently
+    # Use setuptools.setup_requires or a hook to ensure our commands are used
+    # For now, we rely on the fix_entry_point.py script to be run manually
+    pass
