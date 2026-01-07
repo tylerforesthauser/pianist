@@ -101,12 +101,10 @@ def handle_generate(args) -> int:
         
         # Check if we have a cached response
         raw_text: str | None = None
-        cached_raw_path: Path | None = None
         if raw_out_path is not None and raw_out_path.exists():
             if args.verbose:
                 sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
             raw_text = read_text(raw_out_path)
-            cached_raw_path = raw_out_path
         
         # If no cached response, call AI provider
         if raw_text is None:
