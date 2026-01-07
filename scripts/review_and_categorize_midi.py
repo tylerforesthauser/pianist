@@ -25,6 +25,9 @@ Usage:
     # Resume and retry AI on files that didn't use AI or failed to identify
     python3 scripts/review_and_categorize_midi.py --dir references/ --resume --ai --retry-ai --output review_report.csv
 
+    # Force AI re-identification on all cached files (even if already identified)
+    python3 scripts/review_and_categorize_midi.py --dir references/ --resume --ai --force-ai --output review_report.csv
+
     # Review with AI-assisted naming
     python3 scripts/review_and_categorize_midi.py --dir references/ --ai --output review_report.csv
 
@@ -841,27 +844,37 @@ def analyze_file(
     return metadata, melodic_signature, ai_attempted, ai_identified
 
 
-def detect_duplicates(
-    all_metadata: list[FileMetadata],
-    all_signatures: list[list[int]],
+def detect_duplicates_incremental(
+    new_metadata: FileMetadata,
+    new_signature: list[int],
+    existing_metadata: list[FileMetadata],
+    existing_signatures: list[list[int]],
     similarity_threshold: float = 0.7,
 ) -> None:
-    """Detect duplicate/similar files and group them."""
-    # Compare all pairs
-    for i, (meta1, sig1) in enumerate(zip(all_metadata, all_signatures)):
-        for j, (meta2, sig2) in enumerate(zip(all_metadata, all_signatures)):
-            if i >= j:
-                continue
-            
-            similarity = calculate_similarity(meta1, meta2, sig1, sig2)
-            
-            if similarity >= similarity_threshold:
-                meta1.similar_files.append(meta2.filename)
-                meta1.similarity_scores[meta2.filename] = similarity
-                meta2.similar_files.append(meta1.filename)
-                meta2.similarity_scores[meta1.filename] = similarity
+    """
+    Detect duplicates for a new file against existing files.
     
-    # Group duplicates
+    Updates both the new file's metadata and existing files' metadata if duplicates are found.
+    """
+    # Compare new file against all existing files
+    for existing_meta, existing_sig in zip(existing_metadata, existing_signatures):
+        similarity = calculate_similarity(new_metadata, existing_meta, new_signature, existing_sig)
+        
+        if similarity >= similarity_threshold:
+            new_metadata.similar_files.append(existing_meta.filename)
+            new_metadata.similarity_scores[existing_meta.filename] = similarity
+            existing_meta.similar_files.append(new_metadata.filename)
+            existing_meta.similarity_scores[new_metadata.filename] = similarity
+
+
+def assign_duplicate_groups(
+    all_metadata: list[FileMetadata],
+) -> None:
+    """
+    Assign duplicate group names to all files with similar files.
+    
+    This should be called after all incremental duplicate detection is complete.
+    """
     groups: dict[str, list[int]] = defaultdict(list)
     group_counter = 0
     
@@ -870,8 +883,12 @@ def detect_duplicates(
             # Check if already in a group
             found_group = None
             for group_name, group_indices in groups.items():
-                if any(i in group_indices for similar_file in meta.similar_files):
-                    found_group = group_name
+                # Check if any file in this group is similar to the current file
+                for idx in group_indices:
+                    if all_metadata[idx].filename in meta.similar_files:
+                        found_group = group_name
+                        break
+                if found_group:
                     break
             
             if found_group:
@@ -887,6 +904,35 @@ def detect_duplicates(
     for group_name, group_indices in groups.items():
         for idx in group_indices:
             all_metadata[idx].duplicate_group = group_name
+
+
+def detect_duplicates(
+    all_metadata: list[FileMetadata],
+    all_signatures: list[list[int]],
+    similarity_threshold: float = 0.7,
+) -> None:
+    """
+    Detect duplicate/similar files and group them.
+    
+    This is the full batch version - compares all pairs.
+    For incremental detection, use detect_duplicates_incremental instead.
+    """
+    # Compare all pairs
+    for i, (meta1, sig1) in enumerate(zip(all_metadata, all_signatures)):
+        for j, (meta2, sig2) in enumerate(zip(all_metadata, all_signatures)):
+            if i >= j:
+                continue
+            
+            similarity = calculate_similarity(meta1, meta2, sig1, sig2)
+            
+            if similarity >= similarity_threshold:
+                meta1.similar_files.append(meta2.filename)
+                meta1.similarity_scores[meta2.filename] = similarity
+                meta2.similar_files.append(meta1.filename)
+                meta2.similarity_scores[meta1.filename] = similarity
+    
+    # Assign duplicate groups
+    assign_duplicate_groups(all_metadata)
 
 
 def write_csv_report(
@@ -962,6 +1008,29 @@ def write_json_report(
     
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def format_elapsed_time(seconds: float) -> str:
+    """
+    Format elapsed time in a human-readable format.
+    
+    Returns:
+        Formatted string (e.g., "2.34s", "1m 23s", "2h 15m")
+    """
+    if seconds < 60:
+        return f"{seconds:.2f}s"
+    elif seconds < 3600:
+        minutes = int(seconds // 60)
+        secs = seconds % 60
+        return f"{minutes}m {secs:.1f}s"
+    else:
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = seconds % 60
+        if minutes > 0:
+            return f"{hours}h {minutes}m {secs:.1f}s"
+        else:
+            return f"{hours}h {secs:.1f}s"
 
 
 def get_file_hash(file_path: Path) -> str:
@@ -1164,6 +1233,12 @@ def main() -> int:
         help="Re-run AI identification on cached files that didn't use AI or failed to identify (requires --resume and --ai)",
     )
     
+    parser.add_argument(
+        "--force-ai",
+        action="store_true",
+        help="Force AI re-identification on all cached files, even if AI already successfully identified them (requires --resume and --ai)",
+    )
+    
     args = parser.parse_args()
     
     # Set up temp directory
@@ -1211,6 +1286,22 @@ def main() -> int:
             except Exception:
                 continue
         print(f"Found {len(existing_results)} previously analyzed files")
+        
+        # Check if loaded files need duplicate detection (in case script was interrupted)
+        loaded_metadata_list = [meta for meta, _, _, _ in existing_results.values()]
+        needs_duplicate_detection = any(
+            not meta.similar_files and not meta.is_duplicate 
+            for meta in loaded_metadata_list
+        )
+        if needs_duplicate_detection and len(loaded_metadata_list) > 1:
+            if args.verbose:
+                print("Running duplicate detection on loaded files...")
+            loaded_signatures_list = [sig for _, sig, _, _ in existing_results.values()]
+            detect_duplicates(loaded_metadata_list, loaded_signatures_list, args.similarity_threshold)
+            # Save updated results with duplicate detection
+            for meta, sig, ai_attempted, ai_identified in existing_results.values():
+                file_path = Path(meta.filepath)
+                save_file_result(meta, sig, temp_dir, file_path, ai_attempted, ai_identified)
     
     # Analyze files
     all_metadata: list[FileMetadata] = []
@@ -1223,11 +1314,17 @@ def main() -> int:
         
         # Check if we already have results for this file
         should_retry_ai = False
+        should_force_ai = False
         if args.resume and file_str in existing_results:
             meta, sig, cached_ai_attempted, cached_ai_identified = existing_results[file_str]
             
+            # Check if we should force AI (overrides retry-ai logic)
+            if args.force_ai and args.ai:
+                should_force_ai = True
+                if args.verbose:
+                    print(f"[{i}/{len(files)}] Re-analyzing with AI (forced): {file_path.name}")
             # Check if we should retry AI
-            if args.retry_ai and args.ai:
+            elif args.retry_ai and args.ai:
                 # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
                 if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
                     should_retry_ai = True
@@ -1265,9 +1362,8 @@ def main() -> int:
             if ai_model is None:
                 ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "llama3.2"
             
-            # If retrying AI, we need to re-run the full analysis but only use AI for naming
-            # For retry, we still want to use cached metadata but re-run AI identification
-            if should_retry_ai:
+            # If retrying or forcing AI, we need to re-run the full analysis with AI enabled
+            if should_retry_ai or should_force_ai:
                 # Re-analyze with AI enabled
                 metadata, signature, ai_attempted, ai_identified = analyze_file(
                     file_path,
@@ -1292,9 +1388,22 @@ def main() -> int:
             elapsed_time = time.time() - start_time
             
             if args.verbose:
-                print(f"  Processing time: {elapsed_time:.2f}s", file=sys.stderr)
+                print(f"  Processing time: {format_elapsed_time(elapsed_time)}", file=sys.stderr)
             
-            # Save result immediately
+            # Run incremental duplicate detection against already processed files
+            # This compares the new file against all previously processed files (including skipped ones)
+            detect_duplicates_incremental(
+                metadata,
+                signature,
+                all_metadata,
+                all_signatures,
+                args.similarity_threshold,
+            )
+            
+            # Assign/update duplicate groups for all files
+            assign_duplicate_groups(all_metadata + [metadata])
+            
+            # Save result immediately (includes duplicate detection results)
             save_file_result(metadata, signature, temp_dir, file_path, ai_attempted, ai_identified)
             
             all_metadata.append(metadata)
@@ -1325,10 +1434,43 @@ def main() -> int:
         print("No files to process.", file=sys.stderr)
         return 1
     
-    print(f"\nDetecting duplicates (threshold: {args.similarity_threshold})...")
+    # Duplicate detection was done incrementally during processing
+    # Just ensure all groups are properly assigned
+    print(f"\nFinalizing duplicate groups (threshold: {args.similarity_threshold})...")
+    assign_duplicate_groups(all_metadata)
     
-    # Detect duplicates
-    detect_duplicates(all_metadata, all_signatures, args.similarity_threshold)
+    # Save all results with updated duplicate detection info
+    # This ensures that duplicate detection results are persisted even if script is interrupted
+    if args.verbose:
+        print("Saving all results with duplicate detection updates...")
+    
+    # Create a mapping of filepath to (signature, ai_attempted, ai_identified)
+    file_info_map: dict[str, tuple[list[int], bool, bool]] = {}
+    
+    # Add info from existing results
+    for file_str, (_, sig, ai_att, ai_id) in existing_results.items():
+        file_info_map[file_str] = (sig, ai_att, ai_id)
+    
+    # Add info from newly analyzed files (they should be in all_signatures)
+    for i, metadata in enumerate(all_metadata):
+        file_str = str(metadata.filepath)
+        if file_str not in file_info_map and i < len(all_signatures):
+            # Try to load AI info from cache, or use defaults
+            result = load_file_result(temp_dir, Path(metadata.filepath))
+            if result:
+                _, sig, ai_att, ai_id = result
+                file_info_map[file_str] = (sig, ai_att, ai_id)
+            else:
+                # Default values if not found
+                file_info_map[file_str] = (all_signatures[i], False, False)
+    
+    # Save all metadata with updated duplicate detection
+    for metadata in all_metadata:
+        file_path = Path(metadata.filepath)
+        file_str = str(file_path)
+        if file_str in file_info_map:
+            signature, ai_attempted, ai_identified = file_info_map[file_str]
+            save_file_result(metadata, signature, temp_dir, file_path, ai_attempted, ai_identified)
     
     # Print summary
     duplicates = [m for m in all_metadata if m.is_duplicate]
