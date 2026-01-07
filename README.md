@@ -43,21 +43,23 @@ Pianist provides a shared musical vocabulary (JSON schema) that both humans and 
 
 ## Install
 
-It's recommended to use a Python virtual environment to isolate dependencies:
+This project uses a Python virtual environment (`.venv`) to isolate dependencies.
 
 ```bash
-# Create a virtual environment
-python3 -m venv venv
+# Create a virtual environment (if it doesn't exist)
+python3 -m venv .venv
 
 # Activate the virtual environment
 # On macOS/Linux:
-source venv/bin/activate
+source .venv/bin/activate
 # On Windows:
-# venv\Scripts\activate
+# .venv\Scripts\activate
 
 # Install pianist in development mode
 python3 -m pip install -e ".[dev]"
 ```
+
+**Note:** All scripts and commands should be run with the virtual environment activated. The project uses `.venv` as the virtual environment directory.
 
 ## Quick Start
 

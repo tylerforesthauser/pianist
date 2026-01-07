@@ -120,7 +120,33 @@ Create small, focused examples demonstrating specific techniques:
    - Place MIDI or JSON files in the directory
    - Use descriptive filenames (e.g., `bach_invention_sequence.mid`)
 
-3. **Prepare metadata CSV** (optional but recommended):
+3. **Quality Check Files** (recommended):
+   
+   **Note:** Make sure your virtual environment is activated (`source .venv/bin/activate`)
+   
+   ```bash
+   # Check single file
+   python3 scripts/check_midi_quality.py file.mid --verbose
+   
+   # Check all files in directory
+   python3 scripts/check_midi_quality.py --dir references/ --verbose
+   
+   # Check with AI assessment
+   python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+   
+   # Set minimum quality score threshold
+   python3 scripts/check_midi_quality.py --dir references/ --min-score 0.7
+   ```
+   
+   The quality check tool analyzes:
+   - **Technical quality**: Note density, velocity, pitch range, timing
+   - **Musical quality**: Motifs, phrases, harmony, form detection
+   - **Structure quality**: Bar count, track structure
+   - **AI assessment** (optional): Musical coherence and suitability
+   
+   See [`MIDI_QUALITY_CHECK.md`](MIDI_QUALITY_CHECK.md) for detailed information.
+
+4. **Prepare metadata CSV** (optional but recommended):
    ```bash
    # Create metadata.csv with columns:
    # filename,id,title,description,style,form,techniques
@@ -295,7 +321,9 @@ example2.json,example_2,"Example 2","Description of example 2",Romantic,binary,"
 ## See Also
 
 - [`REFERENCE_CURATION_LIST.md`](REFERENCE_CURATION_LIST.md) - **Curated list of recommended public domain works**
+- [`MIDI_QUALITY_CHECK.md`](MIDI_QUALITY_CHECK.md) - **MIDI quality checking guide**
 - [`../commands/reference.md`](../commands/reference.md) - Reference command documentation
 - [`../../scripts/batch_import_references.py`](../../scripts/batch_import_references.py) - Batch import script
+- [`../../scripts/check_midi_quality.py`](../../scripts/check_midi_quality.py) - Quality check script
 - [`../../scripts/add_initial_references.py`](../../scripts/add_initial_references.py) - Initial examples script
 
