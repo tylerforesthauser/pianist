@@ -213,9 +213,6 @@ __marimo__/
 # Input and output data
 input/
 output/
-
-# Common generated artifacts created by docs/examples
-test_analysis_output/
 # Quality check report outputs
 *_quality_report*.json
 

@@ -791,7 +791,7 @@ Tip: Pianist can generate a ready-to-paste modification prompt file:
 
 ```bash
 mkdir -p analysis
-./pianist modify -i "seed.json" -p "analysis/modify_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
+./pianist modify -i "seed.json" -p "output/analysis/modify_prompt.txt" --instructions "Make it more lyrical and add an 8-beat coda."
 ```
 
 Then paste that prompt into your model and render the result:
@@ -838,12 +838,12 @@ Use `pianist analyze` to extract prompt-friendly constraints from a MIDI file an
 
 ```bash
 # Generate a prompt for a NEW composition (recommended)
-mkdir -p analysis
-./pianist analyze -i "existing.mid" -f prompt -p "analysis/new_piece_prompt.txt" \
+mkdir -p output/analysis
+./pianist analyze -i "existing.mid" -f prompt -p "output/analysis/new_piece_prompt.txt" \
   --instructions "Compose a new 64-bar piece with similar texture, but brighter harmony and a stronger climax."
 
 # Optional: export structured analysis JSON (useful for building tools/UIs)
-./pianist analyze -i "existing.mid" -f json -o "analysis/analysis.json"
+./pianist analyze -i "existing.mid" -f json -o "output/analysis/analysis.json"
 ```
 
 Workflow:

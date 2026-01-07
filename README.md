@@ -176,7 +176,7 @@ export GOOGLE_API_KEY="YOUR_KEY"
 
 **Note**: If both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are set, `GEMINI_API_KEY` takes precedence. Environment variables override values from `.env` files.
 
-For detailed API key management, see [docs/API_KEY_MANAGEMENT.md](docs/API_KEY_MANAGEMENT.md).
+For detailed API key management, see [docs/guides/API_KEY_MANAGEMENT.md](docs/guides/API_KEY_MANAGEMENT.md).
 
 #### Ollama (Local AI)
 
@@ -367,15 +367,15 @@ If you prefer to use a different AI model, generate a ready-to-paste prompt:
 
 ```bash
 # Generate a prompt for a NEW composition
-mkdir -p analysis
-./pianist analyze -i existing.mid -f prompt -p analysis/new_piece_prompt.txt \
+mkdir -p output/analysis
+./pianist analyze -i existing.mid -f prompt -p output/analysis/new_piece_prompt.txt \
   --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
 
 # Or export structured analysis JSON (for building UIs/tools)
-./pianist analyze -i existing.mid -f json -o analysis/analysis.json
+./pianist analyze -i existing.mid -f json -o output/analysis/analysis.json
 
 # Or both
-./pianist analyze -i existing.mid -f both -o analysis/analysis.json -p analysis/new_piece_prompt.txt
+./pianist analyze -i existing.mid -f both -o output/analysis/analysis.json -p output/analysis/new_piece_prompt.txt
 ```
 
 Then paste the prompt into your preferred AI model and render the result.
@@ -417,8 +417,8 @@ Make simple modifications without using AI:
 Create a ready-to-paste prompt for modifying a composition:
 
 ```bash
-mkdir -p analysis
-./pianist modify -i seed.json -p analysis/modify_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
+mkdir -p output/analysis
+./pianist modify -i seed.json -p output/analysis/modify_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
 ```
 
 Then paste the prompt into your preferred AI model and render the result.
@@ -499,7 +499,7 @@ Correct issues in compositions:
 ./pianist fix --all -i "composition.json"
 ```
 
-See `docs/PEDAL_FIX_USAGE.md` for details on fixing sustain pedal patterns.
+See [`docs/guides/PEDAL_FIX_USAGE.md`](docs/guides/PEDAL_FIX_USAGE.md) for details on fixing sustain pedal patterns.
 
 ## Building Effective Prompts
 
@@ -718,22 +718,22 @@ make check-prompts
 
 ### Dataset Analysis (Prompt Engineering)
 
-Generated analysis outputs should go to the (gitignored) `analysis/` directory:
+Generated analysis outputs should go to the (gitignored) `output/analysis/` directory:
 
 ```bash
-mkdir -p analysis
+mkdir -p output/analysis
 ```
 
 Quick analysis (sanity check):
 
 ```bash
-python3 scripts/quick_analysis.py ref --output analysis/ref_quick_analysis.json
+python3 scripts/quick_analysis.py ref --output output/analysis/ref_quick_analysis.json
 ```
 
 Full dataset analysis:
 
 ```bash
-python3 scripts/analyze_dataset.py ref --output analysis/ref_metrics.json --verbose
+python3 scripts/analyze_dataset.py ref --output output/analysis/ref_metrics.json --verbose
 ```
 
 How to use the results:

@@ -200,9 +200,9 @@ Run it with:
 ```
 
 This creates:
-- `test_analysis_output/test*.json` - Original compositions
-- `test_analysis_output/test*.mid` - MIDI files for listening
-- `test_analysis_output/test*_analysis.json` - Analysis results
+- `tests/analysis/test*.json` - Original compositions
+- `tests/analysis/test*.mid` - MIDI files for listening
+- `tests/analysis/test*_analysis.json` - Analysis results
 
 ## Evaluating Accuracy and Effectiveness
 

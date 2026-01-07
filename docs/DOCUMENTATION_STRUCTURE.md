@@ -127,12 +127,12 @@ End-to-end guides for common use cases.
 
 Deep dives into how things work.
 
-1. **`analysis_technical_details.md`** ✅ (exists in temp/)
+1. **`analysis_technical_details.md`** ✅ (exists in technical/)
    - [x] How motif detection works
    - [x] How phrase detection works
    - [x] How harmonic analysis works
    - [x] Limitations and expectations
-   - [ ] Move from temp/ to technical/
+   - [x] Move from temp/ to technical/ ✅
 
 2. **`schema_reference.md`** - Complete schema documentation
    - [ ] Composition structure
@@ -177,19 +177,19 @@ How-to guides for specific tasks.
    - [x] Examples
    - [ ] Move to guides/ or keep at root?
 
-3. **`testing_analysis.md`** ✅ (exists in temp/)
+3. **`testing_analysis.md`** ✅ (exists in guides/)
    - [x] How to test analysis
    - [x] Aural comparison
    - [x] Evaluation strategies
-   - [ ] Move from temp/ to guides/
+   - [x] Move from temp/ to guides/ ✅
 
-4. **`api_key_management.md`** ✅ (exists)
+4. **`API_KEY_MANAGEMENT.md`** ✅ (exists in guides/)
    - [x] How to set up API keys
-   - [ ] Move to guides/?
+   - [x] Move to guides/ ✅
 
-5. **`pedal_fix_usage.md`** ✅ (exists)
+5. **`PEDAL_FIX_USAGE.md`** ✅ (exists in guides/)
    - [x] How to use pedal fix
-   - [ ] Move to guides/?
+   - [x] Move to guides/ ✅
 
 ## Reference Documentation (`docs/reference/`)
 
@@ -223,11 +223,11 @@ These stay at the root for discoverability:
 ## Migration Plan
 
 ### Phase 1: Organize Existing Docs
-- [ ] Move `docs/temp/analysis_technical_details.md` → `docs/technical/`
-- [ ] Move `docs/temp/testing_musical_analysis.md` → `docs/guides/`
-- [ ] Move `docs/PEDAL_FIX_USAGE.md` → `docs/guides/`
-- [ ] Move `docs/API_KEY_MANAGEMENT.md` → `docs/guides/`
-- [ ] Keep `docs/INTEGRATION_TESTING.md` in docs/ (testing-specific)
+- [x] Move `docs/temp/analysis_technical_details.md` → `docs/technical/` ✅ (already in technical/)
+- [x] Move `docs/temp/testing_musical_analysis.md` → `docs/guides/` ✅ (consolidated into guides/testing_analysis.md)
+- [x] Move `docs/PEDAL_FIX_USAGE.md` → `docs/guides/` ✅ (duplicate removed, guides/ version kept)
+- [x] Move `docs/API_KEY_MANAGEMENT.md` → `docs/guides/` ✅ (duplicate removed, guides/ version kept)
+- [x] Keep `docs/INTEGRATION_TESTING.md` in docs/ (testing-specific) ✅
 
 ### Phase 2: Create Command Placeholders
 - [ ] Create all 9 command docs with basic structure

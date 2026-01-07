@@ -6,7 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-OUTPUT_DIR="$PROJECT_DIR/test_analysis_output"
+OUTPUT_DIR="$PROJECT_DIR/tests/analysis"
 
 mkdir -p "$OUTPUT_DIR"
 cd "$PROJECT_DIR"
