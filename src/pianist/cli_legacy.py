@@ -45,6 +45,7 @@ from .reference_db import (
     MusicalReference,
     get_default_database,
 )
+from .output_util import write_output_with_sidecar, version_path_if_exists, derive_sidecar_path
 
 
 # Default output directory for all generated files
@@ -1098,26 +1099,18 @@ def main(argv: list[str] | None = None) -> int:
                             "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
-                    # Version output if file exists and --overwrite not set
-                    version_output = not args.overwrite
-                    original_path = out_json_path
-                    actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
-                    
-                    # Handle raw response: if JSON was versioned, version the raw response too
-                    if raw_text is not None and raw_out_path is not None:
-                        if version_output and original_path != actual_json_path:
-                            # JSON was versioned - save raw response with matching version
-                            versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
-                            _write_text(versioned_raw_path, raw_text, version_if_exists=False)
-                        elif cached_raw_path is None:
-                            # New response (not cached) - save to original location
-                            _write_text(raw_out_path, raw_text, version_if_exists=False)
-                        elif cached_raw_path != raw_out_path:
-                            # Cached from different location - copy to expected location
-                            _write_text(raw_out_path, raw_text, version_if_exists=False)
-                        # If cached and JSON not versioned and paths match, raw response already exists
-                    
-                    sys.stdout.write(str(actual_json_path) + "\n")
+                    # Use unified output utility for coordinated versioning
+                    # Always write sidecar if we have raw_text (even if cached) because:
+                    # 1. If file is being overwritten, we want to update the sidecar
+                    # 2. If file is being versioned, we want a matching versioned sidecar
+                    result = write_output_with_sidecar(
+                        out_json_path,
+                        out_json,
+                        sidecar_content=raw_text,
+                        provider=args.provider,
+                        overwrite=args.overwrite,
+                    )
+                    sys.stdout.write(str(result.primary_path) + "\n")
 
                 if args.render:
                     render_midi_mido(updated, out_midi_path)
@@ -1830,20 +1823,26 @@ def main(argv: list[str] | None = None) -> int:
                                 f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
                             )
                 
-                # Save raw response
-                if raw_text is not None and raw_out_path is not None:
-                    if cached_raw_path is None:
-                        _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
-                
                 # Save expanded composition
                 expanded_json = composition_to_canonical_json(expanded_comp)
                 
                 if args.out_path is None:
                     sys.stdout.write(expanded_json)
+                    # Save raw response if we have it and no JSON output path
+                    if raw_text is not None and raw_out_path is not None:
+                        if cached_raw_path is None:
+                            _write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
                 else:
-                    version_output = not args.overwrite
-                    actual_json_path = _write_text(out_json_path, expanded_json, version_if_exists=version_output)
-                    sys.stdout.write(str(actual_json_path) + "\n")
+                    # Use unified output utility for coordinated versioning
+                    # Always write sidecar if we have raw_text (even if cached)
+                    result = write_output_with_sidecar(
+                        out_json_path,
+                        expanded_json,
+                        sidecar_content=raw_text,
+                        provider=args.provider,
+                        overwrite=args.overwrite,
+                    )
+                    sys.stdout.write(str(result.primary_path) + "\n")
                 
                 # Render if requested
                 if args.render:
@@ -2119,26 +2118,16 @@ def main(argv: list[str] | None = None) -> int:
                             "or also provide --output (-o) to enable an automatic default.\n"
                         )
                 else:
-                    # Version output if file exists and --overwrite not set
-                    version_output = not args.overwrite
-                    original_path = out_json_path
-                    actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
-                    
-                    # Handle raw response: if JSON was versioned, version the raw response too
-                    if raw_text is not None and raw_out_path is not None:
-                        if version_output and original_path != actual_json_path:
-                            # JSON was versioned - save raw response with matching version
-                            versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
-                            _write_text(versioned_raw_path, raw_text, version_if_exists=False)
-                        elif cached_raw_path is None:
-                            # New response (not cached) - save to original location
-                            _write_text(raw_out_path, raw_text, version_if_exists=False)
-                        elif cached_raw_path != raw_out_path:
-                            # Cached from different location - copy to expected location
-                            _write_text(raw_out_path, raw_text, version_if_exists=False)
-                        # If cached and JSON not versioned and paths match, raw response already exists
-                    
-                    sys.stdout.write(str(actual_json_path) + "\n")
+                    # Use unified output utility for coordinated versioning
+                    # Always write sidecar if we have raw_text (even if cached)
+                    result = write_output_with_sidecar(
+                        out_json_path,
+                        out_json,
+                        sidecar_content=raw_text,
+                        provider=args.provider,
+                        overwrite=args.overwrite,
+                    )
+                    sys.stdout.write(str(result.primary_path) + "\n")
 
                 if args.render:
                     render_midi_mido(comp, out_midi_path)
@@ -2421,26 +2410,16 @@ def main(argv: list[str] | None = None) -> int:
                         "or also provide --output (-o) to enable an automatic default.\n"
                     )
             else:
-                # Version output if file exists and --overwrite not set
-                version_output = not args.overwrite
-                original_path = out_json_path
-                actual_json_path = _write_text(out_json_path, out_json, version_if_exists=version_output)
-                
-                # Handle raw response: if JSON was versioned, version the raw response too
-                if raw_text is not None and raw_out_path is not None:
-                    if version_output and original_path != actual_json_path:
-                        # JSON was versioned - save raw response with matching version
-                        versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
-                        _write_text(versioned_raw_path, raw_text, version_if_exists=False)
-                    elif cached_raw_path is None:
-                        # New response (not cached) - save to original location
-                        _write_text(raw_out_path, raw_text, version_if_exists=False)
-                    elif cached_raw_path != raw_out_path:
-                        # Cached from different location - copy to expected location
-                        _write_text(raw_out_path, raw_text, version_if_exists=False)
-                    # If cached and JSON not versioned and paths match, raw response already exists
-                
-                sys.stdout.write(str(actual_json_path) + "\n")
+                # Use unified output utility for coordinated versioning
+                # Always write sidecar if we have raw_text (even if cached)
+                result = write_output_with_sidecar(
+                    out_json_path,
+                    out_json,
+                    sidecar_content=raw_text,
+                    provider=args.provider,
+                    overwrite=args.overwrite,
+                )
+                sys.stdout.write(str(result.primary_path) + "\n")
             
             if args.render:
                 render_midi_mido(comp, out_midi_path)
