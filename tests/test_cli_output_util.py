@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pianist.cli.util_output import (
+from pianist.output_util import (
     version_path_if_exists,
     derive_sidecar_path,
     write_output_with_sidecar,
