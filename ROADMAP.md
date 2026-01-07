@@ -552,7 +552,6 @@ This section provides practical steps for implementing the roadmap, consolidatin
 **What's Missing (Critical Gaps):**
 - 🟡 Expansion strategy module (placeholder exists, needs implementation)
 - 🟡 Validation module (placeholder exists, needs implementation)
-- 🟡 Enhanced prompts with analysis integration
 
 ### Implementation Order
 
@@ -585,31 +584,34 @@ This section provides practical steps for implementing the roadmap, consolidatin
 3. ✅ Analysis results output in structured JSON format
 4. ✅ Tests updated
 
-#### Step 3: Enhance Expansion Prompts
+#### Step 3: Enhance Expansion Prompts ✅ **COMPLETE**
 **Priority:** HIGH  
-**Status:** Basic prompts exist, need analysis integration
+**Status:** ✅ **COMPLETE**
 
-**Tasks:**
-1. Update `expand` command to run analysis before expansion
-2. Include detected motifs, phrases, harmony in expansion prompts
-3. Test with real compositions
-4. Refine based on results
+**Completed:**
+1. ✅ `expand` command runs analysis before expansion
+2. ✅ Detected motifs, phrases, harmony included in expansion prompts
+3. ✅ Expansion suggestions from analysis included
+4. ✅ Graceful fallback if analysis fails
 
-**Estimated Complexity:** Low-Medium  
-**Dependencies:** Analysis module
+**Next Steps:**
+- Test with real compositions and refine based on results
+- Enhance prompt formatting and detail level
 
-#### Step 4: Implement Basic Auto-Detection
+#### Step 4: Implement Basic Auto-Detection ✅ **COMPLETE**
 **Priority:** MEDIUM  
-**Status:** Not started
+**Status:** ✅ **COMPLETE**
 
-**Tasks:**
-1. Use analysis module to auto-detect key ideas
-2. Implement `annotate --auto-detect` functionality
-3. Test accuracy
-4. Refine detection algorithms
+**Completed:**
+1. ✅ `annotate --auto-detect` implemented
+2. ✅ Uses analysis module to detect motifs and phrases
+3. ✅ Automatically adds detected ideas as KeyIdea annotations
+4. ✅ Tests written and passing
 
-**Estimated Complexity:** Medium  
-**Dependencies:** Musical analysis module
+**Next Steps:**
+- Test accuracy with real compositions
+- Refine detection algorithms to improve accuracy
+- Add more sophisticated auto-detection (harmonic progressions, etc.)
 
 ### Dependencies & Infrastructure
 
@@ -686,6 +688,6 @@ Before beginning implementation, these questions should be answered:
 - **Priority:** Musical intent annotation ✅ **DONE**, musical intelligence 🔄 **IN PROGRESS**
 - **Approach:** Phased implementation (foundation → intelligence → refinement)
 - **Flexibility:** Roadmap will be revised based on learnings and feedback
-- **Current Blocker:** Enhanced prompts with analysis integration
-- **Start Here:** Enhance expansion prompts to include analysis results
+- **Current Blocker:** Expansion strategy module implementation
+- **Start Here:** Implement expansion strategy generation module
 
