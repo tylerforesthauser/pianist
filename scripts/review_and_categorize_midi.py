@@ -1143,8 +1143,8 @@ def main() -> int:
         print(f"Error: No MIDI files found in {args.dir}", file=sys.stderr)
         return 1
     
-    # Sort files for consistent ordering
-    files = sorted(files)
+    # Sort files by size (smallest to largest) for consistent ordering
+    files = sorted(files, key=lambda f: f.stat().st_size)
     
     # Apply limit for testing
     if args.limit:
