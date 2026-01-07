@@ -38,7 +38,10 @@ import argparse
 import csv
 import hashlib
 import json
+import os
+import re
 import sys
+import time
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass, asdict
@@ -235,19 +238,382 @@ def calculate_similarity(
     return 0.0
 
 
+def call_ollama(model: str, prompt: str, verbose: bool = False) -> str:
+    """
+    Call a local Ollama model.
+    
+    Requires Ollama to be installed and running locally.
+    Install: https://ollama.ai
+    
+    Example models: llama3.2, mistral, phi3, gemma2
+    """
+    try:
+        import requests
+    except ImportError:
+        raise RuntimeError(
+            "requests library required for Ollama support. Install with: pip install requests"
+        )
+    
+    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    
+    if verbose:
+        print(f"  [Ollama] Calling {model} at {ollama_url}...", file=sys.stderr)
+    
+    try:
+        response = requests.post(
+            f"{ollama_url}/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=120,  # 2 minute timeout
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        return result.get("response", "")
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Could not connect to Ollama at {ollama_url}. "
+            "Make sure Ollama is installed and running. See: https://ollama.ai"
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"Ollama request timed out after 120 seconds")
+    except Exception as e:
+        raise RuntimeError(f"Ollama request failed: {e}")
+
+
+def identify_composition_with_ai(
+    metadata: FileMetadata,
+    composition: Any,
+    filename: str,
+    provider: str = "gemini",
+    model: str = "gemini-flash-latest",
+    verbose: bool = False,
+    delay_seconds: float = 0.0,
+) -> dict[str, Any] | None:
+    """
+    Use AI to identify a well-known composition based on musical characteristics.
+    
+    Returns:
+        Dictionary with identified composition info, or None if not identified
+    """
+    if not MUSIC21_AVAILABLE:
+        if verbose:
+            print(f"  [AI] music21 not available, skipping AI identification", file=sys.stderr)
+        return None
+    
+    try:
+        from pianist.iterate import composition_to_canonical_json
+        
+        if verbose:
+            print(f"  [AI] Attempting to identify composition using {provider}...", file=sys.stderr)
+        
+        # Add delay to avoid rate limits
+        if delay_seconds > 0:
+            if verbose:
+                print(f"  [AI] Waiting {delay_seconds:.1f}s to avoid rate limits...", file=sys.stderr)
+            time.sleep(delay_seconds)
+        
+        comp_json = composition_to_canonical_json(composition)
+        
+        # Extract key musical characteristics for identification
+        harmonic_prog = metadata.harmonic_progression or "Unknown"
+        if harmonic_prog and len(harmonic_prog) > 200:
+            harmonic_prog = harmonic_prog[:200] + "..."
+        
+        prompt = f"""You are a musicologist identifying classical piano compositions.
+
+Analyze this MIDI file and try to identify if it's a well-known composition.
+
+Filename: {filename}
+Key: {metadata.detected_key or 'Unknown'}
+Form: {metadata.detected_form or 'Unknown'}
+Time Signature: {metadata.time_signature or 'Unknown'}
+Tempo: {metadata.tempo_bpm or 'Unknown'} BPM
+Duration: {metadata.duration_beats:.1f} beats (~{metadata.bars:.1f} bars)
+Motifs: {metadata.motif_count}
+Phrases: {metadata.phrase_count}
+Harmonic progression (first part): {harmonic_prog}
+
+Musical content (first 2000 characters):
+{comp_json[:2000]}
+
+If you can identify this as a well-known composition, respond with JSON:
+{{
+  "identified": true,
+  "composer": "Composer name (e.g., 'J.S. Bach', 'Chopin', 'Beethoven')",
+  "title": "Full composition title (e.g., 'Two-Part Invention No. 8 in F major, BWV 779')",
+  "catalog_number": "Catalog number if applicable (e.g., 'BWV 779', 'Op. 11 No. 4')",
+  "style": "Baroque|Classical|Romantic|Modern|Other",
+  "form": "binary|ternary|sonata|invention|prelude|etude|etc.",
+  "description": "Brief description of the piece and what it demonstrates",
+  "confidence": "high|medium|low"
+}}
+
+If you cannot identify it as a well-known composition, respond with:
+{{
+  "identified": false,
+  "suggested_title": "Descriptive title based on characteristics",
+  "style": "Baroque|Classical|Romantic|Modern|Other",
+  "form": "{metadata.detected_form or 'unknown'}",
+  "description": "Brief description based on musical analysis"
+}}
+
+Respond ONLY with valid JSON, no other text."""
+        
+        # Call appropriate provider
+        if provider == "ollama":
+            try:
+                response = call_ollama(model=model, prompt=prompt, verbose=verbose)
+            except RuntimeError as e:
+                if verbose:
+                    print(f"  [AI] {e}", file=sys.stderr)
+                return None
+        else:  # gemini
+            try:
+                from pianist.gemini import generate_text
+                response = generate_text(model=model, prompt=prompt, verbose=verbose)
+            except Exception as e:
+                # Check if it's a rate limit error
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                    if verbose:
+                        print(f"  [AI] Rate limit exceeded. Consider using --ai-delay or --ai-provider ollama", file=sys.stderr)
+                    return None
+                raise  # Re-raise other errors
+        
+        if verbose:
+            print(f"  [AI] Received response (length: {len(response)})", file=sys.stderr)
+        
+        # Try to parse JSON from response
+        # Look for JSON object (handles multi-line)
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+        if json_match:
+            try:
+                ai_data = json.loads(json_match.group())
+                if verbose:
+                    identified = ai_data.get("identified", False)
+                    print(f"  [AI] Identification result: identified={identified}", file=sys.stderr)
+                return ai_data
+            except json.JSONDecodeError as e:
+                if verbose:
+                    print(f"  [AI] JSON parse error: {e}", file=sys.stderr)
+                # Try to fix common JSON issues
+                json_str = json_match.group()
+                # Remove trailing commas
+                json_str = re.sub(r',\s*}', '}', json_str)
+                json_str = re.sub(r',\s*]', ']', json_str)
+                try:
+                    ai_data = json.loads(json_str)
+                    if verbose:
+                        print(f"  [AI] Successfully parsed after fixing JSON", file=sys.stderr)
+                    return ai_data
+                except json.JSONDecodeError as e2:
+                    if verbose:
+                        print(f"  [AI] Still failed to parse JSON: {e2}", file=sys.stderr)
+                        print(f"  [AI] Response snippet: {response[:200]}", file=sys.stderr)
+        else:
+            if verbose:
+                print(f"  [AI] No JSON found in response", file=sys.stderr)
+    except ImportError as e:
+        if verbose:
+            print(f"  [AI] Import error: {e}", file=sys.stderr)
+    except Exception as e:
+        if verbose:
+            print(f"  [AI] Error during identification: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+    
+    return None
+
+
+def extract_info_from_filename(filename: str) -> dict[str, Any]:
+    """
+    Extract composition information from filename patterns.
+    
+    Common patterns:
+    - "bach-invention-8-bwv-779.mid" -> composer, title, catalog
+    - "chopin-prelude-op28-no4.mid" -> composer, opus
+    - "scriabin-etude-op2-no1.mid" -> composer, opus
+    """
+    info: dict[str, Any] = {
+        "composer": None,
+        "title": None,
+        "catalog_number": None,
+        "opus": None,
+    }
+    
+    filename_lower = filename.lower()
+    
+    # Common composer patterns
+    composer_patterns = {
+        "bach": "J.S. Bach",
+        "beethoven": "Beethoven",
+        "mozart": "Mozart",
+        "chopin": "Chopin",
+        "scriabin": "Scriabin",
+        "debussy": "Debussy",
+        "rachmaninoff": "Rachmaninoff",
+        "schubert": "Schubert",
+        "schumann": "Schumann",
+        "liszt": "Liszt",
+        "brahms": "Brahms",
+    }
+    
+    for pattern, composer in composer_patterns.items():
+        if pattern in filename_lower:
+            info["composer"] = composer
+            break
+    
+    # Extract BWV numbers (Bach)
+    bwv_match = re.search(r'bwv[.\s-]*(\d+)', filename_lower)
+    if bwv_match:
+        info["catalog_number"] = f"BWV {bwv_match.group(1)}"
+        if not info["composer"]:
+            info["composer"] = "J.S. Bach"
+    
+    # Extract Opus numbers
+    opus_match = re.search(r'op[.\s-]*(\d+)(?:\s*no[.\s-]*(\d+))?', filename_lower)
+    if opus_match:
+        opus_num = opus_match.group(1)
+        no_num = opus_match.group(2)
+        if no_num:
+            info["opus"] = f"Op. {opus_num} No. {no_num}"
+        else:
+            info["opus"] = f"Op. {opus_num}"
+        info["catalog_number"] = info["opus"]
+    
+    # Extract common piece types
+    piece_types = {
+        "invention": "Invention",
+        "prelude": "Prelude",
+        "etude": "Étude",
+        "sonata": "Sonata",
+        "nocturne": "Nocturne",
+        "waltz": "Waltz",
+        "mazurka": "Mazurka",
+        "impromptu": "Impromptu",
+    }
+    
+    for pattern, piece_type in piece_types.items():
+        if pattern in filename_lower:
+            info["title"] = piece_type
+            break
+    
+    return info
+
+
 def generate_suggested_name(
     metadata: FileMetadata,
     composition: Any,
     use_ai: bool = False,
+    verbose: bool = False,
+    ai_provider: str = "gemini",
+    ai_model: str | None = None,
+    ai_delay: float = 0.0,
 ) -> tuple[str, str, str | None, str | None]:
     """
     Generate a suggested name, ID, style, and description for a file.
     
+    Uses multiple strategies:
+    1. Try AI identification (if use_ai=True) to identify well-known compositions
+    2. Extract info from filename patterns
+    3. Fall back to analysis-based generation
+    
     Returns:
         (name, id, style, description)
     """
-    # Base name from filename (remove extension, clean up)
-    base_name = Path(metadata.filename).stem
+    filename = metadata.filename
+    
+    # Strategy 1: Try AI identification if enabled
+    if use_ai and MUSIC21_AVAILABLE:
+        # Set default model if not provided
+        if ai_model is None:
+            ai_model = "gemini-flash-latest" if ai_provider == "gemini" else "llama3.2"
+        
+        ai_identification = identify_composition_with_ai(
+            metadata, composition, filename,
+            provider=ai_provider,
+            model=ai_model,
+            verbose=verbose,
+            delay_seconds=ai_delay,
+        )
+        if ai_identification and ai_identification.get("identified"):
+            # We identified a well-known composition!
+            composer = ai_identification.get("composer", "")
+            title = ai_identification.get("title", "")
+            catalog = ai_identification.get("catalog_number", "")
+            
+            # Build full title
+            if composer and title:
+                if catalog:
+                    suggested_name = f"{composer}: {title} ({catalog})"
+                else:
+                    suggested_name = f"{composer}: {title}"
+            else:
+                suggested_name = title or composer or "Identified Composition"
+            
+            style_hint = ai_identification.get("style")
+            suggested_description = ai_identification.get("description", "Well-known classical composition")
+            
+            # Generate ID
+            suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+            suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+            suggested_id = suggested_id[:50]
+            
+            return suggested_name, suggested_id, style_hint, suggested_description
+        elif ai_identification and not ai_identification.get("identified"):
+            # AI couldn't identify but provided suggestions
+            suggested_name = ai_identification.get("suggested_title", "")
+            style_hint = ai_identification.get("style")
+            suggested_description = ai_identification.get("description", "")
+            if suggested_name:
+                suggested_id = suggested_name.lower().replace(" ", "_")
+                suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
+                suggested_id = suggested_id[:50]
+                return suggested_name, suggested_id, style_hint, suggested_description
+    
+    # Strategy 2: Extract info from filename
+    filename_info = extract_info_from_filename(filename)
+    
+    if filename_info.get("composer") and (filename_info.get("title") or filename_info.get("catalog_number")):
+        # We have composer + title/catalog from filename
+        parts = [filename_info["composer"]]
+        if filename_info.get("title"):
+            parts.append(filename_info["title"])
+        if filename_info.get("catalog_number"):
+            parts.append(f"({filename_info['catalog_number']})")
+        suggested_name = ": ".join(parts)
+        
+        # Infer style from composer
+        composer_lower = filename_info["composer"].lower()
+        if "bach" in composer_lower:
+            style_hint = "Baroque"
+        elif "mozart" in composer_lower or "beethoven" in composer_lower:
+            style_hint = "Classical"
+        elif any(c in composer_lower for c in ["chopin", "schumann", "liszt", "rachmaninoff", "scriabin"]):
+            style_hint = "Romantic"
+        else:
+            style_hint = None
+        
+        suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+        suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+        suggested_id = suggested_id[:50]
+        
+        # Build description
+        description_parts = []
+        if filename_info.get("title"):
+            description_parts.append(filename_info["title"])
+        if metadata.detected_form:
+            description_parts.append(f"{metadata.detected_form} form")
+        suggested_description = ", ".join(description_parts) if description_parts else "Classical composition"
+        
+        return suggested_name, suggested_id, style_hint, suggested_description
+    
+    # Strategy 3: Fall back to analysis-based generation
+    base_name = Path(filename).stem
     base_name = base_name.replace("_", " ").replace("-", " ").title()
     
     # Build descriptive name
@@ -305,50 +671,6 @@ def generate_suggested_name(
     
     suggested_description = ", ".join(description_parts) if description_parts else "Musical composition"
     
-    # Use AI for better naming if requested
-    if use_ai and MUSIC21_AVAILABLE:
-        try:
-            from pianist.gemini import call_gemini
-            from pianist.iterate import composition_to_canonical_json
-            
-            comp_json = composition_to_canonical_json(composition)
-            
-            prompt = f"""Analyze this musical composition and suggest:
-1. A descriptive title (2-6 words)
-2. Musical style (Baroque, Classical, Romantic, Modern, or Other)
-3. A brief description (1 sentence)
-
-Composition analysis:
-- Key: {metadata.detected_key or 'Unknown'}
-- Form: {metadata.detected_form or 'Unknown'}
-- Motifs: {metadata.motif_count}
-- Phrases: {metadata.phrase_count}
-- Duration: {metadata.duration_beats:.1f} beats (~{metadata.bars:.1f} bars)
-
-Composition JSON (first 1000 chars):
-{comp_json[:1000]}
-
-Respond in JSON format:
-{{
-  "title": "suggested title",
-  "style": "Baroque|Classical|Romantic|Modern|Other",
-  "description": "brief description"
-}}"""
-            
-            response = call_gemini(prompt, model="gemini-flash-latest")
-            
-            # Try to parse JSON from response
-            import re
-            json_match = re.search(r'\{[^}]+\}', response, re.DOTALL)
-            if json_match:
-                ai_data = json.loads(json_match.group())
-                suggested_name = ai_data.get("title", suggested_name)
-                style_hint = ai_data.get("style", style_hint)
-                suggested_description = ai_data.get("description", suggested_description)
-        except Exception:
-            # If AI fails, use generated values
-            pass
-    
     return suggested_name, suggested_id, style_hint, suggested_description
 
 
@@ -356,6 +678,10 @@ def analyze_file(
     file_path: Path,
     use_ai_quality: bool = False,
     use_ai_naming: bool = False,
+    verbose: bool = False,
+    ai_provider: str = "gemini",
+    ai_model: str | None = None,
+    ai_delay: float = 0.0,
 ) -> tuple[FileMetadata, list[int]]:
     """Analyze a single MIDI file and extract metadata."""
     # Run quality check
@@ -414,39 +740,46 @@ def analyze_file(
     
     # Generate suggested name
     if composition:
+        # Create temporary metadata for name generation
+        temp_metadata = FileMetadata(
+            filename=file_path.name,
+            filepath=str(file_path),
+            quality_score=quality_report.overall_score,
+            quality_issues=len(quality_report.issues),
+            duration_beats=midi_analysis.duration_beats,
+            duration_seconds=midi_analysis.duration_seconds,
+            bars=midi_analysis.estimated_bar_count,
+            tempo_bpm=tempo_bpm,
+            time_signature=time_sig,
+            key_signature=key_sig,
+            tracks=len(midi_analysis.tracks),
+            detected_key=detected_key,
+            detected_form=detected_form,
+            motif_count=motif_count,
+            phrase_count=phrase_count,
+            chord_count=chord_count,
+            harmonic_progression=harmonic_progression,
+            suggested_name="",
+            suggested_id="",
+            suggested_style=None,
+            suggested_description=None,
+            similar_files=[],
+            similarity_scores={},
+            is_duplicate=False,
+            duplicate_group=None,
+            technical_score=quality_report.scores.get("technical", 0.0),
+            musical_score=quality_report.scores.get("musical", 0.0),
+            structure_score=quality_report.scores.get("structure", 0.0),
+        )
+        
         suggested_name, suggested_id, suggested_style, suggested_description = generate_suggested_name(
-            FileMetadata(
-                filename=file_path.name,
-                filepath=str(file_path),
-                quality_score=quality_report.overall_score,
-                quality_issues=len(quality_report.issues),
-                duration_beats=midi_analysis.duration_beats,
-                duration_seconds=midi_analysis.duration_seconds,
-                bars=midi_analysis.estimated_bar_count,
-                tempo_bpm=tempo_bpm,
-                time_signature=time_sig,
-                key_signature=key_sig,
-                tracks=len(midi_analysis.tracks),
-                detected_key=detected_key,
-                detected_form=detected_form,
-                motif_count=motif_count,
-                phrase_count=phrase_count,
-                chord_count=chord_count,
-                harmonic_progression=harmonic_progression,
-                suggested_name="",
-                suggested_id="",
-                suggested_style=None,
-                suggested_description=None,
-                similar_files=[],
-                similarity_scores={},
-                is_duplicate=False,
-                duplicate_group=None,
-                technical_score=quality_report.scores.get("technical", 0.0),
-                musical_score=quality_report.scores.get("musical", 0.0),
-                structure_score=quality_report.scores.get("structure", 0.0),
-            ),
+            temp_metadata,
             composition,
-            use_ai_naming,
+            use_ai=use_ai_naming,
+            verbose=verbose,
+            ai_provider=ai_provider,
+            ai_model=ai_model,
+            ai_delay=ai_delay,
         )
     else:
         suggested_name = Path(file_path).stem
@@ -737,6 +1070,27 @@ def main() -> int:
     )
     
     parser.add_argument(
+        "--ai-provider",
+        type=str,
+        choices=["gemini", "ollama"],
+        default=os.getenv("AI_PROVIDER", "gemini"),
+        help="AI provider to use: 'gemini' (cloud) or 'ollama' (local). Default: gemini",
+    )
+    
+    parser.add_argument(
+        "--ai-model",
+        type=str,
+        help="AI model name. Default: gemini-flash-latest (Gemini) or llama3.2 (Ollama)",
+    )
+    
+    parser.add_argument(
+        "--ai-delay",
+        type=float,
+        default=float(os.getenv("AI_DELAY_SECONDS", "0")),
+        help="Delay in seconds between AI calls to avoid rate limits (default: 0)",
+    )
+    
+    parser.add_argument(
         "--similarity-threshold",
         type=float,
         default=0.7,
@@ -845,10 +1199,19 @@ def main() -> int:
             print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
         
         try:
+            # Set default model if not provided
+            ai_model = args.ai_model
+            if ai_model is None:
+                ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "llama3.2"
+            
             metadata, signature = analyze_file(
                 file_path,
                 use_ai_quality=args.ai,
                 use_ai_naming=args.ai,
+                verbose=args.verbose,
+                ai_provider=args.ai_provider,
+                ai_model=ai_model,
+                ai_delay=args.ai_delay,
             )
             
             # Save result immediately
