@@ -1119,7 +1119,9 @@ def write_csv_report(
             f,
             fieldnames=[
                 "filename",
+                "filepath",
                 "quality_score",
+                "quality_issues",
                 "suggested_name",
                 "suggested_id",
                 "suggested_style",
@@ -1127,15 +1129,20 @@ def write_csv_report(
                 "detected_key",
                 "detected_form",
                 "duration_beats",
+                "duration_seconds",
                 "bars",
                 "tempo_bpm",
                 "time_signature",
+                "key_signature",
+                "tracks",
                 "motif_count",
                 "phrase_count",
                 "chord_count",
+                "harmonic_progression",
                 "is_duplicate",
                 "duplicate_group",
                 "similar_files",
+                "similarity_scores",
                 "technical_score",
                 "musical_score",
                 "structure_score",
@@ -1145,9 +1152,17 @@ def write_csv_report(
         writer.writeheader()
         
         for meta in all_metadata:
+            # Format similarity scores as "file1: 0.85; file2: 0.72"
+            similarity_scores_str = "; ".join(
+                f"{filename}: {score:.3f}" 
+                for filename, score in meta.similarity_scores.items()
+            )
+            
             writer.writerow({
                 "filename": meta.filename,
+                "filepath": meta.filepath,
                 "quality_score": f"{meta.quality_score:.3f}",
+                "quality_issues": meta.quality_issues,
                 "suggested_name": meta.suggested_name,
                 "suggested_id": meta.suggested_id,
                 "suggested_style": meta.suggested_style or "",
@@ -1155,15 +1170,20 @@ def write_csv_report(
                 "detected_key": meta.detected_key or "",
                 "detected_form": meta.detected_form or "",
                 "duration_beats": f"{meta.duration_beats:.1f}",
+                "duration_seconds": f"{meta.duration_seconds:.2f}",
                 "bars": f"{meta.bars:.1f}",
                 "tempo_bpm": f"{meta.tempo_bpm:.1f}" if meta.tempo_bpm else "",
                 "time_signature": meta.time_signature or "",
+                "key_signature": meta.key_signature or "",
+                "tracks": meta.tracks,
                 "motif_count": meta.motif_count,
                 "phrase_count": meta.phrase_count,
                 "chord_count": meta.chord_count,
+                "harmonic_progression": (meta.harmonic_progression or "")[:200],  # Limit length for CSV readability
                 "is_duplicate": "Yes" if meta.is_duplicate else "No",
                 "duplicate_group": meta.duplicate_group or "",
                 "similar_files": "; ".join(meta.similar_files),
+                "similarity_scores": similarity_scores_str,
                 "technical_score": f"{meta.technical_score:.3f}",
                 "musical_score": f"{meta.musical_score:.3f}",
                 "structure_score": f"{meta.structure_score:.3f}",
