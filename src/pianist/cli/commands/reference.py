@@ -192,7 +192,7 @@ def setup_parser(parser):
     )
     
     # List references
-    ref_list = reference_sub.add_parser("list", help="List all references in the database.")
+    reference_sub.add_parser("list", help="List all references in the database.")
     
     # Search references
     ref_search = reference_sub.add_parser("search", help="Search for references matching criteria.")
