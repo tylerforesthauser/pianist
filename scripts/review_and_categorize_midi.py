@@ -245,7 +245,7 @@ def call_ollama(model: str, prompt: str, verbose: bool = False) -> str:
     Requires Ollama to be installed and running locally.
     Install: https://ollama.ai
     
-    Example models: llama3.2, mistral, phi3, gemma2
+    Example models: gpt-oss:20b, gemma3:4b, deepseek-r1:8b
     """
     try:
         import requests
@@ -373,7 +373,7 @@ Respond ONLY with valid JSON, no other text."""
                 return None
         else:  # gemini
             try:
-                from pianist.gemini import generate_text
+                from pianist.ai_providers import generate_text
                 response = generate_text(model=model, prompt=prompt, verbose=verbose)
             except Exception as e:
                 # Check if it's a rate limit error
@@ -531,7 +531,7 @@ def generate_suggested_name(
     if use_ai and MUSIC21_AVAILABLE:
         # Set default model if not provided
         if ai_model is None:
-            ai_model = "gemini-flash-latest" if ai_provider == "gemini" else "llama3.2"
+            ai_model = "gemini-flash-latest" if ai_provider == "gemini" else "gpt-oss:20b"
         
         ai_identification = identify_composition_with_ai(
             metadata, composition, filename,
@@ -1080,7 +1080,7 @@ def main() -> int:
     parser.add_argument(
         "--ai-model",
         type=str,
-        help="AI model name. Default: gemini-flash-latest (Gemini) or llama3.2 (Ollama)",
+        help="AI model name. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama)",
     )
     
     parser.add_argument(

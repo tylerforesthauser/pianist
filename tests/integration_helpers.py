@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 import pytest
 
-from pianist.gemini import GeminiError, generate_text
+from pianist.ai_providers import GeminiError, generate_text
 
 
 def skip_if_no_api_key() -> None:

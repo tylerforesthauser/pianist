@@ -363,11 +363,15 @@ def get_ai_assessment(
     composition: Any,
     report: QualityReport,
     provider: str = "gemini",
-    model: str = "gemini-flash-latest",
+    model: str | None = None,
 ) -> None:
     """Get AI assessment of musical quality."""
     try:
-        from pianist.gemini import call_gemini
+        from pianist.ai_providers import generate_text_unified, GeminiError, OllamaError
+        
+        # Set default model if not provided
+        if model is None:
+            model = "gemini-flash-latest" if provider == "gemini" else "gpt-oss:20b"
         
         comp_json = composition_to_canonical_json(composition)
         
@@ -388,9 +392,16 @@ Please provide a brief assessment (2-3 sentences) of:
 
 Be concise and specific."""
         
-        response = call_gemini(prompt, model=model)
+        response = generate_text_unified(provider=provider, model=model, prompt=prompt, verbose=False)
         report.ai_assessment = response.strip()
         
+    except (GeminiError, OllamaError) as e:
+        report.add_issue(QualityIssue(
+            "warning",
+            "technical",
+            f"AI assessment failed: {e}",
+            {"error": str(e)}
+        ))
     except Exception as e:
         report.add_issue(QualityIssue(
             "warning",
@@ -404,7 +415,7 @@ def check_midi_file(
     file_path: Path,
     use_ai: bool = False,
     provider: str = "gemini",
-    model: str = "gemini-flash-latest",
+    model: str | None = None,
 ) -> QualityReport:
     """Check quality of a single MIDI file."""
     report = QualityReport(file_path)
@@ -540,14 +551,14 @@ def main() -> int:
         "--provider",
         type=str,
         default="gemini",
-        choices=["gemini"],
-        help="AI provider for assessment (default: gemini)",
+        choices=["gemini", "ollama"],
+        help="AI provider for assessment: 'gemini' (cloud) or 'ollama' (local). Default: gemini",
     )
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-flash-latest",
-        help="Model name (default: gemini-flash-latest)",
+        default=None,
+        help="Model name. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama)",
     )
     parser.add_argument(
         "--verbose", "-v",

@@ -235,7 +235,7 @@ def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
     _write_test_midi(midi_path)
 
     def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
-        from pianist.gemini import GeminiError
+        from pianist.ai_providers import GeminiError
         raise GeminiError("Gemini returned an empty response.")
 
     monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)

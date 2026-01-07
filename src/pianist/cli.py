@@ -22,7 +22,7 @@ from .iterate import (
 from .pedal_fix import fix_pedal_patterns
 from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
-from .gemini import GeminiError, generate_text
+from .ai_providers import GeminiError, OllamaError, generate_text_unified
 from .diff import diff_compositions, format_diff_text, format_diff_json, format_diff_markdown
 from .annotations import (
     add_key_idea,
@@ -368,15 +368,15 @@ def main(argv: list[str] | None = None) -> int:
     modify.add_argument(
         "--provider",
         type=str,
-        choices=["gemini"],
+        choices=["gemini", "ollama"],
         default=None,
-        help="AI provider to use for modification. If omitted, only generates a prompt template (use --prompt to save it).",
+        help="AI provider to use for modification: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates a prompt template (use --prompt to save it).",
     )
     modify.add_argument(
         "--model",
         type=str,
-        default="gemini-flash-latest",
-        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+        default=None,
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
     )
     modify.add_argument(
         "-r", "--raw",
@@ -439,15 +439,15 @@ def main(argv: list[str] | None = None) -> int:
     analyze.add_argument(
         "--provider",
         type=str,
-        choices=["gemini"],
+        choices=["gemini", "ollama"],
         default=None,
-        help="AI provider to use for generating a new composition. If omitted, only generates analysis/prompt.",
+        help="AI provider to use for generating a new composition: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates analysis/prompt.",
     )
     analyze.add_argument(
         "--model",
         type=str,
-        default="gemini-flash-latest",
-        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+        default=None,
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
     )
     analyze.add_argument(
         "-r", "--raw",
@@ -654,15 +654,15 @@ def main(argv: list[str] | None = None) -> int:
     expand.add_argument(
         "--provider",
         type=str,
-        choices=["gemini"],
+        choices=["gemini", "ollama"],
         default=None,
-        help="AI provider to use for expansion. If omitted, only generates expansion strategy.",
+        help="AI provider to use for expansion: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates expansion strategy.",
     )
     expand.add_argument(
         "--model",
         type=str,
-        default="gemini-flash-latest",
-        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+        default=None,
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
     )
     expand.add_argument(
         "--preserve-motifs",
@@ -762,15 +762,15 @@ def main(argv: list[str] | None = None) -> int:
     generate.add_argument(
         "--provider",
         type=str,
-        choices=["gemini"],
+        choices=["gemini", "ollama"],
         default=None,
-        help="AI provider to use for generation. If omitted, only generates a prompt template (use --prompt to save it).",
+        help="AI provider to use for generation: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates a prompt template (use --prompt to save it).",
     )
     generate.add_argument(
         "--model",
         type=str,
-        default="gemini-flash-latest",
-        help="Model name to use with the provider (default: gemini-flash-latest). Only used with --provider.",
+        default=None,
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
     )
     generate.add_argument(
         "-r", "--raw",
@@ -1059,10 +1059,21 @@ def main(argv: list[str] | None = None) -> int:
                 
                 # If no cached response, call AI provider
                 if raw_text is None:
-                    if args.provider == "gemini":
-                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
-                    else:
-                        raise ValueError(f"Unsupported provider: {args.provider}")
+                    # Set default model if not provided
+                    model = args.model
+                    if model is None:
+                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                    
+                    try:
+                        raw_text = generate_text_unified(
+                            provider=args.provider,
+                            model=model,
+                            prompt=prompt,
+                            verbose=args.verbose
+                        )
+                    except (GeminiError, OllamaError) as e:
+                        sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
+                        return 1
 
                 updated = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(updated)
@@ -1696,12 +1707,24 @@ def main(argv: list[str] | None = None) -> int:
                 
                 # Call AI provider if no cached response
                 if raw_text is None:
-                    if args.provider == "gemini":
-                        if args.verbose:
-                            sys.stderr.write("Calling AI provider for expansion...\n")
-                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
-                    else:
-                        raise ValueError(f"Unsupported provider: {args.provider}")
+                    # Set default model if not provided
+                    model = args.model
+                    if model is None:
+                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                    
+                    if args.verbose:
+                        sys.stderr.write(f"Calling AI provider ({args.provider}) for expansion...\n")
+                    
+                    try:
+                        raw_text = generate_text_unified(
+                            provider=args.provider,
+                            model=model,
+                            prompt=prompt,
+                            verbose=args.verbose
+                        )
+                    except (GeminiError, OllamaError) as e:
+                        sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
+                        return 1
                 
                 # Parse expanded composition
                 expanded_comp = parse_composition_from_text(raw_text)
@@ -2058,10 +2081,21 @@ def main(argv: list[str] | None = None) -> int:
                 
                 # If no cached response, call AI provider
                 if raw_text is None:
-                    if args.provider == "gemini":
-                        raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
-                    else:
-                        raise ValueError(f"Unsupported provider: {args.provider}")
+                    # Set default model if not provided
+                    model = args.model
+                    if model is None:
+                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                    
+                    try:
+                        raw_text = generate_text_unified(
+                            provider=args.provider,
+                            model=model,
+                            prompt=prompt,
+                            verbose=args.verbose
+                        )
+                    except (GeminiError, OllamaError) as e:
+                        sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
+                        return 1
 
                 comp = parse_composition_from_text(raw_text)
                 out_json = composition_to_canonical_json(comp)
@@ -2349,10 +2383,21 @@ def main(argv: list[str] | None = None) -> int:
             
             # If no cached response, call AI provider
             if raw_text is None:
-                if args.provider == "gemini":
-                    raw_text = generate_text(model=args.model, prompt=prompt, verbose=args.verbose)
-                else:
-                    raise ValueError(f"Unsupported provider: {args.provider}")
+                # Set default model if not provided
+                model = args.model
+                if model is None:
+                    model = "gemini-flash-latest" if args.provider == "gemini" else "llama3.2"
+                
+                try:
+                    raw_text = generate_text_unified(
+                        provider=args.provider,
+                        model=model,
+                        prompt=prompt,
+                        verbose=args.verbose
+                    )
+                except (GeminiError, OllamaError) as e:
+                    sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
+                    return 1
             
             comp = parse_composition_from_text(raw_text)
             out_json = composition_to_canonical_json(comp)

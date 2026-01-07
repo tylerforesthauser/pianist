@@ -31,6 +31,10 @@ class GeminiError(RuntimeError):
     pass
 
 
+class OllamaError(RuntimeError):
+    pass
+
+
 def generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
     """
     Generate text using Google Gemini via the Google GenAI SDK.
@@ -161,5 +165,107 @@ def generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
         if verbose and elapsed_time > 0:
             error_msg += f" (after {elapsed_time:.1f}s)"
         raise GeminiError(error_msg) from e
+
+
+def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> str:
+    """
+    Generate text using a local Ollama model.
+    
+    This function calls a local Ollama instance running at http://localhost:11434
+    (or the URL specified in OLLAMA_URL environment variable).
+    
+    Args:
+        model: The Ollama model name (e.g., "gpt-oss:20b", "gemma3:4b", "deepseek-r1:8b").
+        prompt: The prompt text to send to Ollama.
+        verbose: If True, print progress indicators and timing information.
+    
+    Returns:
+        The generated text response from Ollama.
+    
+    Raises:
+        OllamaError: If Ollama is not available, connection fails, or request times out.
+    """
+    try:
+        import requests
+    except ImportError:
+        raise OllamaError(
+            "requests library required for Ollama support. Install with: pip install requests"
+        )
+    
+    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    
+    if verbose:
+        sys.stderr.write(f"Sending request to Ollama ({model}) at {ollama_url}...\n")
+        sys.stderr.flush()
+    
+    start_time = time.time()
+    
+    try:
+        response = requests.post(
+            f"{ollama_url}/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=120,  # 2 minute timeout
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        response_text = result.get("response", "")
+        
+        elapsed_time = time.time() - start_time
+        
+        if not response_text.strip():
+            raise OllamaError("Ollama returned an empty response.")
+        
+        if verbose:
+            sys.stderr.write(f"Response complete: {len(response_text)} chars in {elapsed_time:.1f}s\n")
+            sys.stderr.flush()
+        
+        return response_text
+        
+    except requests.exceptions.ConnectionError:
+        raise OllamaError(
+            f"Could not connect to Ollama at {ollama_url}. "
+            "Make sure Ollama is installed and running. See: https://ollama.ai"
+        )
+    except requests.exceptions.Timeout:
+        raise OllamaError(f"Ollama request timed out after 120 seconds")
+    except OllamaError:
+        raise
+    except Exception as e:
+        elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+        error_msg = f"Ollama request failed: {type(e).__name__}: {e}"
+        if verbose and elapsed_time > 0:
+            error_msg += f" (after {elapsed_time:.1f}s)"
+        raise OllamaError(error_msg) from e
+
+
+def generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+    """
+    Unified interface for generating text from either Gemini or Ollama.
+    
+    Args:
+        provider: Either "gemini" or "ollama"
+        model: Model name (provider-specific)
+        prompt: The prompt text
+        verbose: If True, print progress indicators
+    
+    Returns:
+        Generated text response
+    
+    Raises:
+        GeminiError: For Gemini-specific errors
+        OllamaError: For Ollama-specific errors
+        ValueError: For unsupported providers
+    """
+    if provider == "gemini":
+        return generate_text(model=model, prompt=prompt, verbose=verbose)
+    elif provider == "ollama":
+        return generate_text_ollama(model=model, prompt=prompt, verbose=verbose)
+    else:
+        raise ValueError(f"Unsupported provider: {provider}. Use 'gemini' or 'ollama'.")
 
 

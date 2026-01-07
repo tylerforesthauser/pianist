@@ -234,7 +234,7 @@ from __future__ import annotations
 
 import pytest
 from tests.integration_helpers import skip_if_no_api_key
-from pianist.gemini import generate_text
+from pianist.ai_providers import generate_text
 
 @pytest.mark.integration
 @pytest.mark.slow

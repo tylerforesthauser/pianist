@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pianist.gemini import GeminiError, generate_text
+from pianist.ai_providers import GeminiError, generate_text
 
 
 def _create_mock_genai_setup(chunks_with_text: list[str]) -> tuple[MagicMock, MagicMock]:
@@ -106,7 +106,7 @@ def test_generate_text_verbose_output(monkeypatch, capsys) -> None:
     mock_google, mock_genai = _create_mock_genai_setup(["First chunk", " second chunk"])
     
     # Mock time to control progress updates
-    with patch("pianist.gemini.time.time") as mock_time:
+    with patch("pianist.ai_providers.time.time") as mock_time:
         mock_time.side_effect = [0.0, 0.0, 3.0, 5.0]  # start, initial, after 3s, final
         
         # Patch sys.modules to intercept the import inside the function
@@ -230,7 +230,7 @@ def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -
     
     # Simulate time passing: start_time (0.0), then error time (5.0)
     # time.time() is called: start_time, then in error handler
-    with patch("pianist.gemini.time.time") as mock_time:
+    with patch("pianist.ai_providers.time.time") as mock_time:
         mock_time.side_effect = [0.0, 5.0]
         
         # Simulate an error during streaming (before any chunks are processed)

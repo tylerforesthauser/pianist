@@ -262,7 +262,7 @@ def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:
 def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that GeminiError is properly displayed in CLI."""
     def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
-        from pianist.gemini import GeminiError
+        from pianist.ai_providers import GeminiError
         raise GeminiError("API key not valid. Please pass a valid API key.")
 
     monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
