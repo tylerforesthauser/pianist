@@ -13,6 +13,7 @@ This directory contains detailed documentation for each Pianist command.
 - [`expand.md`](expand.md) - Expand incomplete compositions to complete works
 - [`diff.md`](diff.md) - Compare two compositions
 - [`fix.md`](fix.md) - Fix composition issues (pedal patterns, etc.)
+- [`reference.md`](reference.md) - Manage musical reference database
 
 ## Quick Reference
 
