@@ -22,7 +22,7 @@ from ...output_util import write_output_with_sidecar
 from ...parser import parse_composition_from_text
 from ...reference_db import get_default_database
 from ...renderers.mido_renderer import render_midi_mido
-from ...validation import ValidationResult, validate_expansion
+from ...validation import validate_expansion
 
 
 def handle_expand(args) -> int:
