@@ -218,3 +218,6 @@ output/
 test_analysis_output/
 # Quality check report outputs
 *_quality_report*.json
+
+# MIDI review cache (temporary analysis results)
+.midi_review_cache/

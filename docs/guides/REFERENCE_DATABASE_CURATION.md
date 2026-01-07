@@ -120,7 +120,34 @@ Create small, focused examples demonstrating specific techniques:
    - Place MIDI or JSON files in the directory
    - Use descriptive filenames (e.g., `bach_invention_sequence.mid`)
 
-3. **Quality Check Files** (recommended):
+3. **Review and Categorize Files** (recommended for large collections):
+   
+   For collections with many files (especially with duplicates or unclear names), use the comprehensive review tool:
+   
+   ```bash
+   # Review all files, detect duplicates, generate metadata
+   python3 scripts/review_and_categorize_midi.py --dir references/ --output review_report.csv
+   
+   # Review with AI-assisted naming and quality assessment
+   python3 scripts/review_and_categorize_midi.py --dir references/ --ai --output review_report.csv
+   
+   # Adjust duplicate detection sensitivity (0.0-1.0, default: 0.7)
+   python3 scripts/review_and_categorize_midi.py --dir references/ --similarity-threshold 0.8
+   
+   # Generate both CSV and JSON reports
+   python3 scripts/review_and_categorize_midi.py --dir references/ --output review.csv --json-output review.json
+   ```
+   
+   This tool provides:
+   - **Quality assessment**: Technical, musical, and structure scores
+   - **Musical analysis**: Key, form, motifs, phrases, harmony detection
+   - **Duplicate detection**: Identifies similar/duplicate compositions
+   - **Auto-naming**: Generates descriptive names based on analysis
+   - **Metadata collection**: Comprehensive CSV/JSON reports ready for import
+   
+   The CSV report includes suggested names, IDs, styles, and descriptions that can be used directly for batch import.
+
+4. **Quality Check Individual Files** (optional, for detailed analysis):
    
    **Note:** Make sure your virtual environment is activated (`source .venv/bin/activate`)
    
@@ -146,7 +173,7 @@ Create small, focused examples demonstrating specific techniques:
    
    See [`MIDI_QUALITY_CHECK.md`](MIDI_QUALITY_CHECK.md) for detailed information.
 
-4. **Prepare metadata CSV** (optional but recommended):
+5. **Prepare metadata CSV** (optional but recommended):
    ```bash
    # Create metadata.csv with columns:
    # filename,id,title,description,style,form,techniques
@@ -323,6 +350,7 @@ example2.json,example_2,"Example 2","Description of example 2",Romantic,binary,"
 - [`REFERENCE_CURATION_LIST.md`](REFERENCE_CURATION_LIST.md) - **Curated list of recommended public domain works**
 - [`MIDI_QUALITY_CHECK.md`](MIDI_QUALITY_CHECK.md) - **MIDI quality checking guide**
 - [`../commands/reference.md`](../commands/reference.md) - Reference command documentation
+- [`../../scripts/review_and_categorize_midi.py`](../../scripts/review_and_categorize_midi.py) - **Comprehensive review and categorization tool**
 - [`../../scripts/batch_import_references.py`](../../scripts/batch_import_references.py) - Batch import script
 - [`../../scripts/check_midi_quality.py`](../../scripts/check_midi_quality.py) - Quality check script
 - [`../../scripts/add_initial_references.py`](../../scripts/add_initial_references.py) - Initial examples script
