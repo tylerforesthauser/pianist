@@ -128,6 +128,10 @@ def handle_reference(args) -> int:
             count = ref_db.count_references()
             sys.stdout.write(f"Total references: {count}\n")
             return 0
+        else:
+            # Defensive: handle unexpected subcommands explicitly
+            sys.stderr.write(f"Unknown reference subcommand: {args.reference_cmd}\n")
+            return 1
         
     except Exception as exc:
         if args.debug:
