@@ -5,6 +5,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
+from typing import Any
 
 from ..util import (
     derive_base_name_from_path,
@@ -17,11 +18,135 @@ from ..util import (
 )
 from ...ai_providers import GeminiError, OllamaError, generate_text_unified
 from ...analyze import analyze_midi, analysis_prompt_template
+from ...comprehensive_analysis import analyze_for_user
 from ...iterate import composition_to_canonical_json
 from ...musical_analysis import MUSIC21_AVAILABLE, analyze_composition as analyze_composition_musical
 from ...output_util import write_output_with_sidecar
 from ...parser import parse_composition_from_text
 from ...renderers.mido_renderer import render_midi_mido
+
+
+def format_analysis_text(analysis_result: dict[str, Any]) -> str:
+    """Format analysis result as human-readable text."""
+    lines: list[str] = []
+    
+    filename = analysis_result.get("filename", "Unknown")
+    lines.append(f"Composition Analysis: {filename}")
+    lines.append("=" * len(f"Composition Analysis: {filename}"))
+    lines.append("")
+    
+    # Quality Assessment
+    quality = analysis_result.get("quality", {})
+    if quality:
+        lines.append("Quality Assessment")
+        lines.append("-" * 20)
+        overall_score = quality.get("overall_score", 0.0)
+        technical_score = quality.get("technical_score", 0.0)
+        musical_score = quality.get("musical_score", 0.0)
+        structure_score = quality.get("structure_score", 0.0)
+        
+        def score_label(score: float) -> str:
+            if score >= 0.9:
+                return "Excellent"
+            elif score >= 0.7:
+                return "Good"
+            elif score >= 0.5:
+                return "Acceptable"
+            else:
+                return "Needs Improvement"
+        
+        lines.append(f"Overall Score: {overall_score:.2%} ({score_label(overall_score)})")
+        lines.append(f"  Technical:  {technical_score:.2%} ({score_label(technical_score)})")
+        lines.append(f"  Musical:    {musical_score:.2%} ({score_label(musical_score)})")
+        lines.append(f"  Structure:  {structure_score:.2%} ({score_label(structure_score)})")
+        lines.append("")
+        
+        issues = quality.get("issues", [])
+        if issues:
+            lines.append(f"Issues Found: {len(issues)}")
+            for issue in issues:
+                lines.append(f"  - {issue}")
+            lines.append("")
+    
+    # Technical Metadata
+    technical = analysis_result.get("technical", {})
+    if technical:
+        lines.append("Technical Metadata")
+        lines.append("-" * 20)
+        if technical.get("duration_beats") is not None:
+            lines.append(f"Duration: {technical['duration_beats']:.1f} beats ({technical.get('duration_seconds', 0):.1f} seconds, {technical.get('bars', 0):.1f} bars)")
+        if technical.get("tempo_bpm") is not None:
+            lines.append(f"Tempo: {technical['tempo_bpm']:.1f} BPM")
+        if technical.get("time_signature"):
+            lines.append(f"Time Signature: {technical['time_signature']}")
+        if technical.get("key_signature"):
+            lines.append(f"Key Signature: {technical['key_signature']}")
+        lines.append(f"Tracks: {technical.get('tracks', 0)}")
+        lines.append("")
+    
+    # Musical Analysis
+    musical = analysis_result.get("musical_analysis", {})
+    if musical:
+        lines.append("Musical Analysis")
+        lines.append("-" * 20)
+        if musical.get("detected_key"):
+            lines.append(f"Key: {musical['detected_key']}")
+        if musical.get("detected_form"):
+            lines.append(f"Form: {musical['detected_form']}")
+        if musical.get("motif_count") is not None:
+            lines.append(f"Motifs: {musical['motif_count']} detected")
+        if musical.get("phrase_count") is not None:
+            lines.append(f"Phrases: {musical['phrase_count']} detected")
+        if musical.get("chord_count") is not None:
+            lines.append(f"Chords: {musical['chord_count']} detected")
+        if musical.get("harmonic_progression"):
+            lines.append(f"Harmonic Progression: {musical['harmonic_progression']}")
+        lines.append("")
+    
+    # Improvement Suggestions
+    suggestions = analysis_result.get("improvement_suggestions", {})
+    if suggestions:
+        lines.append("Improvement Suggestions")
+        lines.append("-" * 20)
+        
+        issues_to_fix = suggestions.get("issues_to_fix", [])
+        if issues_to_fix:
+            lines.append("Issues to Fix:")
+            for issue in issues_to_fix:
+                severity = issue.get("severity", "unknown")
+                lines.append(f"  - {issue.get('issue', 'Unknown issue')} ({severity} severity)")
+                if issue.get("suggestion"):
+                    lines.append(f"    → {issue['suggestion']}")
+            lines.append("")
+        
+        improvements = suggestions.get("improvements", [])
+        if improvements:
+            lines.append("Improvements:")
+            for improvement in improvements:
+                lines.append(f"  - {improvement}")
+            lines.append("")
+        
+        recommendations = suggestions.get("quality_recommendations", [])
+        if recommendations:
+            lines.append("Quality Recommendations:")
+            for rec in recommendations:
+                lines.append(f"  - {rec}")
+            lines.append("")
+    
+    # AI Insights (optional)
+    ai_insights = analysis_result.get("ai_insights")
+    if ai_insights:
+        lines.append("AI Insights")
+        lines.append("-" * 20)
+        if ai_insights.get("suggested_name"):
+            lines.append(f"Suggested Name: {ai_insights['suggested_name']}")
+        if ai_insights.get("suggested_style"):
+            lines.append(f"Suggested Style: {ai_insights['suggested_style']}")
+        if ai_insights.get("suggested_description"):
+            lines.append(f"Suggested Description: {ai_insights['suggested_description']}")
+        lines.append("")
+    
+    return "\n".join(lines)
 
 
 def handle_analyze(args) -> int:
@@ -38,64 +163,13 @@ def handle_analyze(args) -> int:
                 )
                 return 1
             
-            # Load composition from JSON
-            text = read_text(args.in_path)
-            comp = parse_composition_from_text(text)
-            
-            # Perform musical analysis
-            musical_analysis = analyze_composition_musical(comp)
-            
-            # Format analysis results as JSON
-            analysis_result = {
-                "source": str(args.in_path),
-                "composition": {
-                    "title": comp.title,
-                    "bpm": comp.bpm,
-                    "key_signature": comp.key_signature,
-                    "time_signature": f"{comp.time_signature.numerator}/{comp.time_signature.denominator}",
-                },
-                "analysis": {
-                    "motifs": [
-                        {
-                            "start": m.start,
-                            "duration": m.duration,
-                            "pitches": m.pitches,
-                            "description": m.description,
-                        }
-                        for m in musical_analysis.motifs
-                    ],
-                    "phrases": [
-                        {
-                            "start": p.start,
-                            "duration": p.duration,
-                            "description": p.description,
-                        }
-                        for p in musical_analysis.phrases
-                    ],
-                    "harmony": {
-                        "chords": [
-                            {
-                                "start": c.start,
-                                "pitches": c.pitches,
-                                "name": c.name,
-                                "roman_numeral": c.roman_numeral,
-                                "function": c.function,
-                                "inversion": c.inversion,
-                                "is_cadence": c.is_cadence,
-                                "cadence_type": c.cadence_type,
-                            }
-                            for c in musical_analysis.harmonic_progression.chords
-                        ] if musical_analysis.harmonic_progression else [],
-                        "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
-                        "roman_numerals": musical_analysis.harmonic_progression.roman_numerals if musical_analysis.harmonic_progression else None,
-                        "progression": musical_analysis.harmonic_progression.progression if musical_analysis.harmonic_progression else None,
-                        "cadences": musical_analysis.harmonic_progression.cadences if musical_analysis.harmonic_progression else None,
-                    } if musical_analysis.harmonic_progression else None,
-                    "form": musical_analysis.form,
-                    "key_ideas": musical_analysis.key_ideas,
-                    "expansion_suggestions": musical_analysis.expansion_suggestions,
-                },
-            }
+            # Perform comprehensive analysis
+            analysis_result = analyze_for_user(
+                args.in_path,
+                use_ai_insights=args.ai_naming,
+                ai_provider=args.ai_provider,
+                ai_model=args.ai_model,
+            )
             
             # Determine output directory and paths
             base_name = derive_base_name_from_path(args.in_path, "analyze-output")
@@ -108,21 +182,32 @@ def handle_analyze(args) -> int:
             else:
                 out_json_path = None
             
-            # Output analysis
-            analysis_json = json.dumps(analysis_result, indent=2)
-            if args.out_path is None:
-                sys.stdout.write(analysis_json)
+            # Output based on format
+            if args.format == "text":
+                output_text = format_analysis_text(analysis_result)
+                if args.out_path is None:
+                    sys.stdout.write(output_text)
+                else:
+                    write_text(out_json_path, output_text)
+                    sys.stdout.write(str(out_json_path) + "\n")
             else:
-                write_text(out_json_path, analysis_json)
-                sys.stdout.write(str(out_json_path) + "\n")
+                # JSON output (default)
+                analysis_json = json.dumps(analysis_result, indent=2)
+                if args.out_path is None:
+                    sys.stdout.write(analysis_json)
+                else:
+                    write_text(out_json_path, analysis_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
             
             return 0
         
-        # Handle MIDI input (existing behavior)
+        # Handle MIDI input
         if suffix not in (".mid", ".midi"):
             raise ValueError("Input must be a .mid, .midi, or .json file.")
 
-        analysis = analyze_midi(args.in_path)
+        # If provider is specified, use old behavior (for composition generation)
+        if args.provider:
+            analysis = analyze_midi(args.in_path)
 
         # Determine output directory and paths
         base_name = derive_base_name_from_path(args.in_path, "analyze-output")
@@ -235,28 +320,70 @@ def handle_analyze(args) -> int:
         if args.render:
             raise ValueError("--render is only supported with --provider for 'analyze'.")
 
-        if args.format in ("json", "both"):
-            out_json = analysis.to_pretty_json()
-            if args.out_path is None:
-                sys.stdout.write(out_json)
-            else:
-                write_text(out_json_path, out_json)
-                sys.stdout.write(str(out_json_path) + "\n")
-
-        if args.format in ("prompt", "both"):
-            prompt = analysis_prompt_template(analysis, instructions=args.instructions)
-            if prompt_out_path is not None:
-                write_text(prompt_out_path, prompt)
-                # Only print the path if we didn't already print JSON path.
-                if args.format == "prompt":
-                    sys.stdout.write(str(prompt_out_path) + "\n")
-            else:
-                # If --out was provided and we're in prompt-only mode, treat it as prompt output.
-                if args.format == "prompt" and args.out_path is not None:
-                    write_text(out_json_path, prompt)
-                    sys.stdout.write(str(out_json_path) + "\n")
+        # If provider is not specified, use comprehensive analysis
+        if not args.provider:
+            # Perform comprehensive analysis
+            analysis_result = analyze_for_user(
+                args.in_path,
+                use_ai_insights=args.ai_naming,
+                ai_provider=args.ai_provider,
+                ai_model=args.ai_model,
+            )
+            
+            # Output based on format
+            if args.format == "text":
+                output_text = format_analysis_text(analysis_result)
+                if args.out_path is None:
+                    sys.stdout.write(output_text)
                 else:
-                    sys.stdout.write(prompt)
+                    write_text(out_json_path, output_text)
+                    sys.stdout.write(str(out_json_path) + "\n")
+            elif args.format == "prompt":
+                # For prompt format, still use old analysis for prompt generation
+                analysis = analyze_midi(args.in_path)
+                prompt = analysis_prompt_template(analysis, instructions=args.instructions)
+                if prompt_out_path is not None:
+                    write_text(prompt_out_path, prompt)
+                    sys.stdout.write(str(prompt_out_path) + "\n")
+                else:
+                    # If --out was provided and we're in prompt-only mode, treat it as prompt output.
+                    if args.out_path is not None:
+                        write_text(out_json_path, prompt)
+                        sys.stdout.write(str(out_json_path) + "\n")
+                    else:
+                        sys.stdout.write(prompt)
+            else:
+                # JSON output (default)
+                analysis_json = json.dumps(analysis_result, indent=2)
+                if args.out_path is None:
+                    sys.stdout.write(analysis_json)
+                else:
+                    write_text(out_json_path, analysis_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
+        else:
+            # Old behavior: prompt format with provider
+            if args.format in ("json", "both"):
+                out_json = analysis.to_pretty_json()
+                if args.out_path is None:
+                    sys.stdout.write(out_json)
+                else:
+                    write_text(out_json_path, out_json)
+                    sys.stdout.write(str(out_json_path) + "\n")
+
+            if args.format in ("prompt", "both"):
+                prompt = analysis_prompt_template(analysis, instructions=args.instructions)
+                if prompt_out_path is not None:
+                    write_text(prompt_out_path, prompt)
+                    # Only print the path if we didn't already print JSON path.
+                    if args.format == "prompt":
+                        sys.stdout.write(str(prompt_out_path) + "\n")
+                else:
+                    # If --out was provided and we're in prompt-only mode, treat it as prompt output.
+                    if args.format == "prompt" and args.out_path is not None:
+                        write_text(out_json_path, prompt)
+                        sys.stdout.write(str(out_json_path) + "\n")
+                    else:
+                        sys.stdout.write(prompt)
     except Exception as exc:
         if args.debug:
             traceback.print_exc(file=sys.stderr)
@@ -276,9 +403,27 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--format", "-f",
-        choices=["prompt", "json", "both"],
-        default="prompt",
-        help="Output format: 'prompt' (default), 'json', or 'both'.",
+        choices=["prompt", "json", "text", "both"],
+        default="json",
+        help="Output format: 'json' (default), 'text' (human-readable), 'prompt', or 'both'.",
+    )
+    parser.add_argument(
+        "--ai-naming",
+        action="store_true",
+        help="Use AI to generate suggested name, style, and description (optional).",
+    )
+    parser.add_argument(
+        "--ai-provider",
+        type=str,
+        choices=["gemini", "ollama", "openrouter"],
+        default="gemini",
+        help="AI provider for --ai-naming: 'gemini' (default), 'ollama', or 'openrouter'.",
+    )
+    parser.add_argument(
+        "--ai-model",
+        type=str,
+        default=None,
+        help="Model name for --ai-naming. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or mistralai/devstral-2512:free (OpenRouter). Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
     )
     parser.add_argument(
         "-o", "--output",
