@@ -113,8 +113,28 @@ Validation checks:
 
 - Use with `annotate` to mark key ideas and expansion points before expanding
 - Use with `analyze` to understand the composition structure first
+- Use with `reference` to manage example compositions that guide expansion
 - Use with `diff` to compare original and expanded versions
 - Use with `render` to convert expanded JSON to MIDI (or use `--render` flag)
+
+## Reference Database Integration
+
+When using `expand` with an AI provider, the system automatically:
+
+1. Searches the reference database for relevant examples
+2. Matches by style, form, and detected musical patterns
+3. Includes up to 3 relevant references in the expansion prompt
+4. Provides reference compositions as examples for the AI
+
+To build your reference library:
+
+```bash
+# Add example compositions
+pianist reference add -i example.json --style Classical --techniques sequence
+
+# Search for relevant examples
+pianist reference search --style Classical --technique sequence
+```
 
 ## See Also
 
