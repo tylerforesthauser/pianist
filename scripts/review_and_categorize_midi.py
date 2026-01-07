@@ -1034,6 +1034,93 @@ def analyze_file(
     return metadata, melodic_signature, ai_attempted, ai_identified
 
 
+def retry_ai_naming_only(
+    file_path: Path,
+    cached_metadata: FileMetadata,
+    cached_signature: list[int],
+    verbose: bool = False,
+    ai_provider: str = "gemini",
+    ai_model: str | None = None,
+    ai_delay: float = 0.0,
+) -> tuple[FileMetadata, bool, bool]:
+    """
+    Retry only the AI naming part without re-running the full analysis.
+    
+    This is used when --retry-ai or --force-ai is specified to avoid
+    re-running expensive music21 analysis.
+    
+    Returns:
+        (updated_metadata, ai_attempted, ai_identified)
+    """
+    # Get composition for name generation (only if we need it)
+    composition = None
+    if MUSIC21_AVAILABLE:
+        try:
+            composition = composition_from_midi(file_path)
+        except Exception:
+            # If composition loading fails, we can't generate names with AI
+            pass
+    
+    # Generate suggested name with AI
+    ai_attempted = False
+    ai_identified = False
+    
+    if composition and MUSIC21_AVAILABLE:
+        ai_attempted = True
+        
+        # Use generate_suggested_name with AI enabled
+        suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
+            cached_metadata,
+            composition,
+            use_ai=True,
+            verbose=verbose,
+            ai_provider=ai_provider,
+            ai_model=ai_model,
+            ai_delay=ai_delay,
+        )
+    else:
+        # Can't use AI without composition, use fallback
+        suggested_name = cached_metadata.suggested_name
+        suggested_id = cached_metadata.suggested_id
+        suggested_style = cached_metadata.suggested_style
+        suggested_description = cached_metadata.suggested_description
+    
+    # Create updated metadata with new AI results
+    updated_metadata = FileMetadata(
+        filename=cached_metadata.filename,
+        filepath=cached_metadata.filepath,
+        quality_score=cached_metadata.quality_score,
+        quality_issues=cached_metadata.quality_issues,
+        duration_beats=cached_metadata.duration_beats,
+        duration_seconds=cached_metadata.duration_seconds,
+        bars=cached_metadata.bars,
+        tempo_bpm=cached_metadata.tempo_bpm,
+        time_signature=cached_metadata.time_signature,
+        key_signature=cached_metadata.key_signature,
+        tracks=cached_metadata.tracks,
+        detected_key=cached_metadata.detected_key,
+        detected_form=cached_metadata.detected_form,
+        motif_count=cached_metadata.motif_count,
+        phrase_count=cached_metadata.phrase_count,
+        chord_count=cached_metadata.chord_count,
+        harmonic_progression=cached_metadata.harmonic_progression,
+        suggested_name=suggested_name,
+        suggested_id=suggested_id,
+        suggested_style=suggested_style,
+        suggested_description=suggested_description,
+        similar_files=cached_metadata.similar_files.copy(),
+        similarity_scores=cached_metadata.similarity_scores.copy(),
+        is_duplicate=cached_metadata.is_duplicate,
+        duplicate_group=cached_metadata.duplicate_group,
+        technical_score=cached_metadata.technical_score,
+        musical_score=cached_metadata.musical_score,
+        structure_score=cached_metadata.structure_score,
+        is_original=cached_metadata.is_original,
+    )
+    
+    return updated_metadata, ai_attempted, ai_identified
+
+
 def detect_duplicates_incremental(
     new_metadata: FileMetadata,
     new_signature: list[int],
@@ -1569,10 +1656,39 @@ def main() -> int:
             
             # Check if we should force AI (overrides retry-ai logic)
             if args.force_ai and args.ai:
-                # Force re-analysis with AI (even for original compositions if explicitly forced)
+                # Force re-run AI naming only (don't re-run full analysis)
                 if args.verbose:
-                    print(f"[{i}/{len(files)}] Re-analyzing with AI (forced): {file_path.name}")
-                # Fall through to analysis below
+                    print(f"[{i}/{len(files)}] Re-running AI naming only (forced): {file_path.name}")
+                
+                # Set default model if not provided
+                ai_model = args.ai_model
+                if ai_model is None:
+                    if args.ai_provider == "gemini":
+                        ai_model = "gemini-flash-latest"
+                    elif args.ai_provider == "openrouter":
+                        ai_model = "mistralai/devstral-2512:free"
+                    else:  # ollama
+                        ai_model = "gpt-oss:20b"
+                
+                # Retry only AI naming, reuse cached analysis
+                updated_meta, ai_attempted, ai_identified = retry_ai_naming_only(
+                    file_path,
+                    meta,
+                    sig,
+                    verbose=args.verbose,
+                    ai_provider=args.ai_provider,
+                    ai_model=ai_model,
+                    ai_delay=args.ai_delay,
+                )
+                
+                # Update metadata and save
+                all_metadata.append(updated_meta)
+                all_signatures.append(sig)
+                file_ai_info[str(file_path)] = (sig, ai_attempted, ai_identified)
+                save_file_result(updated_meta, sig, temp_dir, file_path, ai_attempted, ai_identified)
+                analyzed_count += 1
+                continue
+            
             # Check if we should retry AI
             elif args.retry_ai and args.ai:
                 # Skip retry for original compositions (they don't need AI identification)
@@ -1586,11 +1702,39 @@ def main() -> int:
                 
                 # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
                 if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
-                    # Need to retry AI - fall through to analysis
+                    # Need to retry AI naming only (don't re-run full analysis)
                     if args.verbose:
                         reason = "AI not attempted" if not cached_ai_attempted else "AI failed to identify"
-                        print(f"[{i}/{len(files)}] Re-analyzing with AI ({reason}): {file_path.name}")
-                    # Fall through to analysis below
+                        print(f"[{i}/{len(files)}] Re-running AI naming only ({reason}): {file_path.name}")
+                    
+                    # Set default model if not provided
+                    ai_model = args.ai_model
+                    if ai_model is None:
+                        if args.ai_provider == "gemini":
+                            ai_model = "gemini-flash-latest"
+                        elif args.ai_provider == "openrouter":
+                            ai_model = "mistralai/devstral-2512:free"
+                        else:  # ollama
+                            ai_model = "gpt-oss:20b"
+                    
+                    # Retry only AI naming, reuse cached analysis
+                    updated_meta, ai_attempted, ai_identified = retry_ai_naming_only(
+                        file_path,
+                        meta,
+                        sig,
+                        verbose=args.verbose,
+                        ai_provider=args.ai_provider,
+                        ai_model=ai_model,
+                        ai_delay=args.ai_delay,
+                    )
+                    
+                    # Update metadata and save
+                    all_metadata.append(updated_meta)
+                    all_signatures.append(sig)
+                    file_ai_info[str(file_path)] = (sig, ai_attempted, ai_identified)
+                    save_file_result(updated_meta, sig, temp_dir, file_path, ai_attempted, ai_identified)
+                    analyzed_count += 1
+                    continue
                 else:
                     # AI already identified, skip
                     if args.verbose:
