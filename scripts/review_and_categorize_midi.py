@@ -1372,7 +1372,7 @@ def main() -> int:
             # Set default model if not provided
             ai_model = args.ai_model
             if ai_model is None:
-                ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "llama3.2"
+                ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "gpt-oss:20b"
             
             # Run analysis (including any retry/force logic decided earlier) with AI parameters
             metadata, signature, ai_attempted, ai_identified = analyze_file(

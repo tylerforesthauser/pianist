@@ -111,7 +111,7 @@ def handle_generate(args) -> int:
             # Set default model if not provided
             model = args.model
             if model is None:
-                model = "gemini-flash-latest" if args.provider == "gemini" else "llama3.2"
+                model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
             
             try:
                 raw_text = generate_text_unified(
