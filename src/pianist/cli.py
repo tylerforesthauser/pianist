@@ -45,7 +45,7 @@ from .reference_db import (
     MusicalReference,
     get_default_database,
 )
-from .output_util import write_output_with_sidecar
+from .output_util import write_output_with_sidecar, version_path_if_exists, derive_sidecar_path
 
 
 # Default output directory for all generated files
