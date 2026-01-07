@@ -97,7 +97,7 @@ Tempo: 84" -o composition.json --render
 ### MIDI Quality Check Script
 
 ```bash
-# Use Ollama with default model (llama3.2)
+# Use Ollama with default model (gpt-oss:20b)
 python3 scripts/check_midi_quality.py file.mid --ai --provider ollama
 
 # Use a specific model
