@@ -242,8 +242,8 @@ def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -
                 generate_text(model="gemini-2.5-flash", prompt="test", verbose=True)
 
 
-def test_generate_text_verbose_shows_both_keys_message(monkeypatch, capsys) -> None:
-    """Test that verbose mode shows message when both keys are set."""
+def test_generate_text_verbose_omits_both_keys_message(monkeypatch, capsys) -> None:
+    """Test that verbose mode omits message when both keys are set (to reduce noise)."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
@@ -256,6 +256,26 @@ def test_generate_text_verbose_shows_both_keys_message(monkeypatch, capsys) -> N
         generate_text(model="gemini-2.5-flash", prompt="test", verbose=True)
         
         captured = capsys.readouterr()
+        # Message should NOT appear when verbose is True
+        assert "Both GOOGLE_API_KEY and GEMINI_API_KEY are set" not in captured.err
+        assert "Using GEMINI_API_KEY" not in captured.err
+
+
+def test_generate_text_non_verbose_shows_both_keys_message(monkeypatch, capsys) -> None:
+    """Test that non-verbose mode shows message when both keys are set."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setenv("GOOGLE_API_KEY", "google-key")
+    
+    mock_google, mock_genai = _create_mock_genai_setup(["Response"])
+    
+    # Patch sys.modules to intercept the import inside the function
+    with patch.dict(sys.modules, {"google": mock_google, "google.genai": mock_genai}):
+        generate_text(model="gemini-2.5-flash", prompt="test", verbose=False)
+        
+        captured = capsys.readouterr()
+        # Message should appear when verbose is False
         assert "Both GOOGLE_API_KEY and GEMINI_API_KEY are set" in captured.err
         assert "Using GEMINI_API_KEY" in captured.err
 

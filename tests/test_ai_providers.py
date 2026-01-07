@@ -142,7 +142,7 @@ def test_generate_text_ollama_verbose_output(monkeypatch, capsys) -> None:
     mock_requests = _create_mock_requests()
     mock_requests.post.return_value = mock_response
     
-    with patch("pianist.ai_providers.requests", mock_requests), \
+    with patch.dict("sys.modules", {"requests": mock_requests}), \
          patch("pianist.ai_providers.time.time", side_effect=[0.0, 1.5]):
         result = generate_text_ollama(model="test-model", prompt="test", verbose=True)
         
@@ -160,7 +160,7 @@ def test_generate_text_ollama_error_includes_timing(monkeypatch) -> None:
     mock_requests = _create_mock_requests()
     mock_requests.post.side_effect = Exception("Test error")
     
-    with patch("pianist.ai_providers.requests", mock_requests), \
+    with patch.dict("sys.modules", {"requests": mock_requests}), \
          patch("pianist.ai_providers.time.time", side_effect=[0.0, 2.5]):
         with pytest.raises(OllamaError, match="after 2.5s"):
             generate_text_ollama(model="test-model", prompt="test", verbose=True)
@@ -311,7 +311,7 @@ def test_generate_text_unified_ollama_verbose_no_gemini_messages(monkeypatch, ca
     mock_requests = _create_mock_requests()
     mock_requests.post.return_value = mock_response
     
-    with patch("pianist.ai_providers.requests", mock_requests), \
+    with patch.dict("sys.modules", {"requests": mock_requests}), \
          patch("pianist.ai_providers.time.time", side_effect=[0.0, 1.0]):
         # Use Ollama provider with verbose
         result = generate_text_unified(
