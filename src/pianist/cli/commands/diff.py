@@ -93,7 +93,7 @@ def handle(args: argparse.Namespace) -> int:
             # Determine output directory
             base_name = derive_base_name_from_path(args.input1, "diff-output")
             output_dir = get_output_base_dir(base_name, "diff")
-            out_path = resolve_output_path(args.out_path, output_dir, "diff.txt", "diff")
+            out_path = resolve_output_path(args.out_path, output_dir, "diff.txt")
             write_text(out_path, output)
             sys.stdout.write(str(out_path) + "\n")
         else:

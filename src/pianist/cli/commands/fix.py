@@ -108,7 +108,7 @@ def handle(args: argparse.Namespace) -> int:
         if args.out_path is None:
             out_path = args.in_path
         else:
-            out_path = resolve_output_path(args.out_path, output_dir, args.in_path.name, "fix")
+            out_path = resolve_output_path(args.out_path, output_dir, args.in_path.name)
         
         fixed_json = composition_to_canonical_json(fixed)
         write_text(out_path, fixed_json)
@@ -128,11 +128,11 @@ def handle(args: argparse.Namespace) -> int:
                 else:
                     midi_name = args.in_path.stem + "_fixed.mid"
                 out_midi_path = resolve_output_path(
-                    Path(midi_name), output_dir, "composition.mid", "fix"
+                    Path(midi_name), output_dir, "composition.mid"
                 )
             else:
                 out_midi_path = resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "fix"
+                    args.out_midi_path, output_dir, "composition.mid"
                 )
             render_midi_mido(fixed, out_midi_path)
             sys.stdout.write(f"  Rendered to: {out_midi_path}\n")

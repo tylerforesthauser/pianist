@@ -54,7 +54,7 @@ def handle(args: argparse.Namespace) -> int:
         
         if args.out_path is not None:
             out_json_path = resolve_output_path(
-                args.out_path, output_dir, "composition.json", "import"
+                args.out_path, output_dir, "composition.json"
             )
         else:
             out_json_path = None

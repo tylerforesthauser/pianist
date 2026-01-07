@@ -46,7 +46,7 @@ def handle(args: argparse.Namespace) -> int:
         # Determine output directory and path
         base_name = derive_base_name_from_path(args.in_path, "render-output")
         output_dir = get_output_base_dir(base_name, "render")
-        out_path = resolve_output_path(args.out_path, output_dir, "output.mid", "render")
+        out_path = resolve_output_path(args.out_path, output_dir, "output.mid")
         
         out = render_midi_mido(comp, out_path)
     except Exception as exc:

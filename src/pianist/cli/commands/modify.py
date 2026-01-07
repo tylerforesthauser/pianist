@@ -117,7 +117,7 @@ def handle(args: argparse.Namespace) -> int:
         # Resolve output paths (only if provided, to maintain stdout behavior when not provided)
         if args.out_path is not None:
             out_json_path = resolve_output_path(
-                args.out_path, output_dir, "composition.json", "modify"
+                args.out_path, output_dir, "composition.json"
             )
         else:
             out_json_path = None
@@ -131,18 +131,18 @@ def handle(args: argparse.Namespace) -> int:
                 else:
                     midi_name = args.in_path.stem + ".mid"
                 out_midi_path = resolve_output_path(
-                    Path(midi_name), output_dir, "composition.mid", "modify"
+                    Path(midi_name), output_dir, "composition.mid"
                 )
             else:
                 out_midi_path = resolve_output_path(
-                    args.out_midi_path, output_dir, "composition.mid", "modify"
+                    args.out_midi_path, output_dir, "composition.mid"
                 )
         else:
             out_midi_path = resolve_output_path(
-                args.out_midi_path, output_dir, "composition.mid", "modify"
+                args.out_midi_path, output_dir, "composition.mid"
             ) if args.out_midi_path is not None else None
         prompt_out_path = resolve_output_path(
-            args.prompt_out_path, output_dir, "prompt.txt", "modify"
+            args.prompt_out_path, output_dir, "prompt.txt"
         ) if args.prompt_out_path is not None else None
 
         if args.provider:

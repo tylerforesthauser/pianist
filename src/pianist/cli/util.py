@@ -37,7 +37,6 @@ def resolve_output_path(
     provided_path: Path | None,
     default_dir: Path,
     default_filename: str,
-    command: str,
 ) -> Path:
     """
     Resolve an output path, defaulting to the output directory structure if not provided or relative.
@@ -50,7 +49,6 @@ def resolve_output_path(
         provided_path: The path provided by the user (or None)
         default_dir: The default output directory for this command run
         default_filename: Default filename to use if path is not provided
-        command: Command name (for creating default_dir if needed)
     
     Returns:
         Resolved output path
