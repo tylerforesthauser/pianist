@@ -138,7 +138,6 @@ def handle_reference(args) -> int:
             traceback.print_exc(file=sys.stderr)
         sys.stderr.write(f"error: {type(exc).__name__}: {exc}\n")
         return 1
-    return 0
 
 
 def setup_parser(parser):
