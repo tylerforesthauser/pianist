@@ -1559,14 +1559,31 @@ def main() -> int:
         if args.resume and file_str in existing_results:
             meta, sig, cached_ai_attempted, cached_ai_identified = existing_results[file_str]
             
+            # Check if this file should be treated as original composition
+            # (either from cached metadata, command-line flag, or filename detection)
+            is_original_file = (
+                meta.is_original or
+                args.mark_original or
+                is_original_composition(file_path.name)
+            )
+            
             # Check if we should force AI (overrides retry-ai logic)
             if args.force_ai and args.ai:
-                # Force re-analysis with AI
+                # Force re-analysis with AI (even for original compositions if explicitly forced)
                 if args.verbose:
                     print(f"[{i}/{len(files)}] Re-analyzing with AI (forced): {file_path.name}")
                 # Fall through to analysis below
             # Check if we should retry AI
             elif args.retry_ai and args.ai:
+                # Skip retry for original compositions (they don't need AI identification)
+                if is_original_file:
+                    if args.verbose:
+                        print(f"[{i}/{len(files)}] Skipping (original composition, no AI retry needed): {file_path.name}")
+                    all_metadata.append(meta)
+                    all_signatures.append(sig)
+                    skipped_count += 1
+                    continue
+                
                 # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
                 if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
                     # Need to retry AI - fall through to analysis
