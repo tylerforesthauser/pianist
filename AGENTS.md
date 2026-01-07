@@ -181,6 +181,17 @@ pytest
 - Document dependencies in README.md
 - Use virtual environment (`.venv`) for development
 
+### Development Mode
+
+**The project is currently in active development with no external users or production deployments.**
+
+- **No backwards compatibility requirements:** Breaking changes are acceptable when they improve code quality, maintainability, or align with the project roadmap
+- **Focus on efficiency:** Prioritize clean, maintainable code over preserving existing interfaces
+- **Refactor freely:** Don't hesitate to restructure code, rename functions, or change APIs if it makes the codebase better
+- **Roadmap-driven:** Changes should align with the project roadmap and current development priorities
+
+This approach allows for rapid iteration and keeps the codebase lean without the overhead of maintaining deprecated APIs or migration paths.
+
 ## Development Workflow
 
 ### Virtual Environment
