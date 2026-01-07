@@ -26,7 +26,6 @@ from .analyze import analyze_midi
 from .iterate import composition_from_midi
 from .musical_analysis import MUSIC21_AVAILABLE, analyze_composition
 from .parser import parse_composition_from_text
-from .cli.util import read_text
 
 # Import quality checking functions
 import importlib.util
@@ -404,7 +403,16 @@ Respond ONLY with valid JSON, no other text."""
             )
         
         # Load composition from JSON
-        text = read_text(file_path)
+        # Read text directly to avoid circular import with cli.util
+        try:
+            text = file_path.read_text(encoding="utf-8")
+            if not text.strip():
+                raise ValueError(f"Input file is empty: {file_path}")
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Input file not found: {file_path}") from e
+        except PermissionError as e:
+            raise PermissionError(f"Input file not readable: {file_path}") from e
+        
         from .parser import parse_composition_from_text
         composition = parse_composition_from_text(text)
         

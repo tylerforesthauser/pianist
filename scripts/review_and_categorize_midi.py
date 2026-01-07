@@ -72,6 +72,7 @@ from pianist.musical_analysis import (
     analyze_harmony,
     MUSIC21_AVAILABLE,
 )
+from pianist.comprehensive_analysis import analyze_for_user
 
 # Import check_midi_quality functions directly
 import importlib.util
@@ -864,62 +865,61 @@ def analyze_file(
     """
     Analyze a single MIDI file and extract metadata.
     
+    Uses comprehensive_analysis module for core analysis, then adds
+    database curation-specific features (melodic signature, name generation).
+    
     Returns:
         (metadata, melodic_signature, ai_attempted, ai_identified)
     """
-    # Run quality check
-    quality_report = check_midi_file(file_path, use_ai=use_ai_quality)
+    # Use comprehensive analysis for core analysis
+    # Note: analyze_for_user doesn't support AI quality assessment yet,
+    # so we handle that separately if needed
+    comprehensive_result = analyze_for_user(
+        file_path,
+        use_ai_insights=use_ai_naming,
+        ai_provider=ai_provider,
+        ai_model=ai_model,
+    )
     
-    # Basic MIDI analysis
-    midi_analysis = analyze_midi(file_path)
+    # Get quality report (with AI if requested)
+    # If AI quality is needed, we need to run it separately since
+    # analyze_for_user doesn't support it yet
+    if use_ai_quality:
+        quality_report = check_midi_file(file_path, use_ai=True)
+    else:
+        # Use quality data from comprehensive analysis
+        quality_report = check_midi_file(file_path, use_ai=False)
     
-    # Convert to composition for musical analysis
+    # Extract data from comprehensive analysis result
+    technical = comprehensive_result.get("technical", {})
+    quality = comprehensive_result.get("quality", {})
+    musical = comprehensive_result.get("musical_analysis", {})
+    ai_insights = comprehensive_result.get("ai_insights")
+    
+    # Get composition for melodic signature and name generation
     composition = None
-    detected_key = None
-    detected_form = None
-    motif_count = 0
-    phrase_count = 0
-    chord_count = 0
-    harmonic_progression = None
-    
     melodic_signature: list[int] = []
     
     if MUSIC21_AVAILABLE:
         try:
             composition = composition_from_midi(file_path)
-            
-            # Musical analysis
-            analysis = analyze_composition(composition)
-            
-            detected_key = analysis.harmonic_progression.key if analysis.harmonic_progression else None
-            detected_form = analysis.form
-            motif_count = len(analysis.motifs)
-            phrase_count = len(analysis.phrases)
-            
-            if analysis.harmonic_progression:
-                chord_count = len(analysis.harmonic_progression.chords)
-                if analysis.harmonic_progression.progression:
-                    harmonic_progression = " ".join(analysis.harmonic_progression.progression[:10])
-            
             # Extract melodic signature for duplicate detection
             melodic_signature = extract_melodic_signature(composition)
-        except Exception as e:
-            # Analysis failed, continue with basic metadata
+        except Exception:
+            # Analysis failed, continue without composition
             pass
     
-    # Extract metadata
-    tempo_bpm = None
-    if midi_analysis.tempo:
-        tempo_bpm = midi_analysis.tempo[0].bpm
+    # Extract metadata from comprehensive analysis
+    detected_key = musical.get("detected_key")
+    detected_form = musical.get("detected_form")
+    motif_count = musical.get("motif_count", 0)
+    phrase_count = musical.get("phrase_count", 0)
+    chord_count = musical.get("chord_count", 0)
+    harmonic_progression = musical.get("harmonic_progression")
     
-    time_sig = None
-    if midi_analysis.time_signature:
-        ts = midi_analysis.time_signature[0]
-        time_sig = f"{ts.numerator}/{ts.denominator}"
-    
-    key_sig = None
-    if midi_analysis.key_signature:
-        key_sig = midi_analysis.key_signature[0].key
+    tempo_bpm = technical.get("tempo_bpm")
+    time_sig = technical.get("time_signature")
+    key_sig = technical.get("key_signature")
     
     # Track AI usage
     ai_attempted = False
@@ -937,13 +937,13 @@ def analyze_file(
             filepath=str(file_path),
             quality_score=quality_report.overall_score,
             quality_issues=len(quality_report.issues),
-            duration_beats=midi_analysis.duration_beats,
-            duration_seconds=midi_analysis.duration_seconds,
-            bars=midi_analysis.estimated_bar_count,
+            duration_beats=technical.get("duration_beats", 0.0),
+            duration_seconds=technical.get("duration_seconds", 0.0),
+            bars=technical.get("bars", 0.0),
             tempo_bpm=tempo_bpm,
             time_signature=time_sig,
             key_signature=key_sig,
-            tracks=len(midi_analysis.tracks),
+            tracks=technical.get("tracks", 0),
             detected_key=detected_key,
             detected_form=detected_form,
             motif_count=motif_count,
@@ -968,33 +968,49 @@ def analyze_file(
         if use_ai_naming and MUSIC21_AVAILABLE:
             ai_attempted = True
         
-        suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
-            temp_metadata,
-            composition,
-            use_ai=use_ai_naming,
-            verbose=verbose,
-            ai_provider=ai_provider,
-            ai_model=ai_model,
-            ai_delay=ai_delay,
-        )
+        # Use AI insights from comprehensive analysis if available, otherwise generate
+        if ai_insights and use_ai_naming:
+            suggested_name = ai_insights.get("suggested_name", Path(file_path).stem)
+            suggested_style = ai_insights.get("suggested_style")
+            suggested_description = ai_insights.get("suggested_description")
+            suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
+            ai_identified = True
+        else:
+            suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
+                temp_metadata,
+                composition,
+                use_ai=use_ai_naming,
+                verbose=verbose,
+                ai_provider=ai_provider,
+                ai_model=ai_model,
+                ai_delay=ai_delay,
+            )
     else:
-        suggested_name = Path(file_path).stem
-        suggested_id = suggested_name.lower().replace(" ", "_")
-        suggested_style = None
-        suggested_description = "Musical composition"
+        # Use AI insights if available, otherwise use filename
+        if ai_insights and use_ai_naming:
+            suggested_name = ai_insights.get("suggested_name", Path(file_path).stem)
+            suggested_style = ai_insights.get("suggested_style")
+            suggested_description = ai_insights.get("suggested_description")
+            suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
+            ai_identified = True
+        else:
+            suggested_name = Path(file_path).stem
+            suggested_id = suggested_name.lower().replace(" ", "_")
+            suggested_style = None
+            suggested_description = "Musical composition"
     
     metadata = FileMetadata(
         filename=file_path.name,
         filepath=str(file_path),
         quality_score=quality_report.overall_score,
         quality_issues=len(quality_report.issues),
-        duration_beats=midi_analysis.duration_beats,
-        duration_seconds=midi_analysis.duration_seconds,
-        bars=midi_analysis.estimated_bar_count,
+        duration_beats=technical.get("duration_beats", 0.0),
+        duration_seconds=technical.get("duration_seconds", 0.0),
+        bars=technical.get("bars", 0.0),
         tempo_bpm=tempo_bpm,
         time_signature=time_sig,
         key_signature=key_sig,
-        tracks=len(midi_analysis.tracks),
+        tracks=technical.get("tracks", 0),
         detected_key=detected_key,
         detected_form=detected_form,
         motif_count=motif_count,
@@ -1381,7 +1397,7 @@ def main() -> int:
     parser.add_argument(
         "--ai-model",
         type=str,
-        help="AI model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter)",
+        help="AI model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or mistralai/devstral-2512:free (OpenRouter). Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
     )
     
     parser.add_argument(
@@ -1587,7 +1603,9 @@ def main() -> int:
                 if args.ai_provider == "gemini":
                     ai_model = "gemini-flash-latest"
                 elif args.ai_provider == "openrouter":
-                    ai_model = "openai/gpt-4o"
+                    # Default to a free OpenRouter model (recommended: mistralai/devstral-2512:free)
+                    # Other free options: xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free
+                    ai_model = "mistralai/devstral-2512:free"
                 else:  # ollama
                     ai_model = "gpt-oss:20b"
             
