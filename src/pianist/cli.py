@@ -31,6 +31,10 @@ from .annotations import (
     add_to_preserve_list,
 )
 from .schema import MusicalIntent, KeyIdea, ExpansionPoint
+from .expansion_strategy import (
+    generate_expansion_strategy,
+    ExpansionStrategy,
+)
 
 
 # Default output directory for all generated files
@@ -1338,48 +1342,123 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stderr.write(f"Target length: {args.target_length:.2f} beats\n")
                 sys.stderr.write(f"Expansion needed: {args.target_length - current_length:.2f} beats\n")
             
-            # If no provider, just show expansion strategy (when analysis module is ready)
+            # Determine output directory and paths (needed for both provider and no-provider cases)
+            base_name = _derive_base_name_from_path(args.in_path, "expand-output")
+            output_dir = _get_output_base_dir(base_name, "expand")
+            
+            # If no provider, generate and display expansion strategy
             if args.provider is None:
-                sys.stderr.write(
-                    "warning: Expansion without AI provider is not yet fully implemented. "
-                    "Analysis module and expansion strategies are required.\n"
-                )
-                sys.stderr.write(
-                    f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
-                )
-                # For now, just copy the composition
-                expanded_comp = comp
+                if MUSIC21_AVAILABLE:
+                    try:
+                        # Perform analysis
+                        musical_analysis = analyze_composition_musical(comp)
+                        
+                        # Generate detailed expansion strategy
+                        strategy = generate_expansion_strategy(
+                            comp,
+                            args.target_length,
+                            analysis=musical_analysis
+                        )
+                        
+                        # Display strategy
+                        sys.stdout.write("Expansion Strategy:\n")
+                        sys.stdout.write("=" * 60 + "\n")
+                        sys.stdout.write(f"Current length: {current_length:.2f} beats\n")
+                        sys.stdout.write(f"Target length: {args.target_length:.2f} beats\n")
+                        expansion_ratio = args.target_length / current_length if current_length > 0 else 1.0
+                        sys.stdout.write(f"Expansion ratio: {expansion_ratio:.2f}x\n\n")
+                        
+                        sys.stdout.write(f"Overall Approach:\n{strategy.overall_approach}\n\n")
+                        
+                        if strategy.motif_developments:
+                            sys.stdout.write("Motif Developments:\n")
+                            for dev in strategy.motif_developments:
+                                sys.stdout.write(f"  - {dev.description}\n")
+                            sys.stdout.write("\n")
+                        
+                        if strategy.section_expansions:
+                            sys.stdout.write("Section Expansions:\n")
+                            for exp in strategy.section_expansions:
+                                sys.stdout.write(f"  - {exp.description}\n")
+                            sys.stdout.write("\n")
+                        
+                        if strategy.transitions:
+                            sys.stdout.write("Transitions:\n")
+                            for trans in strategy.transitions:
+                                sys.stdout.write(f"  - {trans}\n")
+                            sys.stdout.write("\n")
+                        
+                        if strategy.preserve:
+                            sys.stdout.write("Preserve:\n")
+                            for item in strategy.preserve:
+                                sys.stdout.write(f"  - {item}\n")
+                            sys.stdout.write("\n")
+                        
+                        # For now, just copy the composition (no AI to expand it)
+                        expanded_comp = comp
+                    except Exception as e:
+                        if args.debug:
+                            traceback.print_exc(file=sys.stderr)
+                        sys.stderr.write(f"warning: Could not generate expansion strategy: {e}\n")
+                        sys.stderr.write(
+                            f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
+                        )
+                        expanded_comp = comp
+                else:
+                    sys.stderr.write(
+                        "warning: Expansion strategy generation requires music21. "
+                        "Install with: pip install music21\n"
+                    )
+                    sys.stderr.write(
+                        f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
+                    )
+                    expanded_comp = comp
             else:
-                # Generate expansion prompt with analysis
+                # Generate expansion prompt with analysis and strategy
                 # Perform musical analysis to inform expansion
                 if MUSIC21_AVAILABLE:
                     try:
                         musical_analysis = analyze_composition_musical(comp)
                         
-                        # Build expansion instructions with analysis
+                        # Generate detailed expansion strategy
+                        strategy = generate_expansion_strategy(
+                            comp,
+                            args.target_length,
+                            analysis=musical_analysis
+                        )
+                        
+                        # Build expansion instructions with analysis and strategy
                         expansion_instructions = (
                             f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
                             f"Preserve the original musical ideas and develop them naturally. "
                             f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'}).\n\n"
                         )
                         
-                        # Add analysis results
-                        if musical_analysis.motifs:
-                            expansion_instructions += f"Detected motifs ({len(musical_analysis.motifs)}): "
-                            motif_descriptions = [f"motif at {m.start:.1f}-{m.start+m.duration:.1f} beats (pitches: {m.pitches})" for m in musical_analysis.motifs[:3]]
-                            expansion_instructions += ", ".join(motif_descriptions)
-                            if len(musical_analysis.motifs) > 3:
-                                expansion_instructions += f" (and {len(musical_analysis.motifs)-3} more)"
-                            expansion_instructions += ". Develop and vary these motifs throughout the expansion.\n\n"
+                        # Add overall approach from strategy
+                        expansion_instructions += f"Overall Approach: {strategy.overall_approach}\n\n"
                         
-                        if musical_analysis.phrases:
-                            expansion_instructions += f"Detected phrases ({len(musical_analysis.phrases)}): "
-                            phrase_descriptions = [f"phrase at {p.start:.1f}-{p.start+p.duration:.1f} beats" for p in musical_analysis.phrases[:3]]
-                            expansion_instructions += ", ".join(phrase_descriptions)
-                            if len(musical_analysis.phrases) > 3:
-                                expansion_instructions += f" (and {len(musical_analysis.phrases)-3} more)"
-                            expansion_instructions += ". Extend these phrases naturally and add complementary material.\n\n"
+                        # Add motif developments from strategy
+                        if strategy.motif_developments:
+                            expansion_instructions += f"Motif Development ({len(strategy.motif_developments)} motifs):\n"
+                            for dev in strategy.motif_developments[:5]:  # Limit to top 5
+                                expansion_instructions += f"- {dev.description}\n"
+                            expansion_instructions += "\n"
                         
+                        # Add section expansions from strategy
+                        if strategy.section_expansions:
+                            expansion_instructions += f"Section Expansions ({len(strategy.section_expansions)} sections):\n"
+                            for exp in strategy.section_expansions[:5]:  # Limit to top 5
+                                expansion_instructions += f"- {exp.description}\n"
+                            expansion_instructions += "\n"
+                        
+                        # Add transition suggestions
+                        if strategy.transitions:
+                            expansion_instructions += "Transitions:\n"
+                            for trans in strategy.transitions[:3]:
+                                expansion_instructions += f"- {trans}\n"
+                            expansion_instructions += "\n"
+                        
+                        # Add analysis results for context
                         if musical_analysis.harmonic_progression and musical_analysis.harmonic_progression.chords:
                             expansion_instructions += f"Harmonic analysis: {len(musical_analysis.harmonic_progression.chords)} chords detected. "
                             if musical_analysis.harmonic_progression.key:
@@ -1389,11 +1468,11 @@ def main(argv: list[str] | None = None) -> int:
                         if musical_analysis.form:
                             expansion_instructions += f"Musical form: {musical_analysis.form}. Preserve this form structure while expanding sections.\n\n"
                         
-                        # Add expansion suggestions
-                        if musical_analysis.expansion_suggestions:
-                            expansion_instructions += "Expansion strategies:\n"
-                            for suggestion in musical_analysis.expansion_suggestions[:3]:
-                                expansion_instructions += f"- {suggestion}\n"
+                        # Add preserve list
+                        if strategy.preserve:
+                            expansion_instructions += "Preserve:\n"
+                            for item in strategy.preserve[:5]:
+                                expansion_instructions += f"- {item}\n"
                             expansion_instructions += "\n"
                         
                     except Exception as e:
