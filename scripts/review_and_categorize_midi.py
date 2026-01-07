@@ -698,7 +698,6 @@ def analyze_file(
     Returns:
         (metadata, melodic_signature, ai_attempted, ai_identified)
     """
-    """Analyze a single MIDI file and extract metadata."""
     # Run quality check
     quality_report = check_midi_file(file_path, use_ai=use_ai_quality)
     
@@ -1026,11 +1025,10 @@ def format_elapsed_time(seconds: float) -> str:
     else:
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
-        secs = seconds % 60
         if minutes > 0:
-            return f"{hours}h {minutes}m {secs:.1f}s"
+            return f"{hours}h {minutes}m"
         else:
-            return f"{hours}h {secs:.1f}s"
+            return f"{hours}h"
 
 
 def get_file_hash(file_path: Path) -> str:
@@ -1295,6 +1293,8 @@ def main() -> int:
         print(f"Found {len(existing_results)} previously analyzed files")
         
         # Check if loaded files need duplicate detection (in case script was interrupted)
+        # A file needs duplicate detection if it has no similar_files entries and is_duplicate is False
+        # This indicates duplicate detection was never run (interrupted before completion)
         loaded_metadata_list = [meta for meta, _, _, _ in existing_results.values()]
         needs_duplicate_detection = any(
             not meta.similar_files and not meta.is_duplicate 
@@ -1371,28 +1371,16 @@ def main() -> int:
             if ai_model is None:
                 ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "llama3.2"
             
-            # If retrying or forcing AI, we need to re-run the full analysis with AI enabled
-            if should_retry_ai or should_force_ai:
-                # Re-analyze with AI enabled
-                metadata, signature, ai_attempted, ai_identified = analyze_file(
-                    file_path,
-                    use_ai_quality=args.ai,
-                    use_ai_naming=args.ai,  # Enable AI for naming
-                    verbose=args.verbose,
-                    ai_provider=args.ai_provider,
-                    ai_model=ai_model,
-                    ai_delay=args.ai_delay,
-                )
-            else:
-                metadata, signature, ai_attempted, ai_identified = analyze_file(
-                    file_path,
-                    use_ai_quality=args.ai,
-                    use_ai_naming=args.ai,
-                    verbose=args.verbose,
-                    ai_provider=args.ai_provider,
-                    ai_model=ai_model,
-                    ai_delay=args.ai_delay,
-                )
+            # Run analysis (including any retry/force logic decided earlier) with AI parameters
+            metadata, signature, ai_attempted, ai_identified = analyze_file(
+                file_path,
+                use_ai_quality=args.ai,
+                use_ai_naming=args.ai,
+                verbose=args.verbose,
+                ai_provider=args.ai_provider,
+                ai_model=ai_model,
+                ai_delay=args.ai_delay,
+            )
             
             elapsed_time = time.time() - start_time
             
@@ -1418,6 +1406,8 @@ def main() -> int:
             
             # Assign/update duplicate groups periodically (every 10 files) or at the end
             # This is more efficient than calling after every file
+            # Note: We call assign_duplicate_groups on all_metadata (not all_metadata + [metadata])
+            # because metadata is already appended above, and the function modifies objects in place
             if len(all_metadata) % 10 == 0:
                 assign_duplicate_groups(all_metadata)
             
@@ -1469,6 +1459,11 @@ def main() -> int:
     
     # Add info from newly analyzed files (tracked during processing)
     file_info_map.update(file_ai_info)
+    
+    # Validate that all_metadata and all_signatures have the same length
+    # They should always be parallel lists
+    if len(all_metadata) != len(all_signatures):
+        print(f"Warning: all_metadata ({len(all_metadata)}) and all_signatures ({len(all_signatures)}) have different lengths", file=sys.stderr)
     
     # For any files not in the map (shouldn't happen, but handle gracefully)
     for i, metadata in enumerate(all_metadata):
