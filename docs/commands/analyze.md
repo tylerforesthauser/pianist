@@ -29,7 +29,42 @@ pianist analyze -i <input.mid|input.json> [options]
 
 ## Examples
 
-**TODO**: Add examples
+### Analyze MIDI File
+
+```bash
+# Generate prompt template from MIDI analysis
+pianist analyze -i existing.mid -f prompt -p prompt.txt \
+  --instructions "Compose a new piece with similar texture"
+
+# Export structured analysis JSON
+pianist analyze -i existing.mid -f json -o analysis.json
+
+# Both prompt and JSON
+pianist analyze -i existing.mid -f both -o analysis.json -p prompt.txt
+```
+
+### Analyze JSON Composition
+
+```bash
+# Analyze a Pianist JSON composition
+pianist analyze -i composition.json -o analysis.json
+
+# Output to stdout
+pianist analyze -i composition.json
+
+# Analyze and generate new composition with AI
+pianist analyze -i composition.json --provider gemini \
+  --instructions "Expand this into a full piece" -o expanded.json
+```
+
+### Generate Composition from Analysis
+
+```bash
+# Analyze MIDI and generate new composition with AI
+pianist analyze -i existing.mid --provider gemini \
+  --instructions "Compose something similar but more optimistic" \
+  -o new_composition.json --render
+```
 
 ## Analysis Types
 
