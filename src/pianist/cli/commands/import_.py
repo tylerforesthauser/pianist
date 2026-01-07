@@ -8,7 +8,6 @@ from pathlib import Path
 from ..util import (
     derive_base_name_from_path,
     get_output_base_dir,
-    read_text,
     resolve_output_path,
     write_text,
 )
