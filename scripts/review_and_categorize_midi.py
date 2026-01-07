@@ -1246,6 +1246,11 @@ def main() -> int:
     if args.retry_ai and not (args.resume and args.ai):
         parser.error("--retry-ai requires both --resume and --ai flags")
     
+    # --force-ai and --retry-ai are mutually exclusive
+    # --force-ai takes precedence (forces retry on all files, even if already identified)
+    if args.force_ai and args.retry_ai:
+        parser.error("--force-ai and --retry-ai are mutually exclusive. Use --force-ai to retry on all files, or --retry-ai to retry only on files that need it.")
+    
     # Set up temp directory
     temp_dir = args.temp_dir or Path(".midi_review_cache")
     
@@ -1293,14 +1298,15 @@ def main() -> int:
         print(f"Found {len(existing_results)} previously analyzed files")
         
         # Check if loaded files need duplicate detection (in case script was interrupted)
-        # A file needs duplicate detection if it has no similar_files entries and is_duplicate is False
-        # This indicates duplicate detection was never run (interrupted before completion)
+        # We check if any file has duplicate_group set - if none do, duplicate detection was never run
+        # This is more reliable than checking similar_files/is_duplicate, as files without duplicates
+        # will legitimately have empty similar_files and is_duplicate=False
         loaded_metadata_list = [meta for meta, _, _, _ in existing_results.values()]
-        needs_duplicate_detection = any(
-            not meta.similar_files and not meta.is_duplicate 
-            for meta in loaded_metadata_list
+        needs_duplicate_detection = (
+            len(loaded_metadata_list) > 1 and
+            not any(meta.duplicate_group is not None for meta in loaded_metadata_list)
         )
-        if needs_duplicate_detection and len(loaded_metadata_list) > 1:
+        if needs_duplicate_detection:
             if args.verbose:
                 print("Running duplicate detection on loaded files...")
             loaded_signatures_list = [sig for _, sig, _, _ in existing_results.values()]
@@ -1358,10 +1364,7 @@ def main() -> int:
                 continue
         
         # Analyze new file (or re-analyze with AI)
-        if args.verbose:
-            print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
-        else:
-            print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
+        print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
         
         try:
             start_time = time.time()
@@ -1404,12 +1407,9 @@ def main() -> int:
             # Track AI info for efficient saving at the end
             file_ai_info[str(file_path)] = (signature, ai_attempted, ai_identified)
             
-            # Assign/update duplicate groups periodically (every 10 files) or at the end
-            # This is more efficient than calling after every file
-            # Note: We call assign_duplicate_groups on all_metadata (not all_metadata + [metadata])
-            # because metadata is already appended above, and the function modifies objects in place
-            if len(all_metadata) % 10 == 0:
-                assign_duplicate_groups(all_metadata)
+            # Note: We don't call assign_duplicate_groups here because it reassigns group numbers
+            # from scratch each time, which could cause group names to change as more files are processed.
+            # Instead, we call it once at the end to ensure stable group assignments.
             
             # Save result immediately (includes duplicate detection results)
             save_file_result(metadata, signature, temp_dir, file_path, ai_attempted, ai_identified)
