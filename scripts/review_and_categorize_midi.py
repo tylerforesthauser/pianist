@@ -22,6 +22,9 @@ Usage:
     # Resume from previous run (skips already-analyzed files)
     python3 scripts/review_and_categorize_midi.py --dir references/ --resume --output review_report.csv
 
+    # Resume and retry AI on files that didn't use AI or failed to identify
+    python3 scripts/review_and_categorize_midi.py --dir references/ --resume --ai --retry-ai --output review_report.csv
+
     # Review with AI-assisted naming
     python3 scripts/review_and_categorize_midi.py --dir references/ --ai --output review_report.csv
 
@@ -513,7 +516,7 @@ def generate_suggested_name(
     ai_provider: str = "gemini",
     ai_model: str | None = None,
     ai_delay: float = 0.0,
-) -> tuple[str, str, str | None, str | None]:
+) -> tuple[str, str, str | None, str | None, bool]:
     """
     Generate a suggested name, ID, style, and description for a file.
     
@@ -523,9 +526,11 @@ def generate_suggested_name(
     3. Fall back to analysis-based generation
     
     Returns:
-        (name, id, style, description)
+        (name, id, style, description, ai_identified)
+        where ai_identified is True if AI successfully identified the composition
     """
     filename = metadata.filename
+    ai_identified = False
     
     # Strategy 1: Try AI identification if enabled
     if use_ai and MUSIC21_AVAILABLE:
@@ -542,6 +547,7 @@ def generate_suggested_name(
         )
         if ai_identification and ai_identification.get("identified"):
             # We identified a well-known composition!
+            ai_identified = True
             composer = ai_identification.get("composer", "")
             title = ai_identification.get("title", "")
             catalog = ai_identification.get("catalog_number", "")
@@ -563,7 +569,7 @@ def generate_suggested_name(
             suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
             suggested_id = suggested_id[:50]
             
-            return suggested_name, suggested_id, style_hint, suggested_description
+            return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
         elif ai_identification and not ai_identification.get("identified"):
             # AI couldn't identify but provided suggestions
             suggested_name = ai_identification.get("suggested_title", "")
@@ -573,7 +579,7 @@ def generate_suggested_name(
                 suggested_id = suggested_name.lower().replace(" ", "_")
                 suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
                 suggested_id = suggested_id[:50]
-                return suggested_name, suggested_id, style_hint, suggested_description
+                return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
     # Strategy 2: Extract info from filename
     filename_info = extract_info_from_filename(filename)
@@ -610,7 +616,7 @@ def generate_suggested_name(
             description_parts.append(f"{metadata.detected_form} form")
         suggested_description = ", ".join(description_parts) if description_parts else "Classical composition"
         
-        return suggested_name, suggested_id, style_hint, suggested_description
+        return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
     # Strategy 3: Fall back to analysis-based generation
     base_name = Path(filename).stem
@@ -671,7 +677,7 @@ def generate_suggested_name(
     
     suggested_description = ", ".join(description_parts) if description_parts else "Musical composition"
     
-    return suggested_name, suggested_id, style_hint, suggested_description
+    return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
 
 
 def analyze_file(
@@ -682,7 +688,13 @@ def analyze_file(
     ai_provider: str = "gemini",
     ai_model: str | None = None,
     ai_delay: float = 0.0,
-) -> tuple[FileMetadata, list[int]]:
+) -> tuple[FileMetadata, list[int], bool, bool]:
+    """
+    Analyze a single MIDI file and extract metadata.
+    
+    Returns:
+        (metadata, melodic_signature, ai_attempted, ai_identified)
+    """
     """Analyze a single MIDI file and extract metadata."""
     # Run quality check
     quality_report = check_midi_file(file_path, use_ai=use_ai_quality)
@@ -738,6 +750,10 @@ def analyze_file(
     if midi_analysis.key_signature:
         key_sig = midi_analysis.key_signature[0].key
     
+    # Track AI usage
+    ai_attempted = False
+    ai_identified = False
+    
     # Generate suggested name
     if composition:
         # Create temporary metadata for name generation
@@ -772,7 +788,11 @@ def analyze_file(
             structure_score=quality_report.scores.get("structure", 0.0),
         )
         
-        suggested_name, suggested_id, suggested_style, suggested_description = generate_suggested_name(
+        # Track if AI is being used
+        if use_ai_naming and MUSIC21_AVAILABLE:
+            ai_attempted = True
+        
+        suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
             temp_metadata,
             composition,
             use_ai=use_ai_naming,
@@ -818,7 +838,7 @@ def analyze_file(
         structure_score=quality_report.scores.get("structure", 0.0),
     )
     
-    return metadata, melodic_signature
+    return metadata, melodic_signature, ai_attempted, ai_identified
 
 
 def detect_duplicates(
@@ -954,6 +974,8 @@ def save_file_result(
     signature: list[int],
     temp_dir: Path,
     file_path: Path,
+    ai_attempted: bool = False,
+    ai_identified: bool = False,
 ) -> None:
     """Save individual file analysis result to temp file."""
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -964,6 +986,8 @@ def save_file_result(
         "metadata": asdict(metadata),
         "signature": signature,
         "source_file": str(file_path),
+        "ai_attempted": ai_attempted,
+        "ai_identified": ai_identified,
     }
     
     with open(result_file, "w", encoding="utf-8") as f:
@@ -973,8 +997,13 @@ def save_file_result(
 def load_file_result(
     temp_dir: Path,
     file_path: Path,
-) -> tuple[FileMetadata, list[int]] | None:
-    """Load individual file analysis result from temp file."""
+) -> tuple[FileMetadata, list[int], bool, bool] | None:
+    """
+    Load individual file analysis result from temp file.
+    
+    Returns:
+        (metadata, signature, ai_attempted, ai_identified) or None if not found
+    """
     file_hash = get_file_hash(file_path)
     result_file = temp_dir / f"{file_hash}.json"
     
@@ -989,8 +1018,10 @@ def load_file_result(
         metadata_dict = data["metadata"]
         metadata = FileMetadata(**metadata_dict)
         signature = data.get("signature", [])
+        ai_attempted = data.get("ai_attempted", False)
+        ai_identified = data.get("ai_identified", False)
         
-        return metadata, signature
+        return metadata, signature, ai_attempted, ai_identified
     except Exception:
         return None
 
@@ -1127,6 +1158,12 @@ def main() -> int:
         help="Directory for temporary result files (default: .midi_review_cache)",
     )
     
+    parser.add_argument(
+        "--retry-ai",
+        action="store_true",
+        help="Re-run AI identification on cached files that didn't use AI or failed to identify (requires --resume and --ai)",
+    )
+    
     args = parser.parse_args()
     
     # Set up temp directory
@@ -1154,7 +1191,7 @@ def main() -> int:
     print(f"Found {len(files)} MIDI file(s) to analyze")
     
     # Load existing results if resuming
-    existing_results: dict[str, tuple[FileMetadata, list[int]]] = {}
+    existing_results: dict[str, tuple[FileMetadata, list[int], bool, bool]] = {}
     if args.resume:
         print("Loading existing results...")
         # Load all cached results
@@ -1168,7 +1205,9 @@ def main() -> int:
                     metadata_dict = data["metadata"]
                     metadata = FileMetadata(**metadata_dict)
                     signature = data.get("signature", [])
-                    existing_results[source_file] = (metadata, signature)
+                    ai_attempted = data.get("ai_attempted", False)
+                    ai_identified = data.get("ai_identified", False)
+                    existing_results[source_file] = (metadata, signature, ai_attempted, ai_identified)
             except Exception:
                 continue
         print(f"Found {len(existing_results)} previously analyzed files")
@@ -1183,39 +1222,80 @@ def main() -> int:
         file_str = str(file_path)
         
         # Check if we already have results for this file
+        should_retry_ai = False
         if args.resume and file_str in existing_results:
-            if args.verbose:
-                print(f"[{i}/{len(files)}] Skipping (already analyzed): {file_path.name}")
-            meta, sig = existing_results[file_str]
-            all_metadata.append(meta)
-            all_signatures.append(sig)
-            skipped_count += 1
-            continue
+            meta, sig, cached_ai_attempted, cached_ai_identified = existing_results[file_str]
+            
+            # Check if we should retry AI
+            if args.retry_ai and args.ai:
+                # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
+                if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
+                    should_retry_ai = True
+                    if args.verbose:
+                        reason = "AI not attempted" if not cached_ai_attempted else "AI failed to identify"
+                        print(f"[{i}/{len(files)}] Re-analyzing with AI ({reason}): {file_path.name}")
+                else:
+                    # AI already identified, skip
+                    if args.verbose:
+                        print(f"[{i}/{len(files)}] Skipping (already analyzed, AI identified): {file_path.name}")
+                    all_metadata.append(meta)
+                    all_signatures.append(sig)
+                    skipped_count += 1
+                    continue
+            else:
+                # Normal resume - skip already analyzed files
+                if args.verbose:
+                    print(f"[{i}/{len(files)}] Skipping (already analyzed): {file_path.name}")
+                all_metadata.append(meta)
+                all_signatures.append(sig)
+                skipped_count += 1
+                continue
         
-        # Analyze new file
+        # Analyze new file (or re-analyze with AI)
         if args.verbose:
             print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
         else:
             print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
         
         try:
+            start_time = time.time()
+            
             # Set default model if not provided
             ai_model = args.ai_model
             if ai_model is None:
                 ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "llama3.2"
             
-            metadata, signature = analyze_file(
-                file_path,
-                use_ai_quality=args.ai,
-                use_ai_naming=args.ai,
-                verbose=args.verbose,
-                ai_provider=args.ai_provider,
-                ai_model=ai_model,
-                ai_delay=args.ai_delay,
-            )
+            # If retrying AI, we need to re-run the full analysis but only use AI for naming
+            # For retry, we still want to use cached metadata but re-run AI identification
+            if should_retry_ai:
+                # Re-analyze with AI enabled
+                metadata, signature, ai_attempted, ai_identified = analyze_file(
+                    file_path,
+                    use_ai_quality=args.ai,
+                    use_ai_naming=args.ai,  # Enable AI for naming
+                    verbose=args.verbose,
+                    ai_provider=args.ai_provider,
+                    ai_model=ai_model,
+                    ai_delay=args.ai_delay,
+                )
+            else:
+                metadata, signature, ai_attempted, ai_identified = analyze_file(
+                    file_path,
+                    use_ai_quality=args.ai,
+                    use_ai_naming=args.ai,
+                    verbose=args.verbose,
+                    ai_provider=args.ai_provider,
+                    ai_model=ai_model,
+                    ai_delay=args.ai_delay,
+                )
+            
+            elapsed_time = time.time() - start_time
+            
+            if args.verbose:
+                print(f"  Processing time: {elapsed_time:.2f}s", file=sys.stderr)
             
             # Save result immediately
-            save_file_result(metadata, signature, temp_dir, file_path)
+            save_file_result(metadata, signature, temp_dir, file_path, ai_attempted, ai_identified)
             
             all_metadata.append(metadata)
             all_signatures.append(signature)
