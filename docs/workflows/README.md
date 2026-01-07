@@ -12,7 +12,7 @@ This directory contains end-to-end workflow guides for common use cases.
 
 ## Quick Start
 
-For a quick start guide, see [`../guides/getting_started.md`](../guides/getting_started.md).
+For getting started, see the main [`README.md`](../../README.md) in the project root.
 
 ## Command Reference
 

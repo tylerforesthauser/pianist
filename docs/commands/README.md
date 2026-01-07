@@ -17,7 +17,7 @@ This directory contains detailed documentation for each Pianist command.
 
 ## Quick Reference
 
-For a quick overview of all commands and their options, see [`../reference/command_reference.md`](../reference/command_reference.md).
+For a quick overview, see the main [`README.md`](../../README.md) in the project root.
 
 ## Workflows
 

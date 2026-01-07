@@ -91,5 +91,6 @@ For detailed technical information, see [`../technical/analysis_technical_detail
 - [`../technical/analysis_technical_details.md`](../technical/analysis_technical_details.md)
 - [`../guides/testing_analysis.md`](../guides/testing_analysis.md)
 - [`../workflows/midi_analysis_generation.md`](../workflows/midi_analysis_generation.md)
-- [`../reference/command_reference.md`](../reference/command_reference.md)
+- [`README.md`](README.md) - All commands
+- [`../../README.md`](../../README.md) - Main documentation
 

@@ -5,7 +5,7 @@ This module provides analysis capabilities to understand musical structure
 and guide AI expansion of compositions using music21.
 
 For technical details on how each analysis feature works, see:
-docs/temp/analysis_technical_details.md
+docs/technical/analysis_technical_details.md
 """
 
 from __future__ import annotations

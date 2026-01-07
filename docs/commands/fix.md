@@ -29,5 +29,6 @@ pianist fix -i <input.json> [options]
 ## See Also
 
 - [`../guides/pedal_fix_usage.md`](../guides/pedal_fix_usage.md)
-- [`../reference/command_reference.md`](../reference/command_reference.md)
+- [`README.md`](README.md) - All commands
+- [`../../README.md`](../../README.md) - Main documentation
 

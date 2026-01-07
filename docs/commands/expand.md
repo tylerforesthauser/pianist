@@ -145,4 +145,5 @@ pianist reference search --style Classical --technique sequence
 - [`../workflows/expanding_incomplete_compositions.md`](../workflows/expanding_incomplete_compositions.md)
 - [`annotate.md`](annotate.md)
 - [`analyze.md`](analyze.md)
-- [`../reference/command_reference.md`](../reference/command_reference.md)
+- [`README.md`](README.md) - All commands
+- [`../../README.md`](../../README.md) - Main documentation

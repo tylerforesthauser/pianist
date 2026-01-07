@@ -32,7 +32,7 @@ Each command gets its own dedicated doc with:
 - Common patterns
 - Tips and gotchas
 
-### Command Docs (9 total)
+### Command Docs (10 total)
 
 1. **`generate.md`** - Generate new compositions
    - [ ] Purpose: Create new compositions from text descriptions
@@ -87,7 +87,13 @@ Each command gets its own dedicated doc with:
    - [ ] Purpose: Fix common issues (pedal patterns, etc.)
    - [ ] Options: --pedal, etc.
    - [ ] Examples: Fixing pedal patterns
-   - [ ] Link to: guides/pedal_fix_usage.md (existing)
+   - [ ] Link to: guides/PEDAL_FIX_USAGE.md (existing)
+
+10. **`reference.md`** - Manage reference database
+   - [ ] Purpose: Add, list, search, and manage musical references
+   - [ ] Options: add, list, search, get, delete, count
+   - [ ] Examples: Adding references, searching by style/form
+   - [ ] Integration: How it works with batch import scripts
 
 ## Workflows Documentation (`docs/workflows/`)
 
@@ -230,9 +236,9 @@ These stay at the root for discoverability:
 - [x] Keep `docs/INTEGRATION_TESTING.md` in docs/ (testing-specific) ✅
 
 ### Phase 2: Create Command Placeholders
-- [ ] Create all 9 command docs with basic structure
-- [ ] Add links from README.md
-- [ ] Document existing functionality
+- [x] Create all 10 command docs with basic structure ✅
+- [x] Add links from README.md ✅
+- [ ] Document existing functionality (many are still placeholders)
 
 ### Phase 3: Create Workflow Placeholders
 - [ ] Create all 5 workflow docs with outlines

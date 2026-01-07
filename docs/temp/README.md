@@ -10,9 +10,11 @@ The following documents were removed after implementation:
 - **cli_assessment.md** - ✅ New CLI structure implemented
 - **cli_design.md** - ✅ CLI implementation complete
 - **command_structure_design.md** - ✅ Command structure implemented
+- **analysis_library_research.md** - ✅ Decision made, music21 implemented
+- **analysis_library_decision.md** - ✅ Decision implemented, music21 in use
 
 ### 🔄 Active Documents
-- **analysis_library_research.md** - Research on music21 and alternatives (analysis module not yet implemented - **KEEP**)
+- **COMPREHENSIVE_ANALYSIS_CLI_PLAN.md** - Planning document for analysis CLI enhancements (may be outdated - review needed)
 
 ## Guidelines
 

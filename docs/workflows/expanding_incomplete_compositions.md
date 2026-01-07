@@ -24,5 +24,5 @@ Take a 90-second sketch "full of great ideas" and expand it into a complete 5-mi
 
 - [`../commands/annotate.md`](../commands/annotate.md)
 - [`../commands/expand.md`](../commands/expand.md)
-- [`../guides/getting_started.md`](../guides/getting_started.md)
+- [`../../README.md`](../../README.md)
 

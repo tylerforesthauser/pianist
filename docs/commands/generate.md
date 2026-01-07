@@ -94,5 +94,6 @@ pianist generate --provider gemini "Title: Test" | pianist render -i - -o out.mi
 
 - [`../workflows/ai_human_collaboration.md`](../workflows/ai_human_collaboration.md)
 - [`../guides/ai_prompting.md`](../guides/ai_prompting.md)
-- [`../reference/command_reference.md`](../reference/command_reference.md)
+- [`README.md`](README.md) - All commands
+- [`../../README.md`](../../README.md) - Main documentation
 

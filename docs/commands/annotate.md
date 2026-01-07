@@ -76,5 +76,6 @@ pianist annotate -i composition.json --show
 
 - [`../workflows/expanding_incomplete_compositions.md`](../workflows/expanding_incomplete_compositions.md)
 - [`../reference/schema_reference.md`](../reference/schema_reference.md)
-- [`../reference/command_reference.md`](../reference/command_reference.md)
+- [`README.md`](README.md) - All commands
+- [`../../README.md`](../../README.md) - Main documentation
 

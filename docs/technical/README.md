@@ -13,7 +13,7 @@ This directory contains deep dives into how Pianist works internally.
 ## For Users
 
 If you're looking for how to use Pianist, see:
-- [`../guides/getting_started.md`](../guides/getting_started.md) - Quick start
+- [`../../README.md`](../../README.md) - Quick start and user guide
 - [`../commands/`](../commands/) - Command documentation
 - [`../workflows/`](../workflows/) - Workflow guides
 
