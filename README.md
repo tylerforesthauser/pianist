@@ -25,7 +25,7 @@ Pianist provides a shared musical vocabulary (JSON schema) that both humans and 
 ### Key Features
 
 - **JSON → MIDI conversion**: Parses structured composition data and generates accurate MIDI files
-- **AI integration**: Optional provider support (Gemini cloud or Ollama local) for generating and iterating on compositions directly
+- **AI integration**: Optional provider support (Gemini cloud, Ollama local, or OpenRouter cloud) for generating and iterating on compositions directly
 - **MIDI analysis**: Extract musical characteristics from existing MIDI files to inspire new compositions
 - **Iteration tools**: Transpose, fix pedal patterns, and modify compositions programmatically
 - **Flexible input**: Handles JSON wrapped in markdown code blocks, minor formatting issues, and raw JSON
@@ -141,6 +141,7 @@ Pianist can call AI providers directly to generate or modify compositions. This 
 Currently supported providers:
 - **Gemini** (Google) - Cloud-based, requires API key
 - **Ollama** (Local) - Run AI models locally, no API key needed
+- **OpenRouter** (Cloud) - Unified API for hundreds of AI models, requires API key
 
 To enable Gemini integration:
 
@@ -225,6 +226,44 @@ To enable Ollama integration:
 
 For detailed Ollama setup and usage, see [docs/guides/OLLAMA_SETUP.md](docs/guides/OLLAMA_SETUP.md).
 
+### To enable OpenRouter integration:
+
+1. **Get an API key:**
+   - Sign up at https://openrouter.ai
+   - Create an API key from your dashboard
+
+2. **Set the API key** (choose one method):
+   
+   **Option A: Use a `.env` file** (recommended):
+   Create a `.env` file in the project root:
+   ```
+   OPENROUTER_API_KEY=your-api-key-here
+   ```
+   The `.env` file is automatically loaded if `python-dotenv` is installed.
+   
+   **Option B: Set environment variable:**
+   ```bash
+   export OPENROUTER_API_KEY='your-api-key-here'
+   ```
+   
+   Note: Environment variables override `.env` file values if both are set.
+
+3. **Install Python requests (if not already installed):**
+   ```bash
+   pip install requests
+   ```
+
+4. **Use OpenRouter with pianist:**
+   ```bash
+   # Use OpenRouter with default model (openai/gpt-4o)
+   ./pianist generate --provider openrouter "Title: Morning Sketch..." -o composition.json
+   
+   # Use a specific model (see https://openrouter.ai/models for available models)
+   ./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" "Title: Morning Sketch..." -o composition.json
+   ```
+
+OpenRouter provides access to hundreds of AI models through a single API. See https://openrouter.ai/models for the full list of available models.
+
 ## Core Workflows
 
 ### Understanding AI vs Non-AI Workflows
@@ -241,10 +280,10 @@ For detailed Ollama setup and usage, see [docs/guides/OLLAMA_SETUP.md](docs/guid
 - `diff` - Always works (compares compositions)
 
 **Commands that can USE an AI provider (optional):**
-- `generate --provider gemini|ollama` - Generates composition from description
-- `modify --provider gemini|ollama` - Uses AI to modify existing composition
-- `analyze --provider gemini|ollama` - Uses AI to generate new composition from analysis
-- `expand --provider gemini|ollama` - Uses AI to expand incomplete compositions
+- `generate --provider gemini|ollama|openrouter` - Generates composition from description
+- `modify --provider gemini|ollama|openrouter` - Uses AI to modify existing composition
+- `analyze --provider gemini|ollama|openrouter` - Uses AI to generate new composition from analysis
+- `expand --provider gemini|ollama|openrouter` - Uses AI to expand incomplete compositions
 
 ### 1. Creating New Compositions
 

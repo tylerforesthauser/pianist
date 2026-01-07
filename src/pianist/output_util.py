@@ -100,7 +100,7 @@ def derive_sidecar_path(primary_path: Path, provider: str | None = None) -> Path
     
     Args:
         primary_path: Path to the primary output file
-        provider: Optional provider name (e.g., "gemini", "ollama")
+        provider: Optional provider name (e.g., "gemini", "ollama", "openrouter")
     
     Returns:
         Path to the sidecar file

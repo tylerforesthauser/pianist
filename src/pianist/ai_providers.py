@@ -35,6 +35,10 @@ class OllamaError(RuntimeError):
     pass
 
 
+class OpenRouterError(RuntimeError):
+    pass
+
+
 def generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
     """
     Generate text using Google Gemini via the Google GenAI SDK.
@@ -244,12 +248,136 @@ def generate_text_ollama(*, model: str, prompt: str, verbose: bool = False) -> s
         raise OllamaError(error_msg) from e
 
 
-def generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+def generate_text_openrouter(*, model: str, prompt: str, verbose: bool = False) -> str:
     """
-    Unified interface for generating text from either Gemini or Ollama.
+    Generate text using OpenRouter API.
+    
+    This function calls OpenRouter's unified API to access hundreds of AI models.
+    See https://openrouter.ai/docs/quickstart for more information.
     
     Args:
-        provider: Either "gemini" or "ollama"
+        model: The OpenRouter model identifier (e.g., "openai/gpt-4o", "anthropic/claude-3.5-sonnet").
+        prompt: The prompt text to send to the model.
+        verbose: If True, print progress indicators and timing information.
+    
+    Returns:
+        The generated text response from OpenRouter.
+    
+    Raises:
+        OpenRouterError: If API key is missing, connection fails, or request fails.
+    """
+    try:
+        import requests
+        import json
+    except ImportError:
+        raise OpenRouterError(
+            "requests library required for OpenRouter support. Install with: pip install requests"
+        )
+    
+    # Check for API key
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise OpenRouterError(
+            "OPENROUTER_API_KEY environment variable is not set. Export it, e.g.:\n"
+            "  export OPENROUTER_API_KEY='...'\n"
+            "Then retry the command."
+        )
+    
+    if verbose:
+        sys.stderr.write(f"Sending request to OpenRouter ({model})...\n")
+        sys.stderr.flush()
+    
+    start_time = time.time()
+    
+    try:
+        # OpenRouter API endpoint
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        # Optional headers for app attribution (can be set via env vars)
+        http_referer = os.getenv("OPENROUTER_HTTP_REFERER")
+        x_title = os.getenv("OPENROUTER_X_TITLE")
+        if http_referer:
+            headers["HTTP-Referer"] = http_referer
+        if x_title:
+            headers["X-Title"] = x_title
+        
+        # OpenRouter uses the OpenAI chat completions format
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+        }
+        
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=3600,  # 1 hour timeout for large requests
+        )
+        response.raise_for_status()
+        
+        result = response.json()
+        
+        # Extract response text from OpenRouter format
+        # Response format: {"choices": [{"message": {"content": "..."}}]}
+        if "choices" not in result or len(result["choices"]) == 0:
+            raise OpenRouterError("OpenRouter returned no choices in response.")
+        
+        response_text = result["choices"][0].get("message", {}).get("content", "")
+        
+        elapsed_time = time.time() - start_time
+        
+        if not response_text or not response_text.strip():
+            raise OpenRouterError("OpenRouter returned an empty response.")
+        
+        if verbose:
+            sys.stderr.write(f"Response complete: {len(response_text)} chars in {elapsed_time:.1f}s\n")
+            sys.stderr.flush()
+        
+        return response_text.strip()
+        
+    except requests.exceptions.ConnectionError:
+        raise OpenRouterError(
+            "Could not connect to OpenRouter API. "
+            "Check your internet connection and try again."
+        )
+    except requests.exceptions.Timeout:
+        raise OpenRouterError(
+            "OpenRouter request timed out after 3600 seconds (1 hour). "
+            "Very large requests may require more time."
+        )
+    except requests.exceptions.HTTPError as e:
+        elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+        status_code = e.response.status_code if e.response else None
+        error_msg = f"OpenRouter API error (HTTP {status_code}): {e}"
+        if verbose and elapsed_time > 0:
+            error_msg += f" (after {elapsed_time:.1f}s)"
+        raise OpenRouterError(error_msg) from e
+    except OpenRouterError:
+        raise
+    except Exception as e:
+        elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+        error_msg = f"OpenRouter request failed: {type(e).__name__}: {e}"
+        if verbose and elapsed_time > 0:
+            error_msg += f" (after {elapsed_time:.1f}s)"
+        raise OpenRouterError(error_msg) from e
+
+
+def generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+    """
+    Unified interface for generating text from Gemini, Ollama, or OpenRouter.
+    
+    Args:
+        provider: Either "gemini", "ollama", or "openrouter"
         model: Model name (provider-specific)
         prompt: The prompt text
         verbose: If True, print progress indicators
@@ -260,13 +388,16 @@ def generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bo
     Raises:
         GeminiError: For Gemini-specific errors
         OllamaError: For Ollama-specific errors
+        OpenRouterError: For OpenRouter-specific errors
         ValueError: For unsupported providers
     """
     if provider == "gemini":
         return generate_text(model=model, prompt=prompt, verbose=verbose)
     elif provider == "ollama":
         return generate_text_ollama(model=model, prompt=prompt, verbose=verbose)
+    elif provider == "openrouter":
+        return generate_text_openrouter(model=model, prompt=prompt, verbose=verbose)
     else:
-        raise ValueError(f"Unsupported provider: {provider}. Use 'gemini' or 'ollama'.")
+        raise ValueError(f"Unsupported provider: {provider}. Use 'gemini', 'ollama', or 'openrouter'.")
 
 

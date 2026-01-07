@@ -377,6 +377,23 @@ Respond ONLY with valid JSON, no other text."""
                 if verbose:
                     print(f"  [AI] {e}", file=sys.stderr)
                 return None
+        elif provider == "openrouter":
+            try:
+                from pianist.ai_providers import generate_text_openrouter, OpenRouterError
+                response = generate_text_openrouter(model=model, prompt=prompt, verbose=verbose)
+            except OpenRouterError as e:
+                if verbose:
+                    print(f"  [AI] {e}", file=sys.stderr)
+                # Check if it's a rate limit error
+                error_str = str(e)
+                if "429" in error_str or "rate limit" in error_str.lower() or "quota" in error_str.lower():
+                    if verbose:
+                        print(f"  [AI] Rate limit exceeded. Consider using --ai-delay", file=sys.stderr)
+                return None
+            except Exception as e:
+                if verbose:
+                    print(f"  [AI] Error: {e}", file=sys.stderr)
+                return None
         else:  # gemini
             try:
                 from pianist.ai_providers import generate_text
@@ -539,7 +556,12 @@ def generate_suggested_name(
     if use_ai and MUSIC21_AVAILABLE:
         # Set default model if not provided
         if ai_model is None:
-            ai_model = "gemini-flash-latest" if ai_provider == "gemini" else "gpt-oss:20b"
+            if ai_provider == "gemini":
+                ai_model = "gemini-flash-latest"
+            elif ai_provider == "openrouter":
+                ai_model = "openai/gpt-4o"  # Default OpenRouter model
+            else:  # ollama
+                ai_model = "gpt-oss:20b"
         
         ai_identification = identify_composition_with_ai(
             metadata, composition, filename,
@@ -1170,15 +1192,15 @@ def main() -> int:
     parser.add_argument(
         "--ai-provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=os.getenv("AI_PROVIDER", "gemini"),
-        help="AI provider to use: 'gemini' (cloud) or 'ollama' (local). Default: gemini",
+        help="AI provider to use: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Default: gemini",
     )
     
     parser.add_argument(
         "--ai-model",
         type=str,
-        help="AI model name. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama)",
+        help="AI model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter)",
     )
     
     parser.add_argument(
@@ -1372,7 +1394,12 @@ def main() -> int:
             # Set default model if not provided
             ai_model = args.ai_model
             if ai_model is None:
-                ai_model = "gemini-flash-latest" if args.ai_provider == "gemini" else "gpt-oss:20b"
+                if args.ai_provider == "gemini":
+                    ai_model = "gemini-flash-latest"
+                elif args.ai_provider == "openrouter":
+                    ai_model = "openai/gpt-4o"
+                else:  # ollama
+                    ai_model = "gpt-oss:20b"
             
             # Run analysis (including any retry/force logic decided earlier) with AI parameters
             metadata, signature, ai_attempted, ai_identified = analyze_file(

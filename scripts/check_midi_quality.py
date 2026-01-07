@@ -367,11 +367,16 @@ def get_ai_assessment(
 ) -> None:
     """Get AI assessment of musical quality."""
     try:
-        from pianist.ai_providers import generate_text_unified, GeminiError, OllamaError
+        from pianist.ai_providers import generate_text_unified, GeminiError, OllamaError, OpenRouterError
         
         # Set default model if not provided
         if model is None:
-            model = "gemini-flash-latest" if provider == "gemini" else "gpt-oss:20b"
+            if provider == "gemini":
+                model = "gemini-flash-latest"
+            elif provider == "openrouter":
+                model = "openai/gpt-4o"
+            else:  # ollama
+                model = "gpt-oss:20b"
         
         comp_json = composition_to_canonical_json(composition)
         
@@ -395,7 +400,7 @@ Be concise and specific."""
         response = generate_text_unified(provider=provider, model=model, prompt=prompt, verbose=False)
         report.ai_assessment = response.strip()
         
-    except (GeminiError, OllamaError) as e:
+    except (GeminiError, OllamaError, OpenRouterError) as e:
         report.add_issue(QualityIssue(
             "warning",
             "technical",
@@ -551,14 +556,14 @@ def main() -> int:
         "--provider",
         type=str,
         default="gemini",
-        choices=["gemini", "ollama"],
-        help="AI provider for assessment: 'gemini' (cloud) or 'ollama' (local). Default: gemini",
+        choices=["gemini", "ollama", "openrouter"],
+        help="AI provider for assessment: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Default: gemini",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama)",
+        help="Model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter)",
     )
     parser.add_argument(
         "--verbose", "-v",

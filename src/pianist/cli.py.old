@@ -23,7 +23,7 @@ from .iterate import (
 from .pedal_fix import fix_pedal_patterns
 from .schema import PedalEvent
 from .renderers.mido_renderer import render_midi_mido
-from .ai_providers import GeminiError, OllamaError, generate_text_unified
+from .ai_providers import GeminiError, OllamaError, OpenRouterError, generate_text_unified
 from .diff import diff_compositions, format_diff_text, format_diff_json, format_diff_markdown
 from .annotations import (
     add_key_idea,
@@ -377,15 +377,15 @@ def main(argv: list[str] | None = None) -> int:
     modify.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for modification: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates a prompt template (use --prompt to save it).",
+        help="AI provider to use for modification: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). If omitted, only generates a prompt template (use --prompt to save it).",
     )
     modify.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter). Only used with --provider.",
     )
     modify.add_argument(
         "-r", "--raw",
@@ -448,15 +448,15 @@ def main(argv: list[str] | None = None) -> int:
     analyze.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for generating a new composition: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates analysis/prompt.",
+        help="AI provider to use for generating a new composition: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). If omitted, only generates analysis/prompt.",
     )
     analyze.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter). Only used with --provider.",
     )
     analyze.add_argument(
         "-r", "--raw",
@@ -663,15 +663,15 @@ def main(argv: list[str] | None = None) -> int:
     expand.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for expansion: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates expansion strategy.",
+        help="AI provider to use for expansion: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). If omitted, only generates expansion strategy.",
     )
     expand.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter). Only used with --provider.",
     )
     expand.add_argument(
         "--preserve-motifs",
@@ -771,15 +771,15 @@ def main(argv: list[str] | None = None) -> int:
     generate.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for generation: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates a prompt template (use --prompt to save it).",
+        help="AI provider to use for generation: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). If omitted, only generates a prompt template (use --prompt to save it).",
     )
     generate.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter). Only used with --provider.",
     )
     generate.add_argument(
         "-r", "--raw",
@@ -1071,7 +1071,12 @@ def main(argv: list[str] | None = None) -> int:
                     # Set default model if not provided
                     model = args.model
                     if model is None:
-                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                        if args.provider == "gemini":
+                            model = "gemini-flash-latest"
+                        elif args.provider == "openrouter":
+                            model = "openai/gpt-4o"
+                        else:  # ollama
+                            model = "gpt-oss:20b"
                     
                     try:
                         raw_text = generate_text_unified(
@@ -1080,7 +1085,7 @@ def main(argv: list[str] | None = None) -> int:
                             prompt=prompt,
                             verbose=args.verbose
                         )
-                    except (GeminiError, OllamaError) as e:
+                    except (GeminiError, OllamaError, OpenRouterError) as e:
                         sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
                         return 1
 
@@ -1710,7 +1715,12 @@ def main(argv: list[str] | None = None) -> int:
                     # Set default model if not provided
                     model = args.model
                     if model is None:
-                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                        if args.provider == "gemini":
+                            model = "gemini-flash-latest"
+                        elif args.provider == "openrouter":
+                            model = "openai/gpt-4o"
+                        else:  # ollama
+                            model = "gpt-oss:20b"
                     
                     if args.verbose:
                         sys.stderr.write(f"Calling AI provider ({args.provider}) for expansion...\n")
@@ -1722,7 +1732,7 @@ def main(argv: list[str] | None = None) -> int:
                             prompt=prompt,
                             verbose=args.verbose
                         )
-                    except (GeminiError, OllamaError) as e:
+                    except (GeminiError, OllamaError, OpenRouterError) as e:
                         sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
                         return 1
                 
@@ -2090,7 +2100,12 @@ def main(argv: list[str] | None = None) -> int:
                     # Set default model if not provided
                     model = args.model
                     if model is None:
-                        model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                        if args.provider == "gemini":
+                            model = "gemini-flash-latest"
+                        elif args.provider == "openrouter":
+                            model = "openai/gpt-4o"
+                        else:  # ollama
+                            model = "gpt-oss:20b"
                     
                     try:
                         raw_text = generate_text_unified(
@@ -2099,7 +2114,7 @@ def main(argv: list[str] | None = None) -> int:
                             prompt=prompt,
                             verbose=args.verbose
                         )
-                    except (GeminiError, OllamaError) as e:
+                    except (GeminiError, OllamaError, OpenRouterError) as e:
                         sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
                         return 1
 
@@ -2382,7 +2397,12 @@ def main(argv: list[str] | None = None) -> int:
                 # Set default model if not provided
                 model = args.model
                 if model is None:
-                    model = "gemini-flash-latest" if args.provider == "gemini" else "llama3.2"
+                    if args.provider == "gemini":
+                        model = "gemini-flash-latest"
+                    elif args.provider == "openrouter":
+                        model = "openai/gpt-4o"
+                    else:  # ollama
+                        model = "llama3.2"
                 
                 try:
                     raw_text = generate_text_unified(
@@ -2391,7 +2411,7 @@ def main(argv: list[str] | None = None) -> int:
                         prompt=prompt,
                         verbose=args.verbose
                     )
-                except (GeminiError, OllamaError) as e:
+                except (GeminiError, OllamaError, OpenRouterError) as e:
                     sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
                     return 1
             
