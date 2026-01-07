@@ -184,30 +184,38 @@ class NoteEvent(BaseModel):
             if not notes:
                 raise ValueError("'notes' must not be empty.")
 
-            # Normalize to the internal `pitches` list for rendering convenience.
-            # This runs before Pydantic parses nested models, so items may be dicts.
-            pitches_from_notes: list[int | str] = []
-            for idx, n in enumerate(notes):
-                if isinstance(n, dict):
-                    if "pitch" not in n:
-                        raise ValueError(
-                            f"Note at index {idx} is missing required 'pitch' field."
-                        )
-                    pitch_value = n.get("pitch")
-                else:
-                    if not hasattr(n, "pitch"):
-                        raise ValueError(
-                            f"Note at index {idx} is missing required 'pitch' attribute."
-                        )
-                    pitch_value = getattr(n, "pitch")
+            # Check if notes is an array of integers/strings (MIDI pitch values)
+            # If so, treat it as pitches instead of labeled notes
+            if all(isinstance(n, (int, str)) for n in notes):
+                # Convert array of pitch values to pitches format
+                data["pitches"] = notes
+                data.pop("notes", None)
+            else:
+                # Normalize to the internal `pitches` list for rendering convenience.
+                # This runs before Pydantic parses nested models, so items may be dicts.
+                pitches_from_notes: list[int | str] = []
+                for idx, n in enumerate(notes):
+                    if isinstance(n, dict):
+                        if "pitch" not in n:
+                            raise ValueError(
+                                f"Note at index {idx} is missing required 'pitch' field."
+                            )
+                        pitch_value = n.get("pitch")
+                    else:
+                        if not hasattr(n, "pitch"):
+                            raise ValueError(
+                                f"Note at index {idx} is missing required 'pitch' attribute."
+                            )
+                        pitch_value = getattr(n, "pitch")
 
-                if pitch_value is None:
-                    raise ValueError(
-                        f"Note at index {idx} has 'pitch' set to None; a pitch value is required."
-                    )
-                pitches_from_notes.append(pitch_value)
+                    if pitch_value is None:
+                        raise ValueError(
+                            f"Note at index {idx} has 'pitch' set to None; a pitch value is required."
+                        )
+                    pitches_from_notes.append(pitch_value)
 
-            data["pitches"] = pitches_from_notes
+                data["pitches"] = pitches_from_notes
+                data.pop("notes", None)
         elif groups is not None:
             if not isinstance(groups, list):
                 raise ValueError("Field 'groups' must be a list.")
