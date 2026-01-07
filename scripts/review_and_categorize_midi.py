@@ -1328,24 +1328,24 @@ def main() -> int:
         file_str = str(file_path)
         
         # Check if we already have results for this file
-        should_retry_ai = False
-        should_force_ai = False
         if args.resume and file_str in existing_results:
             meta, sig, cached_ai_attempted, cached_ai_identified = existing_results[file_str]
             
             # Check if we should force AI (overrides retry-ai logic)
             if args.force_ai and args.ai:
-                should_force_ai = True
+                # Force re-analysis with AI
                 if args.verbose:
                     print(f"[{i}/{len(files)}] Re-analyzing with AI (forced): {file_path.name}")
+                # Fall through to analysis below
             # Check if we should retry AI
             elif args.retry_ai and args.ai:
                 # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
                 if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
-                    should_retry_ai = True
+                    # Need to retry AI - fall through to analysis
                     if args.verbose:
                         reason = "AI not attempted" if not cached_ai_attempted else "AI failed to identify"
                         print(f"[{i}/{len(files)}] Re-analyzing with AI ({reason}): {file_path.name}")
+                    # Fall through to analysis below
                 else:
                     # AI already identified, skip
                     if args.verbose:
