@@ -23,7 +23,7 @@ pianist expand -i <input.json> --target-length <beats> [options]
 - `--model` - Model name (default: `gemini-flash-latest`). Only used with `--provider`.
 - `--preserve-motifs` - Preserve all marked motifs and develop them throughout
 - `--preserve` - Comma-separated list of idea IDs to preserve
-- `--validate` - Validate expansion quality before returning (basic checks implemented)
+- `--validate` - Validate expansion quality before returning (checks motif preservation, development quality, harmonic coherence, form consistency)
 - `--render` - Also render the expanded composition to MIDI
 - `-m, --midi` - MIDI output path. Auto-generated from output name if `--render` is used without this flag.
 - `-r, --raw` - Save the raw AI response text to this path. Auto-generated if `--output` is provided. Only used with `--provider`.
@@ -65,7 +65,19 @@ pianist expand -i annotated.json --target-length 300 \
 # Expand and validate the result
 pianist expand -i sketch.json --target-length 300 \
   --provider gemini --validate -o expanded.json
+
+# Validate with verbose output to see detailed quality scores
+pianist expand -i sketch.json --target-length 300 \
+  --provider gemini --validate --verbose -o expanded.json
 ```
+
+Validation checks:
+- **Motif Preservation**: Verifies that original motifs are preserved in the expansion
+- **Development Quality**: Assesses the quality of motif/phrase development
+- **Harmonic Coherence**: Checks harmonic coherence and progression
+- **Form Consistency**: Verifies form structure is maintained
+- **Length Validation**: Ensures target length is met (within acceptable range)
+- **Overall Quality Score**: Weighted average of all quality metrics
 
 ## How It Works
 
@@ -80,7 +92,13 @@ pianist expand -i sketch.json --target-length 300 \
 3. **AI Expansion** (if `--provider` is used):
    - Uses the strategy to build detailed expansion instructions
    - Calls AI provider with enhanced prompt
-   - Validates the result (if `--validate` is used)
+   - Validates the result (if `--validate` is used):
+     - Checks motif preservation
+     - Assesses development quality
+     - Verifies harmonic coherence
+     - Checks form consistency
+     - Validates target length
+     - Calculates overall quality score
 
 4. **Output**: Saves expanded composition (or strategy if no provider)
 

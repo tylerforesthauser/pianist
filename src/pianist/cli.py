@@ -35,6 +35,10 @@ from .expansion_strategy import (
     generate_expansion_strategy,
     ExpansionStrategy,
 )
+from .validation import (
+    validate_expansion,
+    ValidationResult,
+)
 
 
 # Default output directory for all generated files
@@ -1553,22 +1557,87 @@ def main(argv: list[str] | None = None) -> int:
                 
                 # Validate if requested
                 if args.validate:
-                    # TODO: Implement validation using validation module
-                    sys.stderr.write(
-                        "warning: Validation not yet fully implemented. "
-                        "Validation module is required.\n"
-                    )
-                    # Basic check: did it expand?
-                    if expanded_length < current_length:
+                    if MUSIC21_AVAILABLE:
+                        try:
+                            validation_result = validate_expansion(
+                                comp,
+                                expanded_comp,
+                                target_length=args.target_length
+                            )
+                            
+                            # Display validation results
+                            if args.verbose:
+                                sys.stderr.write("\nValidation Results:\n")
+                                sys.stderr.write("=" * 60 + "\n")
+                                sys.stderr.write(
+                                    f"Overall Quality: {validation_result.overall_quality:.2%}\n"
+                                )
+                                sys.stderr.write(
+                                    f"Motifs Preserved: {validation_result.motifs_preserved_count}/"
+                                    f"{validation_result.motifs_total_count}\n"
+                                )
+                                sys.stderr.write(
+                                    f"Development Quality: {validation_result.development_quality:.2%}\n"
+                                )
+                                sys.stderr.write(
+                                    f"Harmonic Coherence: {validation_result.harmonic_coherence:.2%}\n"
+                                )
+                                sys.stderr.write(
+                                    f"Form Consistency: {validation_result.form_consistency:.2%}\n"
+                                )
+                            
+                            # Report issues
+                            if validation_result.issues:
+                                for issue in validation_result.issues:
+                                    sys.stderr.write(f"⚠️  Issue: {issue}\n")
+                            
+                            # Report warnings
+                            if validation_result.warnings:
+                                for warning in validation_result.warnings:
+                                    sys.stderr.write(f"⚠️  Warning: {warning}\n")
+                            
+                            # Report pass/fail
+                            if validation_result.passed:
+                                if args.verbose:
+                                    sys.stderr.write("✅ Validation passed\n")
+                            else:
+                                sys.stderr.write(
+                                    "❌ Validation failed. Review issues above.\n"
+                                )
+                        except Exception as e:
+                            if args.debug:
+                                traceback.print_exc(file=sys.stderr)
+                            sys.stderr.write(
+                                f"warning: Validation failed: {e}. "
+                                "Proceeding with basic checks.\n"
+                            )
+                            # Fall back to basic checks
+                            if expanded_length < current_length:
+                                sys.stderr.write(
+                                    "warning: Expanded composition is shorter than original. "
+                                    "This may indicate an issue.\n"
+                                )
+                            elif expanded_length < args.target_length * 0.9:
+                                sys.stderr.write(
+                                    f"warning: Expanded composition ({expanded_length:.2f} beats) "
+                                    f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
+                                )
+                    else:
                         sys.stderr.write(
-                            "warning: Expanded composition is shorter than original. "
-                            "This may indicate an issue.\n"
+                            "warning: Validation requires music21. "
+                            "Install with: pip install music21\n"
                         )
-                    elif expanded_length < args.target_length * 0.9:
-                        sys.stderr.write(
-                            f"warning: Expanded composition ({expanded_length:.2f} beats) "
-                            f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
-                        )
+                        # Basic check: did it expand?
+                        if expanded_length < current_length:
+                            sys.stderr.write(
+                                "warning: Expanded composition is shorter than original. "
+                                "This may indicate an issue.\n"
+                            )
+                        elif expanded_length < args.target_length * 0.9:
+                            sys.stderr.write(
+                                f"warning: Expanded composition ({expanded_length:.2f} beats) "
+                                f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
+                            )
                 
                 # Save raw response
                 if raw_text is not None and raw_out_path is not None:
