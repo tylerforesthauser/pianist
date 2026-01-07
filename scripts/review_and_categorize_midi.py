@@ -1241,6 +1241,13 @@ def main() -> int:
     
     args = parser.parse_args()
     
+    # Validate flag combinations
+    if args.force_ai and not (args.resume and args.ai):
+        parser.error("--force-ai requires both --resume and --ai flags")
+    
+    if args.retry_ai and not (args.resume and args.ai):
+        parser.error("--retry-ai requires both --resume and --ai flags")
+    
     # Set up temp directory
     temp_dir = args.temp_dir or Path(".midi_review_cache")
     
@@ -1306,6 +1313,8 @@ def main() -> int:
     # Analyze files
     all_metadata: list[FileMetadata] = []
     all_signatures: list[list[int]] = []
+    # Track AI info for newly analyzed files to avoid reloading from cache
+    file_ai_info: dict[str, tuple[list[int], bool, bool]] = {}
     analyzed_count = 0
     skipped_count = 0
     
@@ -1392,6 +1401,7 @@ def main() -> int:
             
             # Run incremental duplicate detection against already processed files
             # This compares the new file against all previously processed files (including skipped ones)
+            # Note: We compare before adding to all_metadata to avoid self-comparison
             detect_duplicates_incremental(
                 metadata,
                 signature,
@@ -1400,14 +1410,20 @@ def main() -> int:
                 args.similarity_threshold,
             )
             
-            # Assign/update duplicate groups for all files
-            assign_duplicate_groups(all_metadata + [metadata])
+            # Add to lists after duplicate detection (to avoid self-comparison)
+            all_metadata.append(metadata)
+            all_signatures.append(signature)
+            # Track AI info for efficient saving at the end
+            file_ai_info[str(file_path)] = (signature, ai_attempted, ai_identified)
+            
+            # Assign/update duplicate groups periodically (every 10 files) or at the end
+            # This is more efficient than calling after every file
+            if len(all_metadata) % 10 == 0:
+                assign_duplicate_groups(all_metadata)
             
             # Save result immediately (includes duplicate detection results)
             save_file_result(metadata, signature, temp_dir, file_path, ai_attempted, ai_identified)
             
-            all_metadata.append(metadata)
-            all_signatures.append(signature)
             analyzed_count += 1
         except KeyboardInterrupt:
             print(f"\n\nInterrupted! Progress saved. {analyzed_count} files analyzed, {skipped_count} skipped.")
@@ -1447,22 +1463,26 @@ def main() -> int:
     # Create a mapping of filepath to (signature, ai_attempted, ai_identified)
     file_info_map: dict[str, tuple[list[int], bool, bool]] = {}
     
-    # Add info from existing results
+    # Add info from existing results (loaded from cache)
     for file_str, (_, sig, ai_att, ai_id) in existing_results.items():
         file_info_map[file_str] = (sig, ai_att, ai_id)
     
-    # Add info from newly analyzed files (they should be in all_signatures)
+    # Add info from newly analyzed files (tracked during processing)
+    file_info_map.update(file_ai_info)
+    
+    # For any files not in the map (shouldn't happen, but handle gracefully)
     for i, metadata in enumerate(all_metadata):
         file_str = str(metadata.filepath)
-        if file_str not in file_info_map and i < len(all_signatures):
-            # Try to load AI info from cache, or use defaults
-            result = load_file_result(temp_dir, Path(metadata.filepath))
-            if result:
-                _, sig, ai_att, ai_id = result
-                file_info_map[file_str] = (sig, ai_att, ai_id)
-            else:
-                # Default values if not found
+        if file_str not in file_info_map:
+            if i < len(all_signatures):
+                # Fallback: use signature from all_signatures, assume no AI
                 file_info_map[file_str] = (all_signatures[i], False, False)
+            else:
+                # Last resort: try to load from cache
+                result = load_file_result(temp_dir, Path(metadata.filepath))
+                if result:
+                    _, sig, ai_att, ai_id = result
+                    file_info_map[file_str] = (sig, ai_att, ai_id)
     
     # Save all metadata with updated duplicate detection
     for metadata in all_metadata:
