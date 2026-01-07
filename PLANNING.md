@@ -23,9 +23,10 @@ This directory contains the core planning documents for the Pianist project. The
 ---
 
 ### [ROADMAP.md](ROADMAP.md)
-**Purpose:** Outlines the feature priorities, implementation roadmap, technical approach, and getting started guide.
+**Purpose:** Outlines the feature priorities, implementation roadmap, technical approach, and getting started guide. **This is the single source of truth for project status and planning.**
 
 **Contents:**
+- **Current Status** (consolidated status assessment - update this, don't create new status docs)
 - Feature priorities (6 main areas)
 - Implementation roadmap (3 phases)
 - Technical approach and design
@@ -35,11 +36,13 @@ This directory contains the core planning documents for the Pianist project. The
 - Open questions
 
 **When to update:**
+- **Always update the "Current Status" section** when making status assessments
 - When priorities change
-- After completing phases
+- After completing phases or features
 - When technical approach changes
 - When new questions are answered
 - When implementation steps change
+- **DO NOT create separate status documents** - consolidate everything in ROADMAP.md
 
 ---
 
@@ -50,6 +53,7 @@ This directory contains the core planning documents for the Pianist project. The
 **Principles:**
 - Keep documents focused and up-to-date
 - **Don't create new documents without clear need** - Carefully consider if a new document is truly required
+- **ROADMAP.md is the single source of truth for status** - Always update the "Current Status" section there, never create separate status documents
 - **Temporary documents** should go in `docs/temp/` - Use this for work-in-progress, research notes, or documents that will be consolidated/removed later
 - Consolidate related information
 - Remove outdated information

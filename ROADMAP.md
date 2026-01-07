@@ -4,10 +4,155 @@
 
 This roadmap outlines the path to achieving the core goal: **rock solid human-AI collaboration where AI can understand, expand, and develop human musical ideas.**
 
-**Current Achievement:** 95%  
-**Target:** 100%
+**This document is the single source of truth for project status and planning. All status updates should be made here, not in separate documents.**
 
-**Recent Progress:**
+---
+
+## 📊 Current Status
+
+> **⚠️ IMPORTANT FOR AI AGENTS:** This section should be updated whenever:
+> - Features are completed or progress is made
+> - Status assessments are performed
+> - Priorities change
+> - New gaps or issues are identified
+> 
+> **DO NOT create new status documents.** Update this section instead.
+
+### Overall Progress
+
+**Current Achievement:** ~85-90% toward core goal  
+**Phase Breakdown:**
+- Phase 1 (Foundation): ✅ **100% Complete**
+- Phase 2 (Intelligence Layer): 🟡 **~70% Complete**
+- Phase 3 (Refinement): ❌ **0% Complete**
+
+### What's Complete ✅
+
+#### Core Infrastructure
+- ✅ JSON schema with musical intent annotations (`MusicalIntent`, `KeyIdea`, `ExpansionPoint`)
+- ✅ Bidirectional MIDI ↔ JSON conversion
+- ✅ Schema validation and serialization
+- ✅ File versioning and output directory structure
+
+#### CLI Commands
+- ✅ `annotate` - Mark musical intent (manual and auto-detect)
+- ✅ `expand` - Expand incomplete compositions (with/without AI provider)
+- ✅ `diff` - Compare compositions
+- ✅ `analyze` - Musical analysis (MIDI and JSON input)
+- ✅ `generate`, `modify`, `import`, `render`, `fix` - All working
+- ✅ `reference` - Database management (add, list, search, get, delete, count)
+
+#### Musical Analysis
+- ✅ Basic and advanced analysis module (`musical_analysis.py`)
+  - Motif detection (sliding window, transposition-aware)
+  - Phrase detection (gap-based heuristics)
+  - Harmonic analysis (chord extraction, Roman numerals, functional harmony, cadences, voice leading)
+  - Form detection (automatic section detection, form classification)
+- ✅ music21 integration complete
+- ✅ Comprehensive test coverage
+
+#### Expansion Infrastructure
+- ✅ Expansion strategy module (`expansion_strategy.py`) - Comprehensive strategy generation
+- ✅ Strategy integration with `expand` command
+- ✅ Validation module (`validation.py`) - Quality checks, preservation, coherence
+- ✅ Validation integrated with expand command (`--validate` flag)
+- ✅ Comprehensive test coverage (8 unit tests + 2 CLI tests)
+
+#### Reference Database (Infrastructure Complete)
+- ✅ Database structure (SQLite with metadata)
+- ✅ CLI commands for management
+- ✅ Search functionality (by style, form, technique, title, description)
+- ✅ Integration with `expand` command (automatic reference inclusion)
+- ✅ Initial examples script (`scripts/add_initial_references.py`)
+- ⚠️ **Only 3 examples currently** (target: 100+)
+
+### What's In Progress / Needs Work 🟡
+
+#### Reference Database Curation (HIGH PRIORITY)
+- ✅ Infrastructure complete
+- ✅ 3 initial examples added
+- ❌ **Need: 100+ curated examples**
+  - Various styles (Baroque, Classical, Romantic, Modern)
+  - Various forms (binary, ternary, sonata, rondo, theme & variations)
+  - Various techniques (sequence, inversion, augmentation, diminution, etc.)
+  - Motif development examples
+  - Phrase expansion examples
+  - Transition examples
+
+**Action Items:**
+- [ ] Create curation plan for reference examples
+- [ ] Identify sources (existing repertoire, generated examples, user contributions)
+- [ ] Build batch import tools if needed
+- [ ] Document curation criteria
+
+#### Complex Expansion Testing (MEDIUM PRIORITY)
+- ✅ Basic expansion works (32 beats → 64 beats)
+- ❌ **Need: Test complex expansions (90s → 5min)**
+  - Validate strategy generation for large expansions
+  - Test preservation of key ideas across long expansions
+  - Verify harmonic coherence in extended works
+  - Check form consistency in large-scale expansions
+
+**Action Items:**
+- [ ] Create test compositions (90-second sketches with clear ideas)
+- [ ] Run expansion tests with various target lengths
+- [ ] Document results and identify issues
+- [ ] Refine strategies based on test results
+
+#### Advanced Analysis Refinement (LOW PRIORITY)
+- ✅ Advanced analysis implemented
+- 🔄 **Ongoing: Improve accuracy and reduce false positives**
+  - Test with real compositions
+  - Refine detection algorithms
+  - Add more sophisticated pattern matching
+
+### What's Not Started ❌
+
+#### Phase 3: Refinement
+- ❌ Quality improvement based on real-world testing
+- ❌ Enhanced collaboration tools (musical diff visualization)
+- ❌ Real-world testing and feedback gathering
+- ❌ Success metrics validation (90%+ preservation, 4.5+ satisfaction)
+
+### Critical Gaps
+
+1. **Reference Database Curation** (Highest Priority)
+   - Infrastructure exists, but only 3 examples vs. 100+ target
+   - Directly impacts expansion quality
+
+2. **Complex Expansion Testing**
+   - Need to validate 90s → 5min expansions work well
+   - Core use case needs validation
+
+3. **Real-World Testing**
+   - Most tests use fixtures
+   - Need testing with actual compositions
+
+4. **Enhanced Collaboration Tools**
+   - Basic `diff` exists
+   - Need musical diff visualization and better change tracking
+
+### Immediate Next Steps (Prioritized)
+
+1. **Reference Database Curation** ⚡ **CRITICAL**
+   - Create curation plan
+   - Build batch import workflow
+   - Curate initial batch (aim for 20-30 examples)
+
+2. **Complex Expansion Testing** ⚡ **HIGH**
+   - Create test compositions (~90s sketches)
+   - Test 90s → 5min expansions
+   - Document results and refine
+
+3. **Quality Refinement** (Ongoing)
+   - Test analysis accuracy with real compositions
+   - Refine detection algorithms
+   - Improve expansion prompt formatting
+
+---
+
+## Recent Progress
+
 - ✅ Schema extensions implemented (`MusicalIntent`, `KeyIdea`, `ExpansionPoint`)
 - ✅ CLI commands implemented (`annotate`, `expand`, `diff`)
 - ✅ Annotation tools implemented (`annotations.py`)
@@ -550,7 +695,9 @@ This section provides practical steps for implementing the roadmap, consolidatin
 
 ### Current State
 
-**Achievement:** Phase 1 complete (100%), Phase 2 in progress (60% complete)
+> **Note:** See "Current Status" section at the top of this document for the latest status assessment.
+
+**Achievement:** Phase 1 complete (100%), Phase 2 in progress (~70% complete)
 
 **What's Working:**
 - ✅ JSON schema provides shared musical vocabulary
@@ -559,11 +706,14 @@ This section provides practical steps for implementing the roadmap, consolidatin
 - ✅ CLI commands implemented (`annotate`, `expand`, `diff`)
 - ✅ Annotation tools implemented (`annotations.py`)
 - ✅ Command structure refined (import, modify, fix, etc.)
-
-**What's Missing (Critical Gaps):**
 - ✅ Expansion strategy module - **COMPLETE**
 - ✅ Validation module - **COMPLETE** (basic implementation)
 - ✅ Advanced analysis - **COMPLETE** (enhanced implementation)
+
+**What's Missing (Critical Gaps):**
+- ❌ Reference database curation (3 examples vs. 100+ target)
+- ❌ Complex expansion testing (90s → 5min)
+- ❌ Enhanced collaboration tools (musical diff visualization)
 
 ### Implementation Order
 
@@ -697,9 +847,27 @@ Before beginning implementation, these questions should be answered:
 ## Notes
 
 - **Focus:** Build musical intelligence layer to enable AI to understand and expand human ideas
-- **Priority:** Musical intent annotation ✅ **DONE**, musical intelligence 🔄 **IN PROGRESS**
+- **Priority:** Reference database curation (100+ examples), complex expansion testing
 - **Approach:** Phased implementation (foundation → intelligence → refinement)
 - **Flexibility:** Roadmap will be revised based on learnings and feedback
-- **Current Blocker:** None - Phase 1 complete, Phase 2 advanced analysis complete
-- **Next Priority:** Phase 2 - Reference database expansion (100+ examples), complex expansion testing
+- **Current Blocker:** None - Phase 1 complete, Phase 2 infrastructure complete
+- **Next Priority:** Reference database curation, complex expansion testing
+
+---
+
+## Document Maintenance
+
+**This is the single source of truth for project status and planning.**
+
+- **Status updates:** Always update the "Current Status" section at the top
+- **Progress tracking:** Update "Recent Progress" and phase status sections
+- **New features:** Add to appropriate phase section
+- **DO NOT create separate status documents** - consolidate everything here
+
+**When to update:**
+- After completing features or milestones
+- When priorities change
+- After status assessments
+- When new gaps or issues are identified
+- Quarterly reviews
 
