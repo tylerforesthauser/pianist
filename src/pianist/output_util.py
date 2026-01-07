@@ -40,7 +40,21 @@ def version_path_if_exists(path: Path, use_timestamp: bool = False) -> Path:
         timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
         stem = path.stem
         suffix = path.suffix
-        return path.parent / f"{stem}.{timestamp}{suffix}"
+        parent = path.parent
+        base_stem = f"{stem}.{timestamp}"
+
+        # First try the plain timestamped name
+        versioned_path = parent / f"{base_stem}{suffix}"
+        if not versioned_path.exists():
+            return versioned_path
+
+        # If there is a collision within the same second, append an incremental suffix
+        counter = 2
+        while True:
+            versioned_path = parent / f"{base_stem}.v{counter}{suffix}"
+            if not versioned_path.exists():
+                return versioned_path
+            counter += 1
     else:
         # Use incremental versioning: filename.v2.ext, filename.v3.ext, etc.
         stem = path.stem
