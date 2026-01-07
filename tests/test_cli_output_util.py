@@ -48,6 +48,32 @@ def test_version_path_if_exists_finds_next_available_version(tmp_path: Path) -> 
     assert versioned == tmp_path / "file.v5.json"
 
 
+def test_version_path_if_exists_handles_version_like_extensions(tmp_path: Path) -> None:
+    """Handle files with version-like extensions (e.g., file.v2 where .v2 is the extension)."""
+    # For a file named "file.v2" where .v2 is treated as a version suffix (no other extension)
+    path = tmp_path / "file.v2"
+    path.write_text("original")
+    
+    # Should recognize .v2 as a version and create file.v3
+    versioned = version_path_if_exists(path)
+    assert versioned == tmp_path / "file.v3"
+    
+    # For a properly versioned file like output.v2.json
+    path2 = tmp_path / "output.v2.json"
+    path2.write_text("v2")
+    
+    # Should recognize .v2 in the stem and increment to .v3
+    versioned2 = version_path_if_exists(path2)
+    assert versioned2 == tmp_path / "output.v3.json"
+    
+    # For a file with no version markers
+    path3 = tmp_path / "regular.json"
+    path3.write_text("original")
+    
+    versioned3 = version_path_if_exists(path3)
+    assert versioned3 == tmp_path / "regular.v2.json"
+
+
 def test_version_path_if_exists_with_timestamp(tmp_path: Path) -> None:
     """Timestamp versioning creates unique paths."""
     path = tmp_path / "file.json"

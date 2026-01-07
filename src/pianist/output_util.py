@@ -62,12 +62,24 @@ def version_path_if_exists(path: Path, use_timestamp: bool = False) -> Path:
         parent = path.parent
         
         # Check if stem already ends with .vN pattern
-        version_match = re.match(r"^(.+)\.v(\d+)$", stem)
-        if version_match:
-            base_stem = version_match.group(1)
-            version_num = int(version_match.group(2))
+        stem_version_match = re.match(r"^(.+)\.v(\d+)$", stem)
+        # Also check if suffix is a version pattern (e.g., ".v2" with no other extension)
+        suffix_version_match = re.match(r"^\.v(\d+)$", suffix)
+        
+        if stem_version_match:
+            # Version is in the stem: "output.v2" + ".json" -> "output.v3.json"
+            base_stem = stem_version_match.group(1)
+            version_num = int(stem_version_match.group(2))
             next_version = version_num + 1
+        elif suffix_version_match:
+            # Version is in the suffix: "output" + ".v2" -> "output.v3"
+            # This handles files like "output.v2" with no other extension
+            base_stem = stem
+            version_num = int(suffix_version_match.group(1))
+            next_version = version_num + 1
+            suffix = ""  # No extension, version becomes part of the name
         else:
+            # No version found, start at v2
             base_stem = stem
             next_version = 2
         
