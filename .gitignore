@@ -215,4 +215,4 @@ input/
 output/
 
 # Common generated artifacts created by docs/examples
-test_analysis_output/
+test_analysis_output/input_quality_report*.json
