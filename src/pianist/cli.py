@@ -256,15 +256,22 @@ def _write_text(path: Path, text: str, version_if_exists: bool = False) -> Path:
     return path
 
 
-def _derive_gemini_raw_path(out_path: Path) -> Path:
-    # Keep it simple and discoverable: next to the JSON output.
-    return out_path.with_name(out_path.name + ".gemini.txt")
+def _derive_raw_path(out_path: Path, provider: str | None = None) -> Path:
+    """
+    Derive the raw AI response file path from the JSON output path.
+    Keeps it simple and discoverable: next to the JSON output.
+    """
+    if provider:
+        return out_path.with_name(out_path.name + f".{provider}.txt")
+    else:
+        # Default to generic .txt extension if no provider specified
+        return out_path.with_name(out_path.name + ".txt")
 
 
-def _gemini_prompt_from_template(template: str) -> str:
+def _prompt_from_template(template: str) -> str:
     """
     The CLI prompt templates are optimized for copy/paste into chat UIs.
-    For Gemini CLI calls, we send a single text prompt that includes both the
+    For API calls, we send a single text prompt that includes both the
     "system" and "user" sections explicitly.
     """
     return template.strip() + "\n"
@@ -1035,7 +1042,7 @@ def main(argv: list[str] | None = None) -> int:
                 instructions = (args.instructions or "").strip()
                 # Instructions are optional but recommended
                 template = iteration_prompt_template(comp, instructions=instructions)
-                prompt = _gemini_prompt_from_template(template)
+                prompt = _prompt_from_template(template)
 
                 if prompt_out_path is not None:
                     _write_text(prompt_out_path, template)
@@ -1044,7 +1051,7 @@ def main(argv: list[str] | None = None) -> int:
                 raw_out_path: Path | None = args.raw_out_path
                 if raw_out_path is None and out_json_path is not None:
                     # Default: next to JSON output (only if --out was provided)
-                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                    raw_out_path = _derive_raw_path(out_json_path, args.provider)
                 elif raw_out_path is not None and not raw_out_path.is_absolute():
                     # Relative path: resolve relative to output directory
                     raw_out_path = output_dir / raw_out_path.name
@@ -1100,7 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
                     if raw_text is not None and raw_out_path is not None:
                         if version_output and original_path != actual_json_path:
                             # JSON was versioned - save raw response with matching version
-                            versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                            versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
                             _write_text(versioned_raw_path, raw_text, version_if_exists=False)
                         elif cached_raw_path is None:
                             # New response (not cached) - save to original location
@@ -1676,7 +1683,7 @@ def main(argv: list[str] | None = None) -> int:
                     expansion_instructions += f" Preserve these specific ideas: {', '.join(preserve_ids)}."
                 
                 template = iteration_prompt_template(comp, instructions=expansion_instructions)
-                prompt = _gemini_prompt_from_template(template)
+                prompt = _prompt_from_template(template)
                 
                 # Determine output directory and paths
                 base_name = _derive_base_name_from_path(args.in_path, "expand-output")
@@ -1692,7 +1699,7 @@ def main(argv: list[str] | None = None) -> int:
                 # Determine raw output path
                 raw_out_path: Path | None = args.raw_out_path
                 if raw_out_path is None and out_json_path is not None:
-                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                    raw_out_path = _derive_raw_path(out_json_path, args.provider)
                 elif raw_out_path is not None and not raw_out_path.is_absolute():
                     raw_out_path = output_dir / raw_out_path.name
                 
@@ -2056,7 +2063,7 @@ def main(argv: list[str] | None = None) -> int:
                 instructions = (args.instructions or "").strip()
                 # Instructions are optional but recommended
                 template = analysis_prompt_template(analysis, instructions=instructions)
-                prompt = _gemini_prompt_from_template(template)
+                prompt = _prompt_from_template(template)
 
                 if prompt_out_path is not None:
                     _write_text(prompt_out_path, template)
@@ -2065,7 +2072,7 @@ def main(argv: list[str] | None = None) -> int:
                 raw_out_path: Path | None = args.raw_out_path
                 if raw_out_path is None and out_json_path is not None:
                     # Default: next to JSON output (only if --out was provided)
-                    raw_out_path = _derive_gemini_raw_path(out_json_path)
+                    raw_out_path = _derive_raw_path(out_json_path, args.provider)
                 elif raw_out_path is not None and not raw_out_path.is_absolute():
                     # Relative path: resolve relative to output directory
                     raw_out_path = output_dir / raw_out_path.name
@@ -2121,7 +2128,7 @@ def main(argv: list[str] | None = None) -> int:
                     if raw_text is not None and raw_out_path is not None:
                         if version_output and original_path != actual_json_path:
                             # JSON was versioned - save raw response with matching version
-                            versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                            versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
                             _write_text(versioned_raw_path, raw_text, version_if_exists=False)
                         elif cached_raw_path is None:
                             # New response (not cached) - save to original location
@@ -2367,7 +2374,7 @@ def main(argv: list[str] | None = None) -> int:
             raw_out_path: Path | None = args.raw_out_path
             if raw_out_path is None and out_json_path is not None:
                 # Default: next to JSON output (only if --out was provided)
-                raw_out_path = _derive_gemini_raw_path(out_json_path)
+                raw_out_path = _derive_raw_path(out_json_path, args.provider)
             elif raw_out_path is not None and not raw_out_path.is_absolute():
                 # Relative path: resolve relative to output directory
                 raw_out_path = output_dir / raw_out_path.name
@@ -2423,7 +2430,7 @@ def main(argv: list[str] | None = None) -> int:
                 if raw_text is not None and raw_out_path is not None:
                     if version_output and original_path != actual_json_path:
                         # JSON was versioned - save raw response with matching version
-                        versioned_raw_path = _derive_gemini_raw_path(actual_json_path)
+                        versioned_raw_path = _derive_raw_path(actual_json_path, args.provider)
                         _write_text(versioned_raw_path, raw_text, version_if_exists=False)
                     elif cached_raw_path is None:
                         # New response (not cached) - save to original location

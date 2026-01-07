@@ -282,7 +282,7 @@ Style/Character: dramatic, expressive" | \
 
 This creates:
 - `output/generate-output/generate/composition.json` - The generated composition
-- `output/generate-output/generate/composition.json.gemini.txt` - Raw AI response
+- `output/generate-output/generate/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
 - `output/generate-output/generate/composition.mid` - Rendered MIDI file (if `--render` is used)
 
 **Option 2: Generate Prompt Template (No AI Required)**
@@ -319,7 +319,7 @@ Analyze a reference MIDI to extract musical characteristics, then generate a new
 
 This creates:
 - `output/existing/analyze/composition.json` - The generated composition
-- `output/existing/analyze/composition.json.gemini.txt` - Raw AI response
+- `output/existing/analyze/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
 - `output/existing/analyze/composition.mid` - Rendered MIDI file
 
 **Without AI Provider (Generate Prompt for External AI):**
@@ -362,7 +362,7 @@ Modify an existing composition using the built-in AI provider:
 # MIDI path auto-generated as seed_updated.mid
 ```
 
-If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.gemini.txt`.
+If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.<provider>.txt` (e.g., `.gemini.txt` or `.ollama.txt`).
 
 #### Quick Tweaks (No AI Required)
 
@@ -559,7 +559,7 @@ By default, if an output file already exists, Pianist will automatically create 
 
 **Versioning behavior:**
 - If `updated.json` exists, the next run creates `updated.v2.json`, then `updated.v3.json`, etc.
-- The raw AI response (`.gemini.txt`) is automatically versioned to match the JSON file
+- The raw AI response (`.<provider>.txt`, e.g., `.gemini.txt` or `.ollama.txt`) is automatically versioned to match the JSON file
 - Use `--overwrite` to explicitly overwrite existing files instead of versioning
 
 **Example:**
