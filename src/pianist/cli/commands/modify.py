@@ -12,7 +12,7 @@ from ...iterate import (
     iteration_prompt_template,
     transpose_composition,
 )
-from ...output_util import write_output_with_sidecar
+from ...output_util import write_output_with_sidecar, derive_sidecar_path
 from ...parser import parse_composition_from_text
 from ...renderers.mido_renderer import render_midi_mido
 from ..util import (
@@ -158,7 +158,7 @@ def handle(args: argparse.Namespace) -> int:
             raw_out_path: Path | None = args.raw_out_path
             if raw_out_path is None and out_json_path is not None:
                 # Default: next to JSON output (only if --out was provided)
-                raw_out_path = derive_raw_path(out_json_path, args.provider)
+                raw_out_path = derive_sidecar_path(out_json_path, args.provider)
             elif raw_out_path is not None and not raw_out_path.is_absolute():
                 # Relative path: resolve relative to output directory
                 raw_out_path = output_dir / raw_out_path.name
