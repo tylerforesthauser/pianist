@@ -106,15 +106,24 @@ class ReferenceDatabase:
             )
         """)
         
-        # Create indexes for faster searching
+        # Check which columns exist (for backward compatibility with older schemas)
+        cursor.execute("PRAGMA table_info(musical_references)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        # Create indexes for faster searching (only for columns that exist)
         indexes = [
             ("idx_style", "style"),
             ("idx_form", "form"),
             ("idx_title", "title"),
-            ("idx_key", "detected_key"),
-            ("idx_quality", "quality_score"),
-            ("idx_tempo", "tempo_bpm"),
         ]
+        
+        # Only create indexes for columns that exist
+        if "detected_key" in columns:
+            indexes.append(("idx_key", "detected_key"))
+        if "quality_score" in columns:
+            indexes.append(("idx_quality", "quality_score"))
+        if "tempo_bpm" in columns:
+            indexes.append(("idx_tempo", "tempo_bpm"))
         
         for idx_name, column in indexes:
             cursor.execute(f"""

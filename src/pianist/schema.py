@@ -193,6 +193,7 @@ class NoteEvent(BaseModel):
             else:
                 # Normalize to the internal `pitches` list for rendering convenience.
                 # This runs before Pydantic parses nested models, so items may be dicts.
+                # Extract pitches but preserve notes so Pydantic can parse them into LabeledNote objects.
                 pitches_from_notes: list[int | str] = []
                 for idx, n in enumerate(notes):
                     if isinstance(n, dict):
@@ -215,7 +216,7 @@ class NoteEvent(BaseModel):
                     pitches_from_notes.append(pitch_value)
 
                 data["pitches"] = pitches_from_notes
-                data.pop("notes", None)
+                # Don't remove notes - preserve it so Pydantic can parse into LabeledNote objects
         elif groups is not None:
             if not isinstance(groups, list):
                 raise ValueError("Field 'groups' must be a list.")

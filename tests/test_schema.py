@@ -754,7 +754,7 @@ def test_tempo_event_gradual_requires_all_fields() -> None:
 
 def test_tempo_event_bpm_bounds() -> None:
     """Test that tempo values are within valid bounds."""
-    # Too low
+    # Too low (minimum is 5, so 4 should fail)
     with pytest.raises(ValueError):
         validate_composition_dict(
             {
@@ -767,7 +767,7 @@ def test_tempo_event_bpm_bounds() -> None:
                             {
                                 "type": "tempo",
                                 "start": 60,
-                                "bpm": 10,
+                                "bpm": 4,
                             }
                         ]
                     }
