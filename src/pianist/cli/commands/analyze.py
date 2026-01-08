@@ -169,6 +169,7 @@ def handle_analyze(args) -> int:
                 use_ai_insights=args.ai_naming,
                 ai_provider=args.ai_provider,
                 ai_model=args.ai_model,
+                verbose=args.verbose,
             )
             
             # Determine output directory and paths
@@ -328,6 +329,7 @@ def handle_analyze(args) -> int:
                 use_ai_insights=args.ai_naming,
                 ai_provider=args.ai_provider,
                 ai_model=args.ai_model,
+                verbose=args.verbose,
             )
             
             # Output based on format
