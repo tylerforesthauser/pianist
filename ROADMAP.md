@@ -74,12 +74,12 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ Reference curation documentation (`docs/guides/REFERENCE_DATABASE_CURATION.md`)
 - ✅ Reference curation list (`docs/guides/REFERENCE_CURATION_LIST.md`) - prioritized list of public domain works
 - ✅ MIDI quality check guide (`docs/guides/MIDI_QUALITY_CHECK.md`)
-- ⚠️ **Only 3 examples currently** (target: 100+) - tools ready for curation
+- ⚠️ **Only 4 examples currently** (target: 100+) - tools ready for curation
 
 #### AI Refactoring (Mostly Complete)
 - ✅ Core commands require AI provider where appropriate (`expand` requires `--provider`)
 - ✅ Scripts always use AI for quality assessment and naming
-- ✅ Test suite updated for provider system (244/252 tests passing, minor test bugs remain)
+- ✅ Test suite updated for provider system (252/252 tests passing)
 - ✅ Global configuration system with default provider (openrouter)
 - ⚠️ **Remaining**: Metadata generation simplification (optional), documentation updates (optional)
 
@@ -87,7 +87,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 
 #### Reference Database Curation (HIGH PRIORITY)
 - ✅ Infrastructure complete
-- ✅ 3 initial examples added
+- ✅ 4 initial examples added
 - ❌ **Need: 100+ curated examples**
   - Various styles (Baroque, Classical, Romantic, Modern)
   - Various forms (binary, ternary, sonata, rondo, theme & variations)
@@ -471,7 +471,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
    - ✅ CLI commands for management (add, list, search, get, delete, count)
    - ✅ Search functionality (by style, form, technique, title, description)
    - ✅ Integration with expand command (automatic reference inclusion)
-   - ✅ Initial example curation (3 examples + script for adding more)
+   - ✅ Initial example curation (4 examples + script for adding more)
    - 🔄 Target: 100+ examples (ongoing curation)
 
 3. **Expansion Command Enhancement**
@@ -489,7 +489,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 
 **Success Criteria:**
 - [x] Advanced analysis works ✅ **COMPLETE** (enhanced implementation)
-- [ ] Reference database exists (100+ examples) (3 examples currently)
+- [ ] Reference database exists (100+ examples) (4 examples currently)
 - [ ] Expansion command works
 - [ ] Complex expansions work (90s → 5min)
 - [x] Quality validation works ✅ **COMPLETE** (basic implementation)
@@ -724,7 +724,7 @@ These questions will be answered during implementation.
 
 ### Phase 2
 - [ ] Advanced analysis works
-- [x] Reference database exists ✅ **COMPLETE** (basic implementation, 3 initial examples)
+- [x] Reference database exists ✅ **COMPLETE** (basic implementation, 4 initial examples)
 - [ ] Reference database has 100+ examples (ongoing curation)
 - [x] Expansion command works ✅ **COMPLETE** (with strategy, references, validation)
 - [ ] Complex expansions work (90s → 5min) (basic expansion works, complex needs testing)
