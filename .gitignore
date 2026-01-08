@@ -213,6 +213,8 @@ __marimo__/
 # Input and output data
 input/
 output/
+references/
+
 # Quality check report outputs
 *_quality_report*.json
 
