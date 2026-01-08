@@ -58,6 +58,7 @@ def test_cli_annotate_auto_detect_verbose(tmp_path: Path) -> None:
     comp_json = {
         "title": "Test",
         "bpm": 120,
+        "key_signature": "C",
         "time_signature": {"numerator": 4, "denominator": 4},
         "ppq": 480,
         "tracks": [

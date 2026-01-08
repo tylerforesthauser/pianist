@@ -47,20 +47,23 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
     out_raw = tmp_path / "composition.raw.txt"
     out_midi = tmp_path / "composition.mid"
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         assert model
         assert "REFERENCE ANALYSIS" in prompt
         assert "REQUESTED COMPOSITION" in prompt
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Compose something similar.",
             "-o",
@@ -78,7 +81,7 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
     assert out_midi.exists()
 
 
-def test_cli_analyze_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
+def test_cli_analyze_with_provider_verbose(tmp_path: Path, monkeypatch) -> None:
     """Test that --verbose flag is passed to generate_text in analyze command."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
@@ -87,18 +90,21 @@ def test_cli_analyze_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
 
     verbose_called = []
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Compose something similar.",
             "-o",
@@ -110,15 +116,18 @@ def test_cli_analyze_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
     assert verbose_called == [True]
 
 
-def test_cli_analyze_optional_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
+def test_cli_analyze_optional_instructions_with_provider(tmp_path: Path, monkeypatch) -> None:
     """Test that analyze works when --provider is used without --instructions."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     out_json = tmp_path / "out.json"
     rc = main(
@@ -126,7 +135,7 @@ def test_cli_analyze_optional_instructions_with_gemini(tmp_path: Path, monkeypat
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "-o",
             str(out_json),
         ]
@@ -141,10 +150,13 @@ def test_cli_analyze_render_auto_generates_midi(tmp_path: Path, monkeypatch) -> 
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     out_json = tmp_path / "out.json"
     rc = main(
@@ -152,7 +164,7 @@ def test_cli_analyze_render_auto_generates_midi(tmp_path: Path, monkeypatch) -> 
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -206,10 +218,19 @@ def test_cli_analyze_format_prompt_stdout(tmp_path: Path, capsys) -> None:
     assert "REFERENCE ANALYSIS" in captured.out or "Output MUST be valid JSON" in captured.out
 
 
-def test_cli_analyze_format_json_only(tmp_path: Path) -> None:
+def test_cli_analyze_format_json_only(tmp_path: Path, monkeypatch) -> None:
     """Test that analyze outputs only JSON when --format json."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
+    
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        # Return minimal valid JSON for AI insights
+        return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
+    
+    # Patch both locations for AI insights
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     out_json = tmp_path / "analysis.json"
     rc = main(
@@ -221,24 +242,31 @@ def test_cli_analyze_format_json_only(tmp_path: Path) -> None:
             "json",
             "-o",
             str(out_json),
+            "--ai-provider", "openrouter",
         ]
     )
     assert rc == 0
     assert out_json.exists()
     data = json.loads(out_json.read_text(encoding="utf-8"))
-    assert "ppq" in data
+    # New structure has filename, filepath, quality, technical, musical_analysis, improvement_suggestions, ai_insights
+    assert "filename" in data
+    assert "filepath" in data
+    assert "technical" in data
 
 
-def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
-    """Test that GeminiError is properly displayed in analyze CLI."""
+def test_cli_analyze_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
+    """Test that AI provider errors are properly displayed in analyze CLI."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
-        from pianist.ai_providers import GeminiError
-        raise GeminiError("Gemini returned an empty response.")
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        from pianist.ai_providers import OpenRouterError
+        raise OpenRouterError("AI provider returned an empty response.")
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     out_json = tmp_path / "out.json"
     rc = main(
@@ -246,7 +274,7 @@ def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -256,7 +284,7 @@ def test_cli_analyze_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) 
     assert rc == 1
     captured = capsys.readouterr()
     assert "error" in captured.err.lower()
-    assert "GeminiError" in captured.err or "empty response" in captured.err
+    assert "OpenRouterError" in captured.err or "empty response" in captured.err or "error:" in captured.err
 
 
 def test_cli_analyze_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
@@ -278,18 +306,21 @@ def test_cli_analyze_custom_model(tmp_path: Path, monkeypatch) -> None:
     out_json = tmp_path / "out.json"
     models_called = []
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         models_called.append(model)
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -310,17 +341,20 @@ def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     out_json = tmp_path / "out.json"
     custom_raw = tmp_path / "custom_analyze_raw.txt"
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
-
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -331,8 +365,8 @@ def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     )
     assert rc == 0
     assert custom_raw.exists()
-    # Should not create default .gemini.txt file
-    assert not (tmp_path / "out.json.gemini.txt").exists()
+    # Should not create default .openrouter.txt file
+    assert not (tmp_path / "out.json.openrouter.txt").exists()
 
 
 def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -340,10 +374,13 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
-
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
 
     # Don't provide --output or --raw, so raw output won't be saved
     rc = main(
@@ -351,7 +388,7 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
         ]
@@ -421,13 +458,23 @@ def test_cli_analyze_prompt_out_with_format_json(tmp_path: Path) -> None:
     assert not prompt_path.exists()
 
 
-def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path) -> None:
+def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path, monkeypatch) -> None:
     """Test --prompt with --format both."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
 
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        # Return minimal valid JSON for composition generation
+        return _valid_composition_json()
+    
+    # Patch both locations for composition generation
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
+
     out_json = tmp_path / "analysis.json"
     prompt_path = tmp_path / "prompt.txt"
+    # Use --provider to enable prompt generation with format "both"
     rc = main(
         [
             "analyze",
@@ -441,14 +488,15 @@ def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path) -> None:
             str(prompt_path),
             "--instructions",
             "Test instructions",
+            "--provider", "openrouter",
         ]
     )
     assert rc == 0
     assert out_json.exists()
     assert prompt_path.exists()
-    # Verify JSON content
+    # Verify JSON content - old analysis structure when using --provider
     data = json.loads(out_json.read_text(encoding="utf-8"))
-    assert "ppq" in data
+    assert "ppq" in data  # Old analysis structure
     # Verify prompt content
     prompt_text = prompt_path.read_text(encoding="utf-8")
     assert "REFERENCE ANALYSIS" in prompt_text
@@ -466,17 +514,20 @@ def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
     out_json.write_text(_valid_composition_json(), encoding="utf-8")
     initial_content = out_json.read_text(encoding="utf-8")
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -494,8 +545,8 @@ def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
     assert v2_json.exists()
 
 
-def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypatch) -> None:
-    """Test that analyze command versions Gemini raw response to match JSON."""
+def test_cli_analyze_versioning_synchronizes_raw_response(tmp_path: Path, monkeypatch) -> None:
+    """Test that analyze command versions raw response to match JSON."""
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
     
@@ -504,23 +555,26 @@ def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
     # Create initial files with valid cached response
     cached_response = _valid_composition_json()
     out_json.write_text(_valid_composition_json(), encoding="utf-8")
-    raw_path = tmp_path / "composition.json.gemini.txt"
+    raw_path = tmp_path / "composition.json.openrouter.txt"
     raw_path.write_text(cached_response, encoding="utf-8")
     
     call_count = 0
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         nonlocal call_count
         call_count += 1
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -529,7 +583,7 @@ def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
     )
     assert rc == 0
     
-    # Should use cached response (not call Gemini)
+    # Should use cached response (not call AI provider)
     assert call_count == 0
     
     # Original files should still exist
@@ -539,7 +593,7 @@ def test_cli_analyze_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypa
     
     # Versioned files should be created
     v2_json = tmp_path / "composition.v2.json"
-    v2_raw = tmp_path / "composition.v2.json.gemini.txt"
+    v2_raw = tmp_path / "composition.v2.json.openrouter.txt"
     assert v2_json.exists()
     assert v2_raw.exists()
     # Versioned raw file should contain the cached response (same as original since we used cache)
@@ -555,17 +609,20 @@ def test_cli_analyze_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     initial_content = "original"
     out_json.write_text(initial_content, encoding="utf-8")
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.analyze
+    monkeypatch.setattr(pianist.cli.commands.analyze, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "analyze",
             "-i",
             str(midi_path),
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",

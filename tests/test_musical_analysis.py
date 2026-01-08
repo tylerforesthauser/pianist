@@ -55,6 +55,7 @@ def test_composition_to_music21_stream():
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
+@pytest.mark.slow
 def test_analyze_harmony():
     """Test harmonic analysis."""
     from pianist.musical_analysis import ChordAnalysis
@@ -75,7 +76,9 @@ def test_analyze_harmony():
         ],
     )
     
-    harmony = analyze_harmony(comp)
+    # Convert stream once and reuse to avoid redundant conversion
+    stream = _composition_to_music21_stream(comp)
+    harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     assert len(harmony.chords) > 0
     # Key may be "C" or "C major" depending on music21 analysis
@@ -89,6 +92,7 @@ def test_analyze_harmony():
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
+@pytest.mark.slow
 def test_detect_motifs():
     """Test motif detection."""
     comp = Composition(
@@ -110,7 +114,9 @@ def test_detect_motifs():
         ],
     )
     
-    motifs = detect_motifs(comp)
+    # Convert stream once and reuse to avoid redundant conversion
+    stream = _composition_to_music21_stream(comp)
+    motifs = detect_motifs(comp, music21_stream=stream)
     # Should detect at least some patterns
     assert isinstance(motifs, list)
 
@@ -146,6 +152,7 @@ def test_detect_motifs_transposed():
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
 def test_detect_phrases():
     """Test phrase detection."""
+    # This test needs a specific composition with phrase boundaries
     comp = Composition(
         title="Test",
         bpm=120,
@@ -164,7 +171,9 @@ def test_detect_phrases():
         ],
     )
     
-    phrases = detect_phrases(comp)
+    # Convert stream once and reuse
+    stream = _composition_to_music21_stream(comp)
+    phrases = detect_phrases(comp, music21_stream=stream)
     assert isinstance(phrases, list)
     # Should detect at least one phrase
     assert len(phrases) > 0
@@ -213,7 +222,9 @@ def test_identify_key_ideas():
         ],
     )
     
-    key_ideas = identify_key_ideas(comp)
+    # Convert stream once and reuse to avoid redundant conversion
+    stream = _composition_to_music21_stream(comp)
+    key_ideas = identify_key_ideas(comp, music21_stream=stream)
     assert isinstance(key_ideas, list)
 
 
@@ -233,12 +244,15 @@ def test_generate_expansion_strategies():
         ],
     )
     
-    strategies = generate_expansion_strategies(comp)
+    # Convert stream once and reuse to avoid redundant conversion
+    stream = _composition_to_music21_stream(comp)
+    strategies = generate_expansion_strategies(comp, music21_stream=stream)
     assert isinstance(strategies, list)
     assert len(strategies) > 0
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
+@pytest.mark.slow
 def test_analyze_composition():
     """Test complete composition analysis."""
     comp = Composition(
@@ -256,7 +270,10 @@ def test_analyze_composition():
         ],
     )
     
-    analysis = analyze_composition(comp)
+    # Convert stream once and reuse to avoid redundant conversion
+    # This test does full analysis so it's marked as slow
+    stream = _composition_to_music21_stream(comp)
+    analysis = analyze_composition(comp, music21_stream=stream)
     assert analysis is not None
     assert analysis.motifs is not None
     assert analysis.phrases is not None
@@ -288,7 +305,9 @@ def test_analyze_harmony_roman_numerals():
         ],
     )
     
-    harmony = analyze_harmony(comp)
+    # Convert stream once and reuse
+    stream = _composition_to_music21_stream(comp)
+    harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     # May or may not have Roman numerals depending on music21 analysis
     # But should not crash
@@ -313,7 +332,9 @@ def test_analyze_harmony_cadences():
         ],
     )
     
-    harmony = analyze_harmony(comp)
+    # Convert stream once and reuse
+    stream = _composition_to_music21_stream(comp)
+    harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     # May or may not detect cadences depending on Roman numeral analysis
     # But should have cadences field
@@ -342,7 +363,9 @@ def test_analyze_harmony_voice_leading():
         ],
     )
     
-    harmony = analyze_harmony(comp)
+    # Convert stream once and reuse
+    stream = _composition_to_music21_stream(comp)
+    harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     # Should have voice_leading field
     assert hasattr(harmony, 'voice_leading')
@@ -376,7 +399,9 @@ def test_detect_form_automatic():
         ],
     )
     
-    form = detect_form(comp)
+    # Convert stream once and reuse
+    stream = _composition_to_music21_stream(comp)
+    form = detect_form(comp, music21_stream=stream)
     # May detect form or return None
     assert form is None or isinstance(form, str)
 

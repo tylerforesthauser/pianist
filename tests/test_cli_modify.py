@@ -47,8 +47,27 @@ def _write_test_midi(path: Path) -> None:
     mid.save(path)
 
 
-def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path) -> None:
+def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path, monkeypatch) -> None:
     """Test modify with transpose and prompt output."""
+    # Mock AI provider - return composition with transposed notes [62, 66]
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        return (
+            "{"
+            '"title":"Test",'
+            '"bpm":120,'
+            '"time_signature":{"numerator":4,"denominator":4},'
+            '"ppq":480,'
+            '"tracks":[{"name":"Piano","channel":0,"program":0,"events":['
+            '{"type":"note","start":0,"duration":1,"pitches":[62,66],"velocity":80}'
+            "]}]"
+            "}"
+        )
+    
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
+    
     # First import MIDI
     midi_path = tmp_path / "in.mid"
     _write_test_midi(midi_path)
@@ -73,6 +92,7 @@ def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path) -> None:
             str(prompt_path),
             "--instructions",
             "Make it more lyrical and add an 8-beat coda.",
+            "--provider", "openrouter",
         ]
     )
     assert rc == 0
@@ -93,8 +113,25 @@ def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path) -> None:
     assert "Make it more lyrical and add an 8-beat coda." in prompt
 
 
-def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path) -> None:
+def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path, monkeypatch) -> None:
     """Test modify with JSON input and empty events."""
+    # Mock AI provider - preserve the input composition's title and empty events
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        return (
+            "{"
+            '"title":"Empty Seed",'
+            '"bpm":120,'
+            '"time_signature":{"numerator":4,"denominator":4},'
+            '"ppq":480,'
+            '"tracks":[{"name":"Piano","channel":0,"program":0,"events":[]}]'
+            "}"
+        )
+    
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
+    
     # A minimal, valid composition with no events.
     seed = {
         "title": "Empty Seed",
@@ -107,7 +144,7 @@ def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path) -> None:
     seed_path.write_text(json.dumps(seed), encoding="utf-8")
 
     out_json = tmp_path / "seed_out.json"
-    rc = main(["modify", "-i", str(seed_path), "-o", str(out_json)])
+    rc = main(["modify", "-i", str(seed_path), "-o", str(out_json), "--provider", "openrouter"])
     assert rc == 0
     data = json.loads(out_json.read_text(encoding="utf-8"))
     comp = validate_composition_dict(data)
@@ -120,20 +157,23 @@ def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) ->
     out_json = tmp_path / "seed_updated.json"
     out_midi = tmp_path / "out.mid"
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         assert model
         assert "SYSTEM PROMPT" in prompt
         assert "REQUESTED CHANGES" in prompt
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -146,8 +186,8 @@ def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) ->
     assert rc == 0
     assert out_json.exists()
     assert out_midi.exists()
-    # Default raw path: <out>.gemini.txt
-    assert (tmp_path / "seed_updated.json.gemini.txt").exists()
+    # Default raw path: <out>.openrouter.txt
+    assert (tmp_path / "seed_updated.json.openrouter.txt").exists()
 
 
 def test_cli_modify_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
@@ -156,18 +196,21 @@ def test_cli_modify_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
 
     verbose_called = []
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -185,18 +228,21 @@ def test_cli_modify_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None:
 
     verbose_called = []
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Make it more lyrical.",
             "-o",
@@ -209,10 +255,13 @@ def test_cli_modify_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None:
 
 def test_cli_modify_optional_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
     """Test that modify works when --provider is used without --instructions."""
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
     
     out_json = tmp_path / "out.json"
     rc = main(
@@ -220,7 +269,7 @@ def test_cli_modify_optional_instructions_with_gemini(tmp_path: Path, monkeypatc
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "-o",
             str(out_json),
         ]
@@ -253,19 +302,31 @@ def test_cli_modify_render_auto_generates_midi(tmp_path: Path) -> None:
 
 def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that modify outputs to stdout when --output is omitted."""
-    rc = main(["modify", "-i", "examples/model_output.txt"])
+    # Mock AI provider
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        return _valid_composition_json()
+    
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
+    
+    rc = main(["modify", "-i", "examples/model_output.txt", "--provider", "openrouter"])
     assert rc == 0
     captured = capsys.readouterr()
     assert "title" in captured.out.lower() or '"title"' in captured.out
 
 
 def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
-    """Test that GeminiError is properly displayed in CLI."""
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
-        from pianist.ai_providers import GeminiError
-        raise GeminiError("API key not valid. Please pass a valid API key.")
+    """Test that AI provider errors are properly displayed in CLI."""
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
+        from pianist.ai_providers import OpenRouterError
+        raise OpenRouterError("API key not valid. Please pass a valid API key.")
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     out_json = tmp_path / "out.json"
     rc = main(
@@ -273,7 +334,7 @@ def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -283,7 +344,7 @@ def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -
     assert rc == 1
     captured = capsys.readouterr()
     assert "error" in captured.err.lower()
-    assert "GeminiError" in captured.err or "API key" in captured.err
+    assert "OpenRouterError" in captured.err or "API key" in captured.err or "error:" in captured.err
 
 
 def test_cli_modify_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
@@ -304,18 +365,21 @@ def test_cli_modify_custom_model(tmp_path: Path, monkeypatch) -> None:
     out_json = tmp_path / "out.json"
     models_called = []
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         models_called.append(model)
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -333,17 +397,20 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     out_json = tmp_path / "out.json"
     custom_raw = tmp_path / "custom_raw.txt"
 
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
 
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -354,24 +421,27 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     )
     assert rc == 0
     assert custom_raw.exists()
-    # Should not create default .gemini.txt file
-    assert not (tmp_path / "out.json.gemini.txt").exists()
+    # Should not create default .openrouter.txt file
+    assert not (tmp_path / "out.json.openrouter.txt").exists()
 
 
 def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that warning is shown when raw output is not saved in modify command."""
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
 
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
-
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
+    
     # Don't provide --output or --raw, so raw output won't be saved
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
         ]
@@ -390,17 +460,20 @@ def test_cli_modify_versioning_creates_v2_when_file_exists(tmp_path: Path, monke
     out_json.write_text(_valid_composition_json(), encoding="utf-8")
     initial_content = out_json.read_text(encoding="utf-8")
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Make it different.",
             "-o",
@@ -423,10 +496,13 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
     """Test that versioning continues incrementally (v2, v3, etc.)."""
     out_json = tmp_path / "updated.json"
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
     
     # First run - creates updated.json
     rc = main(
@@ -434,7 +510,7 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "First",
             "-o",
@@ -450,7 +526,7 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Second",
             "-o",
@@ -467,7 +543,7 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Third",
             "-o",
@@ -491,23 +567,26 @@ def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypat
     # Create initial files with valid cached response
     cached_response = _valid_composition_json()
     out_json.write_text(_valid_composition_json(), encoding="utf-8")
-    raw_path = tmp_path / "updated.json.gemini.txt"
+    raw_path = tmp_path / "updated.json.openrouter.txt"
     raw_path.write_text(cached_response, encoding="utf-8")
     
     call_count = 0
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         nonlocal call_count
         call_count += 1
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",
@@ -526,7 +605,7 @@ def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypat
     
     # Versioned files should be created
     v2_json = tmp_path / "updated.v2.json"
-    v2_raw = tmp_path / "updated.v2.json.gemini.txt"
+    v2_raw = tmp_path / "updated.v2.json.openrouter.txt"
     assert v2_json.exists()
     assert v2_raw.exists()
     # Versioned raw file should contain the cached response (same as original since we used cache)
@@ -539,17 +618,20 @@ def test_cli_modify_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     initial_content = "original content"
     out_json.write_text(initial_content, encoding="utf-8")
     
-    def fake_generate_text(*, model: str, prompt: str, verbose: bool = False) -> str:
+    def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
         return _valid_composition_json()
     
-    monkeypatch.setattr("pianist.cli.generate_text", fake_generate_text)
+    # Patch both locations
+    monkeypatch.setattr("pianist.ai_providers.generate_text_unified", fake_generate_text_unified)
+    import pianist.cli.commands.modify
+    monkeypatch.setattr(pianist.cli.commands.modify, "generate_text_unified", fake_generate_text_unified)
     
     rc = main(
         [
             "modify",
             "-i",
             "examples/model_output.txt",
-            "--provider", "gemini",
+            "--provider", "openrouter",
             "--instructions",
             "Test",
             "-o",

@@ -253,7 +253,9 @@ def test_generate_text_unified_ollama_error_propagates(monkeypatch) -> None:
     
     monkeypatch.setenv("OLLAMA_URL", "http://localhost:11434")
     
-    with patch("pianist.ai_providers.requests.post") as mock_post:
+    # Patch requests.post at the point where it's used (inside the function)
+    # Since requests is imported inside generate_text_ollama, we need to patch it there
+    with patch("requests.post") as mock_post:
         mock_post.side_effect = requests.exceptions.ConnectionError("Connection refused")
         
         with pytest.raises(OllamaError, match="Could not connect to Ollama"):

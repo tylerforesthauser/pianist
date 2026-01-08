@@ -14,7 +14,7 @@ from pianist.expansion_strategy import (
     suggest_section_expansion,
     ExpansionStrategy,
 )
-from pianist.musical_analysis import MUSIC21_AVAILABLE, analyze_composition
+from pianist.musical_analysis import MUSIC21_AVAILABLE, analyze_composition, _composition_to_music21_stream
 from pianist.schema import Composition
 
 
@@ -24,6 +24,7 @@ def test_generate_expansion_strategy_basic(tmp_path: Path) -> None:
     comp_json = {
         "title": "Test",
         "bpm": 120,
+        "key_signature": "C",
         "time_signature": {"numerator": 4, "denominator": 4},
         "ppq": 480,
         "tracks": [
@@ -60,6 +61,7 @@ def test_generate_expansion_strategy_with_analysis(tmp_path: Path) -> None:
     comp_json = {
         "title": "Test",
         "bpm": 120,
+        "key_signature": "C",
         "time_signature": {"numerator": 4, "denominator": 4},
         "ppq": 480,
         "tracks": [
@@ -74,8 +76,9 @@ def test_generate_expansion_strategy_with_analysis(tmp_path: Path) -> None:
     from pianist.parser import parse_composition_from_text
     comp = parse_composition_from_text(json.dumps(comp_json))
     
-    # Pre-compute analysis
-    analysis = analyze_composition(comp)
+    # Pre-compute analysis with pre-converted stream to avoid redundant conversion
+    stream = _composition_to_music21_stream(comp)
+    analysis = analyze_composition(comp, music21_stream=stream)
     
     strategy = generate_expansion_strategy(comp, target_length=16.0, analysis=analysis)
     
@@ -89,6 +92,7 @@ def test_generate_expansion_strategy_with_expansion_points(tmp_path: Path) -> No
     comp_json = {
         "title": "Test",
         "bpm": 120,
+        "key_signature": "C",
         "time_signature": {"numerator": 4, "denominator": 4},
         "ppq": 480,
         "tracks": [
