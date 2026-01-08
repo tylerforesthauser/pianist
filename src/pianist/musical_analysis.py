@@ -337,7 +337,7 @@ def _analyze_voice_leading(chords: list[ChordAnalysis]) -> list[dict[str, Any]]:
     return voice_leading
 
 
-def analyze_harmony(composition: Composition) -> HarmonicAnalysis:
+def analyze_harmony(composition: Composition, music21_stream: stream.Stream | None = None) -> HarmonicAnalysis:
     """
     Analyze harmonic progression and functional harmony.
     
@@ -347,14 +347,21 @@ def analyze_harmony(composition: Composition) -> HarmonicAnalysis:
     - Inversion detection
     - Cadence detection
     - Voice leading analysis
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
             "music21 is required for harmonic analysis. Install it with: pip install music21"
         )
     
-    # Convert to music21 stream
-    s = _composition_to_music21_stream(composition)
+    # Convert to music21 stream (reuse if provided)
+    if music21_stream is None:
+        s = _composition_to_music21_stream(composition)
+    else:
+        s = music21_stream
     
     # Detect or use key
     detected_key_obj = _detect_key_from_stream(s)
@@ -514,7 +521,7 @@ def _detect_transposed_match(pattern1: list[int], pattern2: list[int], tolerance
     return False
 
 
-def detect_motifs(composition: Composition, min_length: float = 0.5, max_length: float = 4.0) -> list[Motif]:
+def detect_motifs(composition: Composition, min_length: float = 0.5, max_length: float = 4.0, music21_stream: stream.Stream | None = None) -> list[Motif]:
     """
     Detect recurring melodic/rhythmic patterns (motifs) in the composition.
     
@@ -527,6 +534,7 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
         composition: The composition to analyze
         min_length: Minimum motif length in beats
         max_length: Maximum motif length in beats
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     
     Returns:
         List of detected motifs
@@ -536,8 +544,11 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
             "music21 is required for motif detection. Install it with: pip install music21"
         )
     
-    # Convert to music21 stream
-    s = _composition_to_music21_stream(composition)
+    # Convert to music21 stream (reuse if provided)
+    if music21_stream is None:
+        s = _composition_to_music21_stream(composition)
+    else:
+        s = music21_stream
     
     # Extract all notes with their timing and duration
     all_notes: list[tuple[float, float, list[int]]] = []  # (start, duration, pitches)
@@ -662,20 +673,27 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
     return unique_motifs
 
 
-def detect_phrases(composition: Composition) -> list[Phrase]:
+def detect_phrases(composition: Composition, music21_stream: stream.Stream | None = None) -> list[Phrase]:
     """
     Detect musical phrases and phrase structure.
     
     This is a basic implementation using heuristics.
     More sophisticated algorithms can be built on top.
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
             "music21 is required for phrase detection. Install it with: pip install music21"
         )
     
-    # Convert to music21 stream
-    s = _composition_to_music21_stream(composition)
+    # Convert to music21 stream (reuse if provided)
+    if music21_stream is None:
+        s = _composition_to_music21_stream(composition)
+    else:
+        s = music21_stream
     
     phrases: list[Phrase] = []
     
@@ -783,12 +801,16 @@ def _calculate_section_similarity(
     return similarity
 
 
-def _detect_sections_automatically(composition: Composition) -> list[dict[str, Any]]:
+def _detect_sections_automatically(composition: Composition, music21_stream: stream.Stream | None = None) -> list[dict[str, Any]]:
     """
     Automatically detect sections in the composition based on:
     - Phrase boundaries
     - Harmonic changes
     - Repetition patterns
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     
     Returns:
         List of section dictionaries with start, end, and label
@@ -797,7 +819,7 @@ def _detect_sections_automatically(composition: Composition) -> list[dict[str, A
         return []
     
     # Detect phrases first
-    phrases = detect_phrases(composition)
+    phrases = detect_phrases(composition, music21_stream=music21_stream)
     
     if len(phrases) < 2:
         return []
@@ -812,7 +834,7 @@ def _detect_sections_automatically(composition: Composition) -> list[dict[str, A
     current_section_phrases: list[Phrase] = []
     
     # Analyze harmony to find cadences (section endings)
-    harmony = analyze_harmony(composition)
+    harmony = analyze_harmony(composition, music21_stream=music21_stream)
     cadence_times: set[float] = set()
     if harmony.cadences:
         for cadence in harmony.cadences:
@@ -868,7 +890,7 @@ def _detect_sections_automatically(composition: Composition) -> list[dict[str, A
     return sections
 
 
-def detect_form(composition: Composition) -> str | None:
+def detect_form(composition: Composition, music21_stream: stream.Stream | None = None) -> str | None:
     """
     Detect musical form (binary, ternary, sonata, etc.).
     
@@ -876,6 +898,10 @@ def detect_form(composition: Composition) -> str | None:
     - Automatic section detection
     - Section similarity analysis
     - Form classification based on repetition patterns
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     
     Returns:
         Detected form name (e.g., "binary", "ternary", "sonata", "rondo", "custom")
@@ -907,7 +933,7 @@ def detect_form(composition: Composition) -> str | None:
             return "custom"
     
     # Otherwise, try automatic section detection
-    auto_sections = _detect_sections_automatically(composition)
+    auto_sections = _detect_sections_automatically(composition, music21_stream=music21_stream)
     
     if len(auto_sections) == 0:
         return None
@@ -930,12 +956,16 @@ def detect_form(composition: Composition) -> str | None:
     return "custom"
 
 
-def identify_key_ideas(composition: Composition) -> list[dict[str, Any]]:
+def identify_key_ideas(composition: Composition, music21_stream: stream.Stream | None = None) -> list[dict[str, Any]]:
     """
     Identify important musical ideas that should be preserved/developed.
     
     Uses analysis results to identify motifs, phrases, and harmonic progressions
     that are significant.
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
@@ -957,7 +987,7 @@ def identify_key_ideas(composition: Composition) -> list[dict[str, Any]]:
             })
     
     # Also detect motifs and phrases automatically
-    motifs = detect_motifs(composition)
+    motifs = detect_motifs(composition, music21_stream=music21_stream)
     for i, motif in enumerate(motifs):
         key_ideas.append({
             'id': f'auto_motif_{i+1}',
@@ -968,7 +998,7 @@ def identify_key_ideas(composition: Composition) -> list[dict[str, Any]]:
             'importance': 'medium',
         })
     
-    phrases = detect_phrases(composition)
+    phrases = detect_phrases(composition, music21_stream=music21_stream)
     for i, phrase in enumerate(phrases):
         key_ideas.append({
             'id': f'auto_phrase_{i+1}',
@@ -982,11 +1012,15 @@ def identify_key_ideas(composition: Composition) -> list[dict[str, Any]]:
     return key_ideas
 
 
-def generate_expansion_strategies(composition: Composition) -> list[str]:
+def generate_expansion_strategies(composition: Composition, music21_stream: stream.Stream | None = None) -> list[str]:
     """
     Generate strategies for expanding the composition.
     
     Analyzes the composition and suggests how to expand it.
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
@@ -995,11 +1029,11 @@ def generate_expansion_strategies(composition: Composition) -> list[str]:
     
     strategies: list[str] = []
     
-    # Analyze composition
-    motifs = detect_motifs(composition)
-    phrases = detect_phrases(composition)
-    harmony = analyze_harmony(composition)
-    form = detect_form(composition)
+    # Analyze composition (reuse stream to avoid re-conversion)
+    motifs = detect_motifs(composition, music21_stream=music21_stream)
+    phrases = detect_phrases(composition, music21_stream=music21_stream)
+    harmony = analyze_harmony(composition, music21_stream=music21_stream)
+    form = detect_form(composition, music21_stream=music21_stream)
     
     # Generate strategies based on analysis
     if motifs:
@@ -1027,9 +1061,13 @@ def generate_expansion_strategies(composition: Composition) -> list[str]:
     return strategies
 
 
-def analyze_composition(composition: Composition) -> MusicalAnalysis:
+def analyze_composition(composition: Composition, music21_stream: stream.Stream | None = None) -> MusicalAnalysis:
     """
     Analyze a composition to extract musical characteristics.
+    
+    Args:
+        composition: The composition to analyze
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     
     Returns:
         MusicalAnalysis object with:
@@ -1045,13 +1083,17 @@ def analyze_composition(composition: Composition) -> MusicalAnalysis:
             "music21 is required for composition analysis. Install it with: pip install music21"
         )
     
-    # Perform all analyses
-    motifs = detect_motifs(composition)
-    phrases = detect_phrases(composition)
-    harmony = analyze_harmony(composition)
-    form = detect_form(composition)
-    key_ideas = identify_key_ideas(composition)
-    expansion_suggestions = generate_expansion_strategies(composition)
+    # Convert to music21 stream once and reuse (major performance improvement)
+    if music21_stream is None:
+        music21_stream = _composition_to_music21_stream(composition)
+    
+    # Perform all analyses, passing the stream to avoid re-conversion
+    motifs = detect_motifs(composition, music21_stream=music21_stream)
+    phrases = detect_phrases(composition, music21_stream=music21_stream)
+    harmony = analyze_harmony(composition, music21_stream=music21_stream)
+    form = detect_form(composition, music21_stream=music21_stream)
+    key_ideas = identify_key_ideas(composition, music21_stream=music21_stream)
+    expansion_suggestions = generate_expansion_strategies(composition, music21_stream=music21_stream)
     
     return MusicalAnalysis(
         motifs=motifs,

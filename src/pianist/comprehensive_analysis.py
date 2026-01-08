@@ -256,12 +256,19 @@ def analyze_for_user(
         
         # Musical analysis (if music21 is available)
         musical_analysis = None
+        music21_stream = None
         if MUSIC21_AVAILABLE:
             try:
                 # Use provided composition if available, otherwise load it
                 if composition is None:
                     composition = composition_from_midi(file_path)
-                musical_analysis = analyze_composition(composition)
+                
+                # Convert to music21 stream once and reuse (major performance improvement)
+                from .musical_analysis import _composition_to_music21_stream
+                music21_stream = _composition_to_music21_stream(composition)
+                
+                # Pass stream to avoid re-conversion in each analysis function
+                musical_analysis = analyze_composition(composition, music21_stream=music21_stream)
                 
                 # Format musical analysis
                 result["musical_analysis"] = {
@@ -428,8 +435,10 @@ Respond ONLY with valid JSON, no other text."""
             "tracks": len(composition.tracks),
         }
         
-        # Musical analysis
-        musical_analysis = analyze_composition(composition)
+        # Musical analysis (convert to music21 stream once and reuse)
+        from .musical_analysis import _composition_to_music21_stream
+        music21_stream = _composition_to_music21_stream(composition)
+        musical_analysis = analyze_composition(composition, music21_stream=music21_stream)
         
         # Format musical analysis
         result["musical_analysis"] = {
