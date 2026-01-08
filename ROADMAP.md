@@ -36,7 +36,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 
 #### CLI Commands
 - ✅ `annotate` - Mark musical intent (manual and auto-detect)
-- ✅ `expand` - Expand incomplete compositions (with/without AI provider)
+- ✅ `expand` - Expand incomplete compositions (requires AI provider)
 - ✅ `diff` - Compare compositions
 - ✅ `analyze` - Musical analysis (MIDI and JSON input)
 - ✅ `generate`, `modify`, `import`, `render`, `fix` - All working

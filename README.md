@@ -8,38 +8,34 @@ Pianist is a composition workflow platform that creates a rock solid conduit bet
 - **AI → Human**: AI generates musical ideas that humans can refine in their DAWs
 - **Human → AI**: Humans can export their work for AI expansion and iteration
 
-Pianist provides a shared musical vocabulary (JSON schema) that both humans and AI can use, converting between structured JSON and standard MIDI files. It works seamlessly with AI models (like ChatGPT, Claude, Gemini, etc.) that can generate musical compositions in JSON format, but it also works perfectly fine without any AI—you can create JSON manually, import from MIDI, or use any external AI tool.
+Pianist provides a shared musical vocabulary (JSON schema) that both humans and AI can use, converting between structured JSON and standard MIDI files. It integrates with AI models (Gemini, Ollama, or OpenRouter) to generate, analyze, and modify musical compositions.
 
 ### How It Works
 
-**Without AI (Core Functionality):**
-1. **Create or import JSON**: Write JSON manually, import from MIDI, or get it from any external AI tool
-2. **Render to MIDI**: Use `pianist render` to convert the JSON into a standard MIDI file
-3. **Iterate & Refine**: Modify compositions, transpose, fix issues programmatically
-
-**With AI Provider (Optional):**
+Pianist uses AI providers to:
 - Generate compositions directly from text descriptions
+- Analyze MIDI files and extract musical characteristics
 - Iterate on existing compositions using AI
-- Analyze MIDI files and generate new compositions inspired by them
+- Expand incomplete compositions into complete works
+
+You can also create JSON manually or import from MIDI, then use `pianist render` to convert JSON to MIDI files.
 
 ### Key Features
 
 - **JSON → MIDI conversion**: Parses structured composition data and generates accurate MIDI files
-- **AI integration**: Optional provider support (Gemini cloud, Ollama local, or OpenRouter cloud) for generating and iterating on compositions directly
+- **AI integration**: Provider support (Gemini cloud, Ollama local, or OpenRouter cloud) for generating and iterating on compositions
 - **MIDI analysis**: Extract musical characteristics from existing MIDI files to inspire new compositions
 - **Iteration tools**: Transpose, fix pedal patterns, and modify compositions programmatically
 - **Flexible input**: Handles JSON wrapped in markdown code blocks, minor formatting issues, and raw JSON
-- **Works standalone**: All core features work without any AI provider—AI is completely optional
 
 ### Use Cases
 
 - **AI-Human Collaboration**: AI generates musical ideas that humans refine in DAWs, or humans create sketches that AI expands into complete compositions
 - **Compose with AI**: Generate piano compositions using AI models and convert them to MIDI
 - **Expand Incomplete Compositions**: Take a 90-second sketch "full of great ideas" and have AI expand it to a complete 5-minute composition while preserving and developing the original ideas
-- **MIDI analysis**: Analyze existing MIDI files to extract musical patterns and generate prompts for new compositions
+- **MIDI analysis**: Analyze existing MIDI files to extract musical patterns and generate new compositions
 - **Composition iteration**: Refine and modify compositions through multiple iterations
 - **Music production**: Create MIDI files for use in DAWs, notation software, or further processing
-- **Manual composition**: Create JSON manually and render to MIDI without any AI
 
 ## Install
 
@@ -113,15 +109,8 @@ Tempo: 84
 Style/Character: lyrical, contemplative" -o composition.json
 ```
 
-**Option C: Generate prompt template** (no AI needed)
-```bash
-./pianist generate "Title: Morning Sketch
-Form: ternary
-Length: ~64 beats
-Key: C major
-Tempo: 84" -o prompt.txt
-```
-Then paste the prompt into your preferred AI model.
+**Option C: Create JSON manually**
+Write your composition JSON manually, then render it to MIDI.
 
 **Step 2: Render to MIDI**
 
@@ -140,9 +129,9 @@ This parses the JSON (even if it's wrapped in markdown code blocks) and creates 
 
 See [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 
-## AI Provider Setup (Optional)
+## AI Provider Setup
 
-Pianist can call AI providers directly to generate or modify compositions. This is completely optional—you can always use external AI tools or create JSON manually.
+Pianist requires an AI provider to generate, analyze, and modify compositions. Configure one of the following providers:
 
 Currently supported providers:
 - **Gemini** (Google) - Cloud-based, requires API key
@@ -272,24 +261,20 @@ OpenRouter provides access to hundreds of AI models through a single API. See ht
 
 ## Core Workflows
 
-### Understanding AI vs Non-AI Workflows
+### Command Overview
 
-**Commands that work WITHOUT any AI provider:**
-- `render` - Always works (pure JSON→MIDI conversion)
-- `import` - Always works (converts MIDI→JSON)
-- `modify` - Works without `--provider` (transposes, generates prompts)
-- `fix` - Always works (algorithmic fixes, e.g., `fix --pedal`)
-- `analyze` - Works without `--provider` (extracts analysis, generates prompts)
-- `generate` - Works without `--provider` (generates prompt templates)
-- `annotate` - Always works (marks musical intent)
-- `expand` - Works without `--provider` (generates expansion strategy)
-- `diff` - Always works (compares compositions)
-
-**Commands that can USE an AI provider (optional):**
+**Commands that require an AI provider:**
 - `generate --provider gemini|ollama|openrouter` - Generates composition from description
 - `modify --provider gemini|ollama|openrouter` - Uses AI to modify existing composition
-- `analyze --provider gemini|ollama|openrouter` - Uses AI to generate new composition from analysis
+- `analyze --ai-provider gemini|ollama|openrouter` - Uses AI for analysis insights
 - `expand --provider gemini|ollama|openrouter` - Uses AI to expand incomplete compositions
+
+**Commands that work without AI provider (utility commands):**
+- `render` - Converts JSON to MIDI (pure conversion)
+- `import` - Converts MIDI to JSON
+- `fix` - Algorithmic fixes (e.g., `fix --pedal`)
+- `annotate` - Marks musical intent
+- `diff` - Compares compositions
 
 ### 1. Creating New Compositions
 
@@ -330,22 +315,7 @@ This creates:
 - `output/generate-output/generate/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
 - `output/generate-output/generate/composition.mid` - Rendered MIDI file (if `--render` is used)
 
-**Option 2: Generate Prompt Template (No AI Required)**
-
-Generate a ready-to-paste prompt for use with external AI:
-
-```bash
-./pianist generate "Title: Morning Sketch
-Form: ternary
-Length: ~64 beats
-Key: C major
-Tempo: 84
-Style/Character: lyrical, contemplative" -o prompt.txt
-```
-
-Then paste the prompt into your preferred AI model (ChatGPT, Claude, etc.) and render the result.
-
-**Option 3: Use External AI Directly**
+**Option 2: Use External AI Directly**
 
 Use the two-part prompt structure (system + user prompts) described in the Quick Start section. The AI Prompting Guide covers generating new compositions, modifying existing ones, and creating new works from existing MIDI files. For comprehensive guidance, examples, and system prompt templates, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 
@@ -367,7 +337,7 @@ This creates:
 - `output/existing/analyze/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
 - `output/existing/analyze/composition.mid` - Rendered MIDI file
 
-**Comprehensive Analysis (No AI Generation):**
+**Comprehensive Analysis:**
 
 Get detailed analysis including quality assessment, musical analysis, and improvement suggestions:
 
@@ -382,28 +352,9 @@ Get detailed analysis including quality assessment, musical analysis, and improv
 ./pianist analyze -i existing.mid --ai-naming -o analysis.json
 ```
 
-**Without AI Provider (Generate Prompt for External AI):**
-
-If you prefer to use a different AI model, generate a ready-to-paste prompt:
-
-```bash
-# Generate a prompt for a NEW composition
-mkdir -p output/analysis
-./pianist analyze -i existing.mid --format prompt -p output/analysis/new_piece_prompt.txt \
-  --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic."
-
-# Or export structured analysis JSON (for building UIs/tools)
-./pianist analyze -i existing.mid -f json -o output/analysis/analysis.json
-
-# Or both
-./pianist analyze -i existing.mid -f both -o output/analysis/analysis.json -p output/analysis/new_piece_prompt.txt
-```
-
-Then paste the prompt into your preferred AI model and render the result.
-
 ### 2. Importing and Modifying Compositions
 
-#### Import from MIDI (No AI Required)
+#### Import from MIDI
 
 Convert an existing MIDI file to Pianist JSON format:
 
@@ -424,25 +375,14 @@ Modify an existing composition using the built-in AI provider:
 
 If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.<provider>.txt` (e.g., `.gemini.txt` or `.ollama.txt`).
 
-#### Quick Tweaks (No AI Required)
+#### Quick Tweaks
 
-Make simple modifications without using AI:
+Make simple modifications like transposition:
 
 ```bash
 # Transpose up a whole step
 ./pianist modify -i seed.json --transpose 2 -o seed_transposed.json
 ```
-
-#### Generate Modification Prompt for External AI (No AI Required)
-
-Create a ready-to-paste prompt for modifying a composition:
-
-```bash
-mkdir -p output/analysis
-./pianist modify -i seed.json -p output/analysis/modify_prompt.txt --instructions "Make it more lyrical and add an 8-beat coda."
-```
-
-Then paste the prompt into your preferred AI model and render the result.
 
 ### 2b. Annotating and Expanding Compositions
 
@@ -471,8 +411,6 @@ Expand a sketch into a complete composition:
 ./pianist expand -i annotated.json --target-length 300 --provider gemini \
   --preserve-motifs -o expanded.json --render
 
-# Or just generate expansion strategy (no AI)
-./pianist expand -i annotated.json --target-length 300 -o strategy.json
 ```
 
 #### Compare Compositions
@@ -492,7 +430,7 @@ See what changed between compositions:
 
 ### 3. Rendering to MIDI
 
-Convert any Pianist JSON to a MIDI file (always works, no AI required):
+Convert any Pianist JSON to a MIDI file:
 
 ```bash
 ./pianist render -i composition.json -o out.mid
@@ -504,7 +442,7 @@ By default, MIDI files are saved to `output/<input-name>/render/out.mid`. You ca
 
 ### 4. Fixing Issues
 
-#### Fix Composition Issues (No AI Required)
+#### Fix Composition Issues
 
 Correct issues in compositions:
 
