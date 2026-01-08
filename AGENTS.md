@@ -76,7 +76,11 @@ This document provides instructions for AI agents working on the Pianist project
 
 ## Documentation Guidelines
 
-### Planning Documents
+### Documentation Consolidation Rules
+
+**CRITICAL: Consolidate related documentation into single documents. DO NOT create multiple files for the same topic.**
+
+#### Planning Documents
 
 **Keep planning documents minimal and consolidated:**
 
@@ -98,6 +102,34 @@ This document provides instructions for AI agents working on the Pianist project
 - **DO NOT create separate status documents** - Update ROADMAP.md instead
 - Use `docs/temp/` for temporary planning documents that will be consolidated or removed
 - Remove temporary documents from `docs/temp/` when no longer needed
+
+#### Technical Documentation
+
+**When documenting technical work (optimizations, refactorings, implementations):**
+
+1. **Consolidate related documentation** - Create ONE comprehensive document per topic, not multiple files
+   - Example: Instead of creating `analysis.md`, `analysis_implementation.md`, `analysis_validation.md`, create `analysis.md` with all sections
+   - Use sections within a single document to organize content
+
+2. **Use `docs/temp/` for work-in-progress** - If you need multiple drafts or working documents:
+   - Create them in `docs/temp/` during development
+   - Consolidate into final document in appropriate location (`docs/technical/`, `docs/guides/`, etc.)
+   - Delete temporary files when done
+
+3. **Update existing documents when possible** - Before creating new documentation:
+   - Check if an existing document covers the topic
+   - Update existing document instead of creating new one
+   - Only create new documents for genuinely new topics
+
+**Examples of what NOT to do:**
+- ❌ Creating `topic_analysis.md`, `topic_implementation.md`, `topic_validation.md`, `topic_summary.md` for one feature
+- ❌ Creating separate status documents instead of updating ROADMAP.md
+- ❌ Creating multiple planning documents for the same work
+
+**Examples of what TO do:**
+- ✅ Create `topic.md` with sections: Analysis, Implementation, Validation, Summary
+- ✅ Update ROADMAP.md for status changes
+- ✅ Use `docs/temp/` for drafts, then consolidate into final document
 
 ### Keeping Documentation Up-to-Date
 
@@ -180,6 +212,106 @@ pytest
 - Use optional dependencies for optional features (e.g., `[gemini]`, `[dev]`)
 - Document dependencies in README.md
 - Use virtual environment (`.venv`) for development
+
+### Performance and Efficiency Guidelines
+
+**CRITICAL: Avoid inefficient algorithms and redundant computations that can cause significant performance degradation.**
+
+#### Algorithm Complexity Awareness
+
+1. **Avoid O(n²) or worse algorithms when O(n) or O(n log n) alternatives exist**
+   - When comparing elements, use hash-based grouping, sorting, or indexing instead of nested loops
+   - Example: Pattern matching should use hash tables or tries, not nested loops comparing every element with every other element
+   - If you must use O(n²), document why and consider optimization
+
+2. **Use appropriate data structures**
+   - Hash tables/dictionaries for O(1) lookups
+   - Sets for membership testing
+   - Sorted data structures when order matters
+   - Avoid repeated linear searches when hash lookups are possible
+
+3. **Consider input size**
+   - For small inputs (<100 items), simple algorithms are fine
+   - For larger inputs, optimize early - don't wait for performance problems
+   - When processing MIDI files or musical data, assume potentially large inputs (thousands of notes)
+
+#### Avoid Redundant Computations
+
+1. **Functions should accept pre-computed results as optional parameters**
+   ```python
+   # ❌ BAD: Function always recomputes
+   def analyze_composition(composition):
+       motifs = detect_motifs(composition)  # Always recomputes
+       phrases = detect_phrases(composition)  # Always recomputes
+   
+   # ✅ GOOD: Function accepts pre-computed results
+   def analyze_composition(composition, motifs=None, phrases=None):
+       if motifs is None:
+           motifs = detect_motifs(composition)
+       if phrases is None:
+           phrases = detect_phrases(composition)
+   ```
+
+2. **Pass results between functions instead of recomputing**
+   - When one function calls another that needs the same data, pass it as a parameter
+   - Cache expensive computations and reuse them
+   - Don't call the same expensive function multiple times with the same inputs
+
+3. **Reuse expensive objects**
+   - If converting data structures is expensive (e.g., music21 streams), convert once and pass the result
+   - Don't recreate the same object multiple times in a call chain
+
+#### Performance Best Practices
+
+1. **Profile before optimizing**
+   - Use timing measurements (`time.time()`) or profiling tools to identify actual bottlenecks
+   - Don't optimize code that's already fast enough
+   - Focus optimization efforts on the slowest parts
+
+2. **Test with realistic data sizes**
+   - Test algorithms with files similar to production use cases
+   - Large MIDI files (1000+ notes, 10+ minutes) should complete in seconds, not minutes
+   - If processing takes >10 seconds for typical inputs, investigate optimization
+
+3. **Consider memory vs. speed tradeoffs**
+   - Hash-based algorithms may use more memory but are much faster
+   - For large datasets, prefer algorithms that scale well (O(n) or O(n log n)))
+
+4. **Code review checklist for performance**
+   - [ ] Are there nested loops that could be replaced with hash-based lookups?
+   - [ ] Are functions recomputing the same values multiple times?
+   - [ ] Are expensive conversions (e.g., MIDI → music21) happening multiple times?
+   - [ ] Could results be passed between functions instead of recomputed?
+   - [ ] Is the algorithm complexity appropriate for expected input sizes?
+
+#### When to Optimize
+
+- **Optimize immediately if:**
+  - Algorithm is O(n²) or worse and O(n) alternative exists
+  - Same computation is performed multiple times in a call chain
+  - Processing takes >10 seconds for typical inputs
+
+- **Don't optimize if:**
+  - Code is already fast enough (<1 second for typical inputs)
+  - Optimization would significantly harm readability
+  - Premature optimization without profiling data
+
+#### Examples from Past Issues
+
+**Example 1: O(n²) Pattern Matching (Fixed)**
+- **Problem**: Motif detection used nested loops comparing every pattern with every other pattern
+- **Solution**: Hash-based grouping reduced complexity from O(n²) to O(n)
+- **Result**: 98.93s → 0.09s (1099x speedup)
+
+**Example 2: Redundant Function Calls (Fixed)**
+- **Problem**: `identify_key_ideas()` and `generate_expansion_strategies()` recomputed all analysis
+- **Solution**: Functions now accept pre-computed results as optional parameters
+- **Result**: Eliminated ~200s of redundant computation
+
+**Example 3: Redundant Quality Check (Fixed)**
+- **Problem**: Quality check recomputed full analysis instead of reusing existing results
+- **Solution**: Quality check now accepts pre-computed analysis as parameter
+- **Result**: Eliminated 305s redundant analysis
 
 ### Development Mode
 
