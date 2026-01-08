@@ -207,11 +207,19 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ Validation module implemented (quality checks, preservation, coherence)
 - ✅ Validation integrated with expand command
 - ✅ Comprehensive tests for validation (8 tests + 2 CLI tests)
-- ✅ **AI Refactoring** (2025-01):
+- ✅ **Global Configuration System** (2025-01):
+  - Config system implemented (`src/pianist/config.py`)
+  - Support for config files (`~/.pianist/config.toml`, `.pianist/config.toml`)
+  - Environment variable support (`AI_PROVIDER`, `AI_MODEL`, `AI_DELAY_SECONDS`)
+  - Default provider: openrouter
+  - Default model: mistralai/devstral-2512:free
+  - All commands and scripts integrated with config system
+  - Configuration guide added (`docs/guides/CONFIGURATION.md`)
+- ✅ **AI Provider Refactoring** (2025-01):
   - Core commands now require AI provider (`expand` requires `--provider`)
   - Scripts always use AI when appropriate (`review_and_categorize_midi.py`, `check_midi_quality.py`)
-  - Test suite updated for new provider system (244/252 tests passing)
-  - Global configuration system implemented (default provider: openrouter)
+  - Test suite fully updated (252/252 tests passing)
+  - All tests use openrouter as default provider
 
 ---
 

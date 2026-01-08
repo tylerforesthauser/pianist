@@ -23,7 +23,8 @@ You can also create JSON manually or import from MIDI, then use `pianist render`
 ### Key Features
 
 - **JSON → MIDI conversion**: Parses structured composition data and generates accurate MIDI files
-- **AI integration**: Provider support (Gemini cloud, Ollama local, or OpenRouter cloud) for generating and iterating on compositions
+- **AI integration**: Provider support (OpenRouter cloud - default, Gemini cloud, or Ollama local) for generating and iterating on compositions
+- **Configuration system**: Set default provider and model via config files or environment variables (see [Configuration Guide](docs/guides/CONFIGURATION.md))
 - **MIDI analysis**: Extract musical characteristics from existing MIDI files to inspire new compositions
 - **Iteration tools**: Transpose, fix pedal patterns, and modify compositions programmatically
 - **Flexible input**: Handles JSON wrapped in markdown code blocks, minor formatting issues, and raw JSON
@@ -101,7 +102,7 @@ Save the model's JSON output to a file (e.g., `composition.json`).
 
 **Option B: Use built-in AI provider** (requires setup, see below)
 ```bash
-./pianist generate --provider gemini "Title: Morning Sketch
+./pianist generate --provider openrouter "Title: Morning Sketch
 Form: ternary
 Length: ~64 beats
 Key: C major
@@ -132,6 +133,8 @@ See [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
 ## AI Provider Setup
 
 Pianist requires an AI provider to generate, analyze, and modify compositions. Configure one of the following providers:
+
+**💡 Tip:** You can set your default provider using the [configuration system](docs/guides/CONFIGURATION.md) so you don't need to specify `--provider` on every command.
 
 Currently supported providers:
 - **Gemini** (Google) - Cloud-based, requires API key
@@ -221,53 +224,17 @@ To enable Ollama integration:
 
 For detailed Ollama setup and usage, see [docs/guides/OLLAMA_SETUP.md](docs/guides/OLLAMA_SETUP.md).
 
-### To enable OpenRouter integration:
-
-1. **Get an API key:**
-   - Sign up at https://openrouter.ai
-   - Create an API key from your dashboard
-
-2. **Set the API key** (choose one method):
-   
-   **Option A: Use a `.env` file** (recommended):
-   Create a `.env` file in the project root:
-   ```
-   OPENROUTER_API_KEY=your-api-key-here
-   ```
-   The `.env` file is automatically loaded if `python-dotenv` is installed.
-   
-   **Option B: Set environment variable:**
-   ```bash
-   export OPENROUTER_API_KEY='your-api-key-here'
-   ```
-   
-   Note: Environment variables override `.env` file values if both are set.
-
-3. **Install Python requests (if not already installed):**
-   ```bash
-   pip install requests
-   ```
-
-4. **Use OpenRouter with pianist:**
-   ```bash
-   # Use OpenRouter with default model (openai/gpt-4o)
-   ./pianist generate --provider openrouter "Title: Morning Sketch..." -o composition.json
-   
-   # Use a specific model (see https://openrouter.ai/models for available models)
-   ./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" "Title: Morning Sketch..." -o composition.json
-   ```
-
-OpenRouter provides access to hundreds of AI models through a single API. See https://openrouter.ai/models for the full list of available models.
-
 ## Core Workflows
 
 ### Command Overview
 
 **Commands that require an AI provider:**
-- `generate --provider gemini|ollama|openrouter` - Generates composition from description
-- `modify --provider gemini|ollama|openrouter` - Uses AI to modify existing composition
-- `analyze --ai-provider gemini|ollama|openrouter` - Uses AI for analysis insights
-- `expand --provider gemini|ollama|openrouter` - Uses AI to expand incomplete compositions
+- `generate --provider openrouter|gemini|ollama` - Generates composition from description (default: openrouter)
+- `modify --provider openrouter|gemini|ollama` - Uses AI to modify existing composition (default: openrouter)
+- `analyze --ai-provider openrouter|gemini|ollama` - Uses AI for analysis insights (default: openrouter)
+- `expand --provider openrouter|gemini|ollama` - Uses AI to expand incomplete compositions (default: openrouter)
+
+**Note:** You can set default provider using the [configuration system](docs/guides/CONFIGURATION.md) so you don't need to specify `--provider` on every command.
 
 **Commands that work without AI provider (utility commands):**
 - `render` - Converts JSON to MIDI (pure conversion)
@@ -286,7 +253,7 @@ Generate a composition directly from a text description:
 
 ```bash
 # Generate and render in one command
-./pianist generate --provider gemini "Title: Morning Sketch
+./pianist generate --provider openrouter "Title: Morning Sketch
 Form: ternary
 Length: ~64 beats
 Key: C major
@@ -307,12 +274,12 @@ Length: ~32 beats
 Key: G minor
 Tempo: 100
 Style/Character: dramatic, expressive" | \
-  ./pianist generate --provider gemini -o composition.json --render
+  ./pianist generate --provider openrouter -o composition.json --render
 ```
 
 This creates:
 - `output/generate-output/generate/composition.json` - The generated composition
-- `output/generate-output/generate/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
+- `output/generate-output/generate/composition.json.<provider>.txt` - Raw AI response (e.g., `.openrouter.txt`, `.gemini.txt`, or `.ollama.txt`)
 - `output/generate-output/generate/composition.mid` - Rendered MIDI file (if `--render` is used)
 
 **Option 2: Use External AI Directly**
@@ -327,14 +294,14 @@ Analyze a reference MIDI to extract musical characteristics, then generate a new
 
 ```bash
 # Analyze and generate with AI provider in one command
-./pianist analyze -i existing.mid --provider gemini --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
+./pianist analyze -i existing.mid --provider openrouter --instructions "Compose a new 64-bar piece with a similar texture, but more optimistic." \
   -o composition.json --render
 # MIDI path auto-generated as composition.mid
 ```
 
 This creates:
 - `output/existing/analyze/composition.json` - The generated composition
-- `output/existing/analyze/composition.json.<provider>.txt` - Raw AI response (e.g., `.gemini.txt` or `.ollama.txt`)
+- `output/existing/analyze/composition.json.<provider>.txt` - Raw AI response (e.g., `.openrouter.txt`, `.gemini.txt`, or `.ollama.txt`)
 - `output/existing/analyze/composition.mid` - Rendered MIDI file
 
 **Comprehensive Analysis:**
@@ -368,12 +335,12 @@ Convert an existing MIDI file to Pianist JSON format:
 Modify an existing composition using the built-in AI provider:
 
 ```bash
-./pianist modify -i seed.json --provider gemini --instructions "Make it more lyrical and add an 8-beat coda." \
+./pianist modify -i seed.json --provider openrouter --instructions "Make it more lyrical and add an 8-beat coda." \
   -o seed_updated.json --render
 # MIDI path auto-generated as seed_updated.mid
 ```
 
-If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.<provider>.txt` (e.g., `.gemini.txt` or `.ollama.txt`).
+If you provide `--output` (`-o`) but omit `--raw` (`-r`), Pianist automatically saves the raw AI response next to your JSON as `<out>.<provider>.txt` (e.g., `.openrouter.txt`, `.gemini.txt`, or `.ollama.txt`).
 
 #### Quick Tweaks
 
@@ -408,7 +375,7 @@ Expand a sketch into a complete composition:
 
 ```bash
 # Expand with AI provider
-./pianist expand -i annotated.json --target-length 300 --provider gemini \
+./pianist expand -i annotated.json --target-length 300 --provider openrouter \
   --preserve-motifs -o expanded.json --render
 
 ```
@@ -557,7 +524,7 @@ By default, if an output file already exists, Pianist will automatically create 
 
 **Versioning behavior:**
 - If `updated.json` exists, the next run creates `updated.v2.json`, then `updated.v3.json`, etc.
-- The raw AI response (`.<provider>.txt`, e.g., `.gemini.txt` or `.ollama.txt`) is automatically versioned to match the JSON file
+- The raw AI response (`.<provider>.txt`, e.g., `.openrouter.txt`, `.gemini.txt`, or `.ollama.txt`) is automatically versioned to match the JSON file
 - Use `--overwrite` to explicitly overwrite existing files instead of versioning
 
 **Example:**
@@ -589,8 +556,8 @@ The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to 
 - Other options: `gemma3:4b` (faster, smaller), `deepseek-r1:8b` (excellent reasoning)
 
 ```bash
-# Generate with Gemini using a specific model
-./pianist generate --provider gemini --model gemini-1.5-pro \
+# Generate with OpenRouter using a specific model
+./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" \
   "Compose a complex sonata in C minor" -o composition.json
 
 # Generate with Ollama using a specific model
@@ -598,7 +565,7 @@ The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to 
   "Compose a complex sonata in C minor" -o composition.json
 
 # Iterate with a specific model
-./pianist modify -i seed.json --provider gemini --model gemini-1.5-pro \
+./pianist modify -i seed.json --provider openrouter --model "anthropic/claude-3.5-sonnet" \
   --instructions "Make it more complex." -o updated.json
 ```
 
