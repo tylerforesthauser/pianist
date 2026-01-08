@@ -5,6 +5,72 @@ This document provides instructions for AI agents working on the Pianist project
 **For project mission, goals, and principles:** See [`MISSION.md`](MISSION.md)  
 **For current status, progress, and priorities:** See [`ROADMAP.md`](ROADMAP.md) (single source of truth)
 
+## Quick Reference: Most Critical Rules
+
+**Before completing ANY task, ensure:**
+1. ✅ Run tests: `source .venv/bin/activate && pytest -m "not integration"`
+2. ✅ Update existing docs, don't create new files
+3. ✅ Update ROADMAP.md "Current Status" if status changed
+4. ✅ Remove temporary files from `docs/temp/`
+5. ✅ Activate venv before Python commands: `source .venv/bin/activate`
+
+**Common mistakes to avoid:**
+- ❌ Creating new documentation files (update existing ones instead)
+- ❌ Not running tests before completing tasks
+- ❌ Creating separate status documents (update ROADMAP.md instead)
+- ❌ Running integration tests automatically (they require API keys)
+- ❌ Committing changes automatically (only commit when explicitly asked)
+- ❌ Committing incomplete work (verify all changes are complete and tested first)
+
+## Critical Rules: Command Execution and Documentation
+
+**⚠️ READ THIS FIRST: These rules are frequently ignored. Follow them strictly.**
+
+### Command Execution Rules
+
+**When to RUN commands:**
+- ✅ Run tests before completing a task: `source .venv/bin/activate && pytest -m "not integration"`
+- ✅ Run linting/formatting when making code changes
+- ✅ Run `make sync-prompts` after modifying prompt templates
+- ✅ Run `pianist --version` to verify installation after setup changes
+- ✅ Run commands to verify your changes work as expected
+
+**When to SUGGEST commands (don't run automatically):**
+- ⚠️ Long-running commands (integration tests, full test suites)
+- ⚠️ Destructive operations (deletes, overwrites without confirmation)
+- ⚠️ Commands that require user input or API keys not available to the agent
+- ⚠️ **Git commits** - NEVER commit automatically, only when explicitly requested
+
+**Always:**
+- Activate virtual environment before running Python commands: `source .venv/bin/activate`
+- Run tests after making code changes
+- Verify commands succeed before proceeding
+- **Never commit changes** unless the user explicitly asks you to
+
+### Documentation Management Rules
+
+**CRITICAL: DO NOT create new documentation files unless explicitly requested.**
+
+**Rules:**
+1. ✅ **Update existing files** - Check if documentation already exists before creating new files
+2. ✅ **Consolidate related docs** - Use sections within existing documents, not separate files
+3. ✅ **Update ROADMAP.md** - Always update "Current Status" section, never create separate status docs
+4. ✅ **Use `docs/temp/`** - For work-in-progress docs that will be consolidated later
+5. ✅ **Remove temp files** - Clean up `docs/temp/` when work is complete
+
+**What NOT to do:**
+- ❌ Create multiple files for the same topic (e.g., `analysis.md`, `analysis_impl.md`, `analysis_test.md`)
+- ❌ Create separate status documents - always update ROADMAP.md
+- ❌ Create new planning documents - use existing ones (ROADMAP.md, MISSION.md, PLANNING.md)
+
+**Documentation update checklist (after code changes):**
+- [ ] Updated command docs (`docs/commands/`) if CLI changed
+- [ ] Updated workflow docs (`docs/workflows/`) if workflows changed
+- [ ] Updated ROADMAP.md "Current Status" if status changed
+- [ ] Updated README.md if user-facing features changed
+- [ ] Ran `make sync-prompts` if prompt templates changed
+- [ ] Removed temporary files from `docs/temp/`
+
 ## Project Structure
 
 ### Directory Organization
@@ -74,79 +140,6 @@ This document provides instructions for AI agents working on the Pianist project
    - Development/maintenance scripts: `scripts/<script_name>.py`
    - Make scripts executable and document their purpose
 
-## Documentation Guidelines
-
-### Documentation Consolidation Rules
-
-**CRITICAL: Consolidate related documentation into single documents. DO NOT create multiple files for the same topic.**
-
-#### Planning Documents
-
-**Keep planning documents minimal and consolidated:**
-
-1. **`ROADMAP.md`** - **Single source of truth for project status and planning**
-   - Always update the "Current Status" section when making status assessments
-   - DO NOT create separate status documents
-   - Consolidate all status updates here
-
-2. **`MISSION.md`** - Project mission, goals, and principles
-   - Update when goals change or after major milestones
-   - Use for reassessing current state
-
-3. **`PLANNING.md`** - Meta-document explaining planning structure
-   - Explains how planning documents are organized
-   - Points to other planning documents
-
-**Rules:**
-- **DO NOT create new markdown documents for every plan** - Use existing planning documents
-- **DO NOT create separate status documents** - Update ROADMAP.md instead
-- Use `docs/temp/` for temporary planning documents that will be consolidated or removed
-- Remove temporary documents from `docs/temp/` when no longer needed
-
-#### Technical Documentation
-
-**When documenting technical work (optimizations, refactorings, implementations):**
-
-1. **Consolidate related documentation** - Create ONE comprehensive document per topic, not multiple files
-   - Example: Instead of creating `analysis.md`, `analysis_implementation.md`, `analysis_validation.md`, create `analysis.md` with all sections
-   - Use sections within a single document to organize content
-
-2. **Use `docs/temp/` for work-in-progress** - If you need multiple drafts or working documents:
-   - Create them in `docs/temp/` during development
-   - Consolidate into final document in appropriate location (`docs/technical/`, `docs/guides/`, etc.)
-   - Delete temporary files when done
-
-3. **Update existing documents when possible** - Before creating new documentation:
-   - Check if an existing document covers the topic
-   - Update existing document instead of creating new one
-   - Only create new documents for genuinely new topics
-
-**Examples of what NOT to do:**
-- ❌ Creating `topic_analysis.md`, `topic_implementation.md`, `topic_validation.md`, `topic_summary.md` for one feature
-- ❌ Creating separate status documents instead of updating ROADMAP.md
-- ❌ Creating multiple planning documents for the same work
-
-**Examples of what TO do:**
-- ✅ Create `topic.md` with sections: Analysis, Implementation, Validation, Summary
-- ✅ Update ROADMAP.md for status changes
-- ✅ Use `docs/temp/` for drafts, then consolidate into final document
-
-### Keeping Documentation Up-to-Date
-
-**When implementing new features or refactoring code:**
-
-1. **Update command documentation** (`docs/commands/`) when commands change
-2. **Update workflow documentation** (`docs/workflows/`) when workflows change
-3. **Update technical documentation** (`docs/technical/`) when implementation details change
-4. **Update README.md** when user-facing features change
-5. **Update ROADMAP.md** when status changes (always update "Current Status" section)
-6. **Update AI_PROMPTING_GUIDE.md** when prompt templates change (use `make sync-prompts`)
-7. **Update AGENTS.md** when development guidelines, file organization, or workflow rules change
-
-**Documentation sync commands:**
-- `make sync-prompts` - Sync prompt templates from `src/pianist/prompts/*.txt` to `AI_PROMPTING_GUIDE.md`
-- `make check-prompts` - Verify prompt templates are in sync
-
 ## Testing Guidelines
 
 ### Test Coverage Requirements
@@ -177,16 +170,30 @@ This document provides instructions for AI agents working on the Pianist project
 
 ### Running Tests
 
+**IMPORTANT: Always run tests after making code changes.**
+
 ```bash
+# Activate virtual environment first
+source .venv/bin/activate
+
 # Run all unit tests (excludes integration tests)
+# ✅ RUN THIS after code changes - it's fast and doesn't require API keys
 pytest -m "not integration"
 
 # Run only integration tests (requires API key)
+# ⚠️ SUGGEST this to the user, but don't run automatically
 pytest -m integration
 
 # Run all tests
+# ⚠️ Only run if user explicitly requests it
 pytest
 ```
+
+**Test execution rules:**
+- ✅ **Always run** unit tests (`pytest -m "not integration"`) after code changes
+- ⚠️ **Suggest, don't run** integration tests automatically (they require API keys and may be slow)
+- ✅ **Run tests** before completing any coding task
+- ✅ **Fix failing tests** before proceeding with other work
 
 ## Code Quality Guidelines
 
@@ -417,25 +424,218 @@ If you encounter `ModuleNotFoundError: No module named 'pianist'` when running c
 
 ### Making Changes
 
+**Follow these steps in order, running commands as specified:**
+
 1. **Create a feature branch** (if using git)
+
 2. **Ensure package is installed** (if you encounter import errors):
    ```bash
    source .venv/bin/activate
    pip install -e . --force-reinstall --no-deps
+   python scripts/fix_entry_point.py
+   pianist --version  # Verify installation
    ```
+
 3. **Implement changes** following code quality guidelines
+   - Follow PEP 8 style guidelines
+   - Use type hints for function signatures
+   - Keep functions focused and single-purpose
+
 4. **Write/update tests** to maintain coverage
-5. **Update documentation** to reflect changes
-6. **Run tests** to ensure everything passes
+   - Add tests for new functionality
+   - Update existing tests if behavior changes
+
+5. **Run tests** (REQUIRED - don't skip this):
+   ```bash
+   source .venv/bin/activate
+   pytest -m "not integration"
+   ```
+   - Fix any failing tests before proceeding
+
+6. **Update documentation** to reflect changes
+   - Update existing docs, don't create new files
+   - Update ROADMAP.md if status changed
+   - Run `make sync-prompts` if prompt templates changed
+
+7. **Verify everything works**:
+   ```bash
+   pianist --version  # Should work without errors
+   ```
 
 ### Before Committing
 
+**ALWAYS run these commands before completing a task:**
+
+```bash
+# 1. Activate virtual environment
+source .venv/bin/activate
+
+# 2. Run unit tests (excludes integration tests that require API keys)
+pytest -m "not integration"
+
+# 3. Check for linting issues (if linter is configured)
+# Run any project-specific linting commands here
+
+# 4. Verify the package still works
+pianist --version
+```
+
+**Completeness verification (required before ANY commit):**
+- [ ] All code changes are finished (no TODOs, placeholders, or incomplete implementations)
+- [ ] All tests pass (`pytest -m "not integration"`)
+- [ ] All related tests are written and passing
+- [ ] No broken imports or syntax errors
+- [ ] Changes have been verified to work
+- [ ] No temporary files, debug code, or commented-out code included
+
+**Documentation checklist:**
 - [ ] All tests pass (`pytest -m "not integration"`)
 - [ ] Documentation is up-to-date (see "Keeping Documentation Up-to-Date" section)
 - [ ] ROADMAP.md "Current Status" section updated (if status changed)
 - [ ] Temporary documents removed from `docs/temp/`
 - [ ] Code follows style guidelines
 - [ ] No new planning documents created (use existing ones)
+- [ ] Ran `make sync-prompts` if prompt templates were modified
+
+### Git Commit Rules
+
+**CRITICAL: DO NOT commit changes unless explicitly requested by the user.**
+
+#### When to Commit
+
+- ❌ **NEVER commit automatically** - Only commit when the user explicitly asks you to
+- ✅ **ONLY commit when requested** - Wait for explicit instructions like "commit these changes" or "commit your work"
+- ✅ **ONLY commit complete work** - Verify all changes are finished, tested, and working before committing
+- ✅ **Ask for confirmation** if the commit would affect many files or is potentially destructive
+- ❌ **DO NOT commit incomplete work** - If changes are not complete, inform the user and do not commit
+
+#### Commit Organization
+
+**When committing, break changes into logical, atomic commits:**
+
+1. **Group related changes together:**
+   - One commit per feature or logical change
+   - Separate commits for code changes, tests, and documentation
+   - Keep commits focused and single-purpose
+
+2. **Example of good commit grouping:**
+   ```bash
+   # Commit 1: Core feature implementation
+   git add src/pianist/new_feature.py
+   git commit -m "feat: add new feature for X"
+   
+   # Commit 2: Tests for the feature
+   git add tests/test_new_feature.py
+   git commit -m "test: add tests for new feature"
+   
+   # Commit 3: Documentation updates
+   git add docs/commands/new_feature.md ROADMAP.md
+   git commit -m "docs: update documentation for new feature"
+   ```
+
+3. **Avoid monolithic commits:**
+   - ❌ DON'T: One commit with all changes mixed together
+   - ✅ DO: Separate commits for different logical changes
+
+#### Commit Message Format
+
+**Use consistent, descriptive commit messages following this format:**
+
+```
+<type>: <subject>
+
+<optional body>
+```
+
+**Commit types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `test`: Test additions or changes
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `style`: Code style changes (formatting, etc.)
+- `chore`: Maintenance tasks
+
+**Examples:**
+```bash
+# Feature addition
+git commit -m "feat: add MIDI quality validation to analyze command"
+
+# Bug fix
+git commit -m "fix: correct pattern matching algorithm for large files"
+
+# Documentation
+git commit -m "docs: update ROADMAP.md with current status"
+
+# Test addition
+git commit -m "test: add integration tests for expand command"
+
+# Multiple related changes (use body for details)
+git commit -m "refactor: optimize analysis performance
+
+- Replace O(n²) pattern matching with hash-based approach
+- Add caching for expensive music21 conversions
+- Update tests to verify performance improvements"
+```
+
+**Commit message guidelines:**
+- Use imperative mood ("add" not "added" or "adds")
+- Keep subject line under 72 characters
+- Capitalize first letter of subject
+- No period at end of subject line
+- Use body for detailed explanations when needed
+- Reference related issues/PRs if applicable
+
+#### Commit Workflow
+
+**When the user requests commits:**
+
+1. **Verify changes are complete** - DO NOT commit incomplete work:
+   - ✅ All code changes are finished (no TODOs, placeholders, or incomplete implementations)
+   - ✅ All tests pass (`pytest -m "not integration"`)
+   - ✅ All related tests are written and passing
+   - ✅ Documentation is updated (if needed)
+   - ✅ Code follows style guidelines
+   - ✅ No broken imports or syntax errors
+   - ✅ Changes have been verified to work (e.g., `pianist --version` succeeds)
+
+2. **Review all changes:**
+   ```bash
+   git status
+   git diff
+   ```
+
+3. **Exclude incomplete work:**
+   - ❌ **DO NOT commit** files with TODOs, FIXMEs, or incomplete implementations
+   - ❌ **DO NOT commit** files with failing tests
+   - ❌ **DO NOT commit** files with syntax errors or broken imports
+   - ❌ **DO NOT commit** temporary files, debug code, or commented-out code
+   - ✅ **ONLY commit** complete, tested, and verified changes
+
+4. **Group changes logically** - Identify which files belong together
+
+5. **Create atomic commits** - One commit per logical group:
+   ```bash
+   # Stage related files
+   git add <files-for-commit-1>
+   git commit -m "<type>: <descriptive message>"
+   
+   # Repeat for each logical group
+   git add <files-for-commit-2>
+   git commit -m "<type>: <descriptive message>"
+   ```
+
+6. **Verify commits:**
+   ```bash
+   git log --oneline -5  # Review recent commits
+   ```
+
+7. **Inform the user** about what was committed:
+   - List the commits created
+   - Summarize what each commit contains
+   - Note if any files were left uncommitted (and why)
+   - If incomplete work exists, clearly state what was NOT committed and why
 
 ## Key Principles
 
@@ -482,5 +682,4 @@ See [`ROADMAP.md`](ROADMAP.md) "Current Status" and "Next Steps" sections for cu
 - **AI Prompting:** `AI_PROMPTING_GUIDE.md`
 - **Development Setup:** `docs/DEVELOPMENT_SETUP.md`
 - **Documentation Structure:** `docs/DOCUMENTATION_STRUCTURE.md`
-
 
