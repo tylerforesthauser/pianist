@@ -121,6 +121,15 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
   - Refine detection algorithms
   - Add more sophisticated pattern matching
 
+#### Future Research: ToneSemantics Framework (EXPLORATION)
+- 📋 **Future consideration**: ToneSemantics computational framework for tonal semantic analysis
+  - **What it adds**: Semantic labels (tension/release, expectation/fulfillment), narrative analysis, expressive meaning beyond notes
+  - **Potential value**: Enhanced reference matching by semantic similarity, better AI expansion prompts with semantic context
+  - **Current status**: Framework has limitations (rule-based, no melodic semantics yet, ML integration planned)
+  - **Evaluation**: See `docs/temp/tonesemantics_evaluation.md` for detailed analysis
+  - **Recommendation**: Monitor framework development, revisit when framework matures or current approach shows limitations
+  - **Priority**: Low - focus on current priorities (reference curation, expansion testing) first
+
 ### What's Not Started ❌
 
 #### Phase 3: Refinement
