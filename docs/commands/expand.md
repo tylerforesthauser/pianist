@@ -2,11 +2,7 @@
 
 ## Purpose
 
-Expand incomplete compositions to complete works. Can work with or without an AI provider.
-
-**Without AI Provider**: Generates and displays a detailed expansion strategy based on musical analysis.
-
-**With AI Provider**: Uses AI to expand the composition according to the generated strategy, incorporating musical analysis results.
+Expand incomplete compositions to complete works using an AI provider. The system analyzes the composition, generates an expansion strategy, and uses AI to expand it according to the strategy.
 
 ## Syntax
 
@@ -19,7 +15,7 @@ pianist expand -i <input.json> --target-length <beats> [options]
 - `-i, --input` - Input composition JSON (preferably annotated) (required)
 - `--target-length` - Target length in beats (required)
 - `-o, --output` - Output expanded JSON path. If omitted, prints to stdout.
-- `--provider` - AI provider to use: `gemini` (cloud) or `ollama` (local). If omitted, only generates expansion strategy.
+- `--provider` - AI provider to use: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required.
 - `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
 - `--preserve-motifs` - Preserve all marked motifs and develop them throughout
 - `--preserve` - Comma-separated list of idea IDs to preserve
@@ -33,17 +29,7 @@ pianist expand -i <input.json> --target-length <beats> [options]
 
 ## Examples
 
-### Generate Expansion Strategy (No AI Required)
-
-```bash
-# Generate and display expansion strategy
-pianist expand -i sketch.json --target-length 300 -o strategy_output.json
-
-# Output strategy to stdout
-pianist expand -i sketch.json --target-length 300
-```
-
-### Expand with AI Provider
+### Expand Composition
 
 ```bash
 # Expand composition using AI (Gemini)
@@ -93,7 +79,7 @@ Validation checks:
    - Transition suggestions
    - Preservation requirements
 
-3. **AI Expansion** (if `--provider` is used):
+3. **AI Expansion**:
    - Uses the strategy to build detailed expansion instructions
    - Calls AI provider with enhanced prompt
    - Validates the result (if `--validate` is used):
@@ -104,14 +90,13 @@ Validation checks:
      - Validates target length
      - Calculates overall quality score
 
-4. **Output**: Saves expanded composition (or strategy if no provider)
+4. **Output**: Saves expanded composition
 
 ## Use Cases
 
 1. **Expand Incomplete Compositions**: Take a 90-second sketch and expand it to a complete 5-minute piece
-2. **Strategy Planning**: Generate expansion strategies without AI to plan the expansion approach
-3. **Iterative Expansion**: Expand in stages, refining between expansions
-4. **Preserve Key Ideas**: Use annotations to ensure important motifs and phrases are preserved
+2. **Iterative Expansion**: Expand in stages, refining between expansions
+3. **Preserve Key Ideas**: Use annotations to ensure important motifs and phrases are preserved
 
 ## Integration
 

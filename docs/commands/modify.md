@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Modify existing compositions: transpose, fix issues, or modify with AI.
+Modify existing compositions: transpose, or use AI to modify compositions based on instructions.
 
 ## Syntax
 
@@ -17,7 +17,7 @@ pianist modify -i <input.json> [options]
 - `-i, --input` - Input composition JSON (required)
 - `-o, --output` - Output JSON path
 - `--transpose, -t` - Transpose by semitones
-- `--provider` - AI provider for modification: `gemini` (cloud) or `ollama` (local)
+- `--provider` - AI provider for modification: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required for AI-based modifications.
 - `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
 - `--instructions` - Modification instructions
 - `--render` - Also render to MIDI

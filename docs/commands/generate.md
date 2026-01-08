@@ -2,11 +2,7 @@
 
 ## Purpose
 
-Generate new compositions from text descriptions. Can work with or without an AI provider.
-
-**Without AI Provider**: Generates a ready-to-paste prompt template that you can use with any AI model.
-
-**With AI Provider**: Directly generates a composition using the built-in AI provider (Gemini cloud or Ollama local).
+Generate new compositions from text descriptions using an AI provider (Gemini cloud, Ollama local, or OpenRouter cloud).
 
 ## Syntax
 
@@ -19,12 +15,12 @@ The description can be provided as a positional argument or piped from stdin.
 ## Options
 
 - `description` (positional, optional) - Text description of the composition. If omitted, reads from stdin.
-- `--provider` - AI provider to use: `gemini` (cloud) or `ollama` (local). If omitted, only generates a prompt template.
+- `--provider` - AI provider to use: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required.
 - `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
-- `-o, --output` - Output JSON path. If omitted, prints to stdout (prompt mode) or stdout (JSON mode).
+- `-o, --output` - Output JSON path. If omitted, prints to stdout.
 - `--render` - Also render the generated composition to MIDI. **Requires `--provider`**.
 - `-m, --midi` - MIDI output path. Auto-generated from output name if `--render` is used without this flag.
-- `-p, --prompt` - Write the prompt template to this path (useful when using external AI).
+- `-p, --prompt` - Write the prompt template to this path.
 - `-r, --raw` - Save the raw AI response text to this path. Auto-generated if `--output` is provided. Only used with `--provider`.
 - `--verbose, -v` - Show progress indicators and timing for AI API calls.
 - `--debug` - Print a full traceback on errors.
@@ -32,21 +28,7 @@ The description can be provided as a positional argument or piped from stdin.
 
 ## Examples
 
-### Generate Prompt Template (No AI Required)
-
-```bash
-# Generate a prompt template for external AI
-pianist generate "Title: Morning Sketch
-Form: ternary
-Length: ~64 beats
-Key: C major
-Tempo: 84" -p prompt.txt
-
-# Or read from stdin
-echo "Title: Test Piece" | pianist generate -p prompt.txt
-```
-
-### Generate with AI Provider
+### Generate Composition
 
 ```bash
 # Generate with Gemini (cloud)
@@ -79,9 +61,8 @@ pianist generate --provider gemini "Title: Test" | pianist render -i - -o out.mi
 ## Use Cases
 
 1. **Quick Composition Generation**: Generate compositions directly from text descriptions
-2. **Prompt Template Creation**: Create reusable prompts for external AI models
-3. **Iterative Composition**: Generate initial ideas, then refine with `modify` or `expand`
-4. **Batch Generation**: Use with scripts to generate multiple compositions
+2. **Iterative Composition**: Generate initial ideas, then refine with `modify` or `expand`
+3. **Batch Generation**: Use with scripts to generate multiple compositions
 
 ## Integration
 

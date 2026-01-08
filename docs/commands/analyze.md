@@ -7,7 +7,7 @@ Perform comprehensive analysis of MIDI or JSON compositions, including:
 - **Musical analysis** (motifs, phrases, harmony, form)
 - **Improvement suggestions** (actionable advice for enhancement)
 - **Technical metadata** (duration, tempo, time/key signatures, tracks)
-- **AI insights** (optional: suggested name, style, description)
+- **AI insights** (suggested name, style, description)
 
 ## Syntax
 
@@ -21,10 +21,10 @@ pianist analyze -i <input.mid|input.json> [options]
 - `-f, --format` - Output format: `json` (default), `text` (human-readable), `prompt`, or `both`
 - `-o, --output` - Output path for JSON/text. If omitted, prints to stdout
 - `-p, --prompt` - Write prompt text to path (only used with `--format prompt`)
-- `--ai-naming` - Use AI to generate suggested name, style, and description (optional)
+- `--ai-naming` - Use AI to generate suggested name, style, and description
 - `--ai-provider` - AI provider for `--ai-naming`: `gemini` (default), `ollama`, or `openrouter`
 - `--ai-model` - Model name for `--ai-naming`. Default: `gemini-flash-latest` (Gemini), `gpt-oss:20b` (Ollama), or `mistralai/devstral-2512:free` (OpenRouter). Free OpenRouter options: `mistralai/devstral-2512:free` (recommended), `xiaomi/mimo-v2-flash:free`, `tngtech/deepseek-r1t2-chimera:free`, `nex-agi/deepseek-v3.1-nex-n1:free`
-- `--provider` - AI provider to generate new composition: `gemini` (cloud) or `ollama` (local). If omitted, only generates analysis
+- `--provider` - AI provider to generate new composition: `gemini` (cloud) or `ollama` (local)
 - `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`
 - `--instructions` - Instructions for composition (only used with `--provider`)
 - `--render` - Also render AI-generated composition to MIDI (only valid with `--provider`)
@@ -139,7 +139,7 @@ The analyze command provides comprehensive analysis including:
 - **Improvements** - How to enhance the composition
 - **Quality recommendations** - Actionable advice
 
-### AI Insights (Optional, with `--ai-naming`)
+### AI Insights (with `--ai-naming`)
 - **Suggested name** - AI-generated descriptive title
 - **Suggested style** - Baroque, Classical, Romantic, Modern, etc.
 - **Suggested description** - AI-generated description of musical characteristics

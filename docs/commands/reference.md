@@ -150,7 +150,7 @@ The reference database is stored in SQLite at `~/.pianist/references.db`. Each r
 - **Metadata**: Style, form, techniques, description
 - **Searchable fields**: All metadata fields are indexed for fast searching
 
-When you use `pianist expand` with an AI provider, the system automatically:
+When you use `pianist expand`, the system automatically:
 
 1. Analyzes your composition
 2. Finds relevant references based on style, form, and detected patterns
