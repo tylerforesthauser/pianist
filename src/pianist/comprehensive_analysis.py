@@ -197,6 +197,7 @@ def analyze_for_user(
     ai_provider: str = "gemini",
     ai_model: str | None = None,
     composition: Any | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """
     Perform user-focused comprehensive analysis of a MIDI or JSON file.
@@ -259,16 +260,32 @@ def analyze_for_user(
         music21_stream = None
         if MUSIC21_AVAILABLE:
             try:
+                import time
+                import time
                 # Use provided composition if available, otherwise load it
                 if composition is None:
+                    load_start = time.time()
                     composition = composition_from_midi(file_path)
+                    load_time = time.time() - load_start
+                    if verbose:
+                        print(f"  [Timing] Load MIDI: {load_time:.2f}s", file=sys.stderr)
+                else:
+                    load_time = 0.0
                 
                 # Convert to music21 stream once and reuse (major performance improvement)
                 from .musical_analysis import _composition_to_music21_stream
+                stream_start = time.time()
                 music21_stream = _composition_to_music21_stream(composition)
+                stream_time = time.time() - stream_start
+                if verbose:
+                    print(f"  [Timing] Convert to music21 stream: {stream_time:.2f}s", file=sys.stderr)
                 
                 # Pass stream to avoid re-conversion in each analysis function
-                musical_analysis = analyze_composition(composition, music21_stream=music21_stream)
+                analysis_start = time.time()
+                musical_analysis = analyze_composition(composition, music21_stream=music21_stream, verbose=verbose)
+                analysis_time = time.time() - analysis_start
+                if verbose:
+                    print(f"  [Timing] Musical analysis (motifs/phrases/harmony/form): {analysis_time:.2f}s", file=sys.stderr)
                 
                 # Format musical analysis
                 result["musical_analysis"] = {

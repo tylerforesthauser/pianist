@@ -1018,9 +1018,18 @@ def analyze_file(
     
     if MUSIC21_AVAILABLE:
         try:
+            if verbose:
+                load_start = time.time()
             composition = composition_from_midi(file_path)
+            if verbose:
+                print(f"  [Timing] Load composition from MIDI: {time.time() - load_start:.2f}s", file=sys.stderr)
+            
             # Extract melodic signature for duplicate detection
+            if verbose:
+                sig_start = time.time()
             melodic_signature = extract_melodic_signature(composition)
+            if verbose:
+                print(f"  [Timing] Extract melodic signature: {time.time() - sig_start:.2f}s", file=sys.stderr)
         except Exception:
             # Analysis failed, continue without composition
             pass
@@ -1029,23 +1038,32 @@ def analyze_file(
     # Pass composition to avoid reloading (major performance improvement)
     # Note: analyze_for_user doesn't support AI quality assessment yet,
     # so we handle that separately if needed
+    if verbose:
+        comprehensive_start = time.time()
     comprehensive_result = analyze_for_user(
         file_path,
         use_ai_insights=use_ai_naming,
         ai_provider=ai_provider,
         ai_model=ai_model,
         composition=composition,  # Reuse loaded composition
+        verbose=verbose,
     )
+    if verbose:
+        print(f"  [Timing] Comprehensive analysis: {time.time() - comprehensive_start:.2f}s", file=sys.stderr)
     
     # Get quality report (with AI if requested)
     # Pass composition to avoid reloading (major performance improvement)
     # If AI quality is needed, we need to run it separately since
     # analyze_for_user doesn't support it yet
+    if verbose:
+        quality_start = time.time()
     if use_ai_quality:
         quality_report = check_midi_file(file_path, use_ai=True, composition=composition)
     else:
         # Use quality data from comprehensive analysis
         quality_report = check_midi_file(file_path, use_ai=False, composition=composition)
+    if verbose:
+        print(f"  [Timing] Quality check: {time.time() - quality_start:.2f}s", file=sys.stderr)
     
     # Extract data from comprehensive analysis result
     technical = comprehensive_result.get("technical", {})
@@ -1120,6 +1138,8 @@ def analyze_file(
             suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
             ai_identified = True
         else:
+            if verbose:
+                naming_start = time.time()
             suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
                 temp_metadata,
                 composition,
@@ -1129,6 +1149,8 @@ def analyze_file(
                 ai_model=ai_model,
                 ai_delay=ai_delay,
             )
+            if verbose:
+                print(f"  [Timing] Generate suggested name: {time.time() - naming_start:.2f}s", file=sys.stderr)
     else:
         # Use AI insights if available, otherwise use filename
         if ai_insights and use_ai_naming:

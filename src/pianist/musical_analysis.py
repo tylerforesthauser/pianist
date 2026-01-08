@@ -1061,7 +1061,7 @@ def generate_expansion_strategies(composition: Composition, music21_stream: stre
     return strategies
 
 
-def analyze_composition(composition: Composition, music21_stream: stream.Stream | None = None) -> MusicalAnalysis:
+def analyze_composition(composition: Composition, music21_stream: stream.Stream | None = None, verbose: bool = False) -> MusicalAnalysis:
     """
     Analyze a composition to extract musical characteristics.
     
@@ -1083,17 +1083,52 @@ def analyze_composition(composition: Composition, music21_stream: stream.Stream 
             "music21 is required for composition analysis. Install it with: pip install music21"
         )
     
+    import time
+    import sys
+    
     # Convert to music21 stream once and reuse (major performance improvement)
     if music21_stream is None:
+        stream_start = time.time()
         music21_stream = _composition_to_music21_stream(composition)
+        if verbose:
+            print(f"    [Timing] Convert to music21 stream: {time.time() - stream_start:.2f}s", file=sys.stderr)
     
     # Perform all analyses, passing the stream to avoid re-conversion
+    if verbose:
+        motif_start = time.time()
     motifs = detect_motifs(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Detect motifs: {time.time() - motif_start:.2f}s", file=sys.stderr)
+    
+    if verbose:
+        phrase_start = time.time()
     phrases = detect_phrases(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Detect phrases: {time.time() - phrase_start:.2f}s", file=sys.stderr)
+    
+    if verbose:
+        harmony_start = time.time()
     harmony = analyze_harmony(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Analyze harmony: {time.time() - harmony_start:.2f}s", file=sys.stderr)
+    
+    if verbose:
+        form_start = time.time()
     form = detect_form(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Detect form: {time.time() - form_start:.2f}s", file=sys.stderr)
+    
+    if verbose:
+        key_ideas_start = time.time()
     key_ideas = identify_key_ideas(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Identify key ideas: {time.time() - key_ideas_start:.2f}s", file=sys.stderr)
+    
+    if verbose:
+        expansion_start = time.time()
     expansion_suggestions = generate_expansion_strategies(composition, music21_stream=music21_stream)
+    if verbose:
+        print(f"    [Timing] Generate expansion strategies: {time.time() - expansion_start:.2f}s", file=sys.stderr)
     
     return MusicalAnalysis(
         motifs=motifs,
