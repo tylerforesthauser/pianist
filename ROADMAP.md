@@ -76,6 +76,13 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ MIDI quality check guide (`docs/guides/MIDI_QUALITY_CHECK.md`)
 - ⚠️ **Only 3 examples currently** (target: 100+) - tools ready for curation
 
+#### AI Refactoring (Mostly Complete)
+- ✅ Core commands require AI provider where appropriate (`expand` requires `--provider`)
+- ✅ Scripts always use AI for quality assessment and naming
+- ✅ Test suite updated for provider system (244/252 tests passing, minor test bugs remain)
+- ✅ Global configuration system with default provider (openrouter)
+- ⚠️ **Remaining**: Metadata generation simplification (optional), documentation updates (optional)
+
 ### What's In Progress / Needs Work 🟡
 
 #### Reference Database Curation (HIGH PRIORITY)
@@ -200,6 +207,11 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ Validation module implemented (quality checks, preservation, coherence)
 - ✅ Validation integrated with expand command
 - ✅ Comprehensive tests for validation (8 tests + 2 CLI tests)
+- ✅ **AI Refactoring** (2025-01):
+  - Core commands now require AI provider (`expand` requires `--provider`)
+  - Scripts always use AI when appropriate (`review_and_categorize_midi.py`, `check_midi_quality.py`)
+  - Test suite updated for new provider system (244/252 tests passing)
+  - Global configuration system implemented (default provider: openrouter)
 
 ---
 

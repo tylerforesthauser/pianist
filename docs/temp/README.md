@@ -12,9 +12,13 @@ The following documents were removed after implementation:
 - **command_structure_design.md** - ✅ Command structure implemented
 - **analysis_library_research.md** - ✅ Decision made, music21 implemented
 - **analysis_library_decision.md** - ✅ Decision implemented, music21 in use
+- **AI_REQUIRED_REFACTOR_PLAN.md** - ✅ Mostly complete (~80%), status documented in ROADMAP.md
+- **TEST_UPDATE_PLAN.md** - ✅ Mostly complete (~95%), status documented in ROADMAP.md
+- **TEST_PERFORMANCE_ANALYSIS.md** - ✅ Complete, information in `docs/technical/music21_performance_optimization.md`
+- **TASK_STATUS_REPORT.md** - ✅ Investigation complete, findings consolidated into ROADMAP.md
 
-### 🔄 Active Documents
-- **COMPREHENSIVE_ANALYSIS_CLI_PLAN.md** - Planning document for analysis CLI enhancements (may be outdated - review needed)
+### 📋 Current Documents
+- **tonesemantics_evaluation.md** - Evaluation document (referenced in ROADMAP.md, keep for reference)
 
 ## Guidelines
 
