@@ -21,9 +21,12 @@ from pianist.schema import Composition, Track, NoteEvent
 from pianist.musical_analysis import MUSIC21_AVAILABLE, _composition_to_music21_stream
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def simple_composition() -> Composition:
-    """A simple test composition that can be reused across tests."""
+    """A simple test composition that can be reused across tests.
+    
+    Module-scoped to avoid recreating for every test, since Composition objects are immutable.
+    """
     return Composition(
         title="Test",
         bpm=120,
@@ -41,9 +44,12 @@ def simple_composition() -> Composition:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def simple_composition_stream(simple_composition: Composition):
-    """Pre-converted music21 stream for simple_composition (cached to avoid re-conversion)."""
+    """Pre-converted music21 stream for simple_composition (cached to avoid re-conversion).
+    
+    Module-scoped to cache the expensive music21 conversion across tests in the same module.
+    """
     if not MUSIC21_AVAILABLE:
         pytest.skip("music21 not installed")
     try:
@@ -52,9 +58,12 @@ def simple_composition_stream(simple_composition: Composition):
         pytest.skip(f"Failed to convert composition to music21 stream: {e}")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def motif_test_composition() -> Composition:
-    """A composition designed for motif detection tests."""
+    """A composition designed for motif detection tests.
+    
+    Module-scoped to avoid recreating for every test, since Composition objects are immutable.
+    """
     return Composition(
         title="Test",
         bpm=120,
@@ -75,9 +84,12 @@ def motif_test_composition() -> Composition:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def motif_test_composition_stream(motif_test_composition: Composition):
-    """Pre-converted music21 stream for motif_test_composition."""
+    """Pre-converted music21 stream for motif_test_composition.
+    
+    Module-scoped to cache the expensive music21 conversion across tests in the same module.
+    """
     if not MUSIC21_AVAILABLE:
         pytest.skip("music21 not installed")
     try:

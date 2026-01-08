@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
+  "pytest-xdist>=3.0.0",  # Parallel test execution
 ]
 gemini = [
   "google-genai",
@@ -49,4 +50,14 @@ testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+# Performance optimizations
+# Use pytest-xdist for parallel execution: pytest -n auto
+# Use --lf (last failed) to rerun only failed tests
+# Use --ff (failed first) to run failed tests first
+addopts = [
+    # Show test durations for slowest tests
+    "--durations=10",
+    # Show local variables in tracebacks for faster debugging
+    "--tb=short",
 ]
