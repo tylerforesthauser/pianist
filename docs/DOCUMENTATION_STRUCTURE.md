@@ -177,11 +177,11 @@ How-to guides for specific tasks.
    - [ ] Basic workflows
    - [ ] Next steps
 
-2. **`ai_prompting.md`** ✅ (exists as AI_PROMPTING_GUIDE.md)
+2. **`ai_prompting.md`** ✅ (exists as AI_PROMPTING_GUIDE.md at root)
    - [x] System prompts
    - [x] User prompts
    - [x] Examples
-   - [ ] Move to guides/ or keep at root?
+   - [x] Positioned as reference for external AI workflows (kept at root for discoverability)
 
 3. **`testing_analysis.md`** ✅ (exists in guides/)
    - [x] How to test analysis
@@ -224,7 +224,7 @@ These stay at the root for discoverability:
 - **`MISSION.md`** ✅ - Project mission and goals
 - **`ROADMAP.md`** ✅ - Feature roadmap
 - **`PLANNING.md`** ✅ - Planning document guide
-- **`AI_PROMPTING_GUIDE.md`** ✅ - AI prompting (consider moving to guides/)
+- **`AI_PROMPTING_GUIDE.md`** ✅ - AI prompting guide for external AI workflows (kept at root for discoverability)
 
 ## Migration Plan
 

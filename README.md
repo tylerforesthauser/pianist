@@ -68,67 +68,40 @@ python scripts/fix_entry_point.py
 
 ### Creating Your First Composition
 
-Pianist works with JSON compositions. You can get JSON from:
-- **External AI models** (ChatGPT, Claude, etc.) - see [AI_PROMPTING_GUIDE.md](AI_PROMPTING_GUIDE.md)
-- **Built-in AI providers** (Gemini cloud or Ollama local) - requires setup (see below)
-- **Manual creation** - write JSON yourself
-- **MIDI import** - convert existing MIDI files to JSON
+Pianist requires an AI provider to generate compositions. The easiest way to get started is using the built-in AI providers.
 
-**Step 1: Get JSON** (choose one method)
+**Step 1: Set up an AI provider** (see [AI Provider Setup](#ai-provider-setup) below)
 
-**Option A: Use external AI** (no setup required)
-Use your preferred AI model with the two-part prompt structure:
+**Step 2: Generate a composition**
 
-**System prompt** (copy from `AI_PROMPTING_GUIDE.md` Part 2):
-```
-[Copy the system prompt template from AI_PROMPTING_GUIDE.md]
-```
-
-**User prompt** (example):
-```
-Compose a piano piece:
-
-Title: "Morning Sketch"
-Form: ternary
-Length: ~64 beats
-Key: C major
-Tempo: 84
-Style/Character: lyrical, contemplative
-
-A gentle, flowing piece with a memorable melody that develops throughout.
-```
-
-Save the model's JSON output to a file (e.g., `composition.json`).
-
-**Option B: Use built-in AI provider** (requires setup, see below)
 ```bash
 ./pianist generate --provider openrouter "Title: Morning Sketch
 Form: ternary
 Length: ~64 beats
 Key: C major
 Tempo: 84
-Style/Character: lyrical, contemplative" -o composition.json
+Style/Character: lyrical, contemplative
+
+A gentle, flowing piece with a memorable melody that develops throughout." \
+  -o composition.json --render
 ```
 
-**Option C: Create JSON manually**
-Write your composition JSON manually, then render it to MIDI.
+This creates:
+- `output/generate-output/generate/composition.json` - The generated composition
+- `output/generate-output/generate/composition.mid` - Rendered MIDI file
 
-**Step 2: Render to MIDI**
+**Alternative: Import from MIDI**
+
+If you have an existing MIDI file, you can import it:
 
 ```bash
+./pianist import -i existing.mid -o composition.json
 ./pianist render -i composition.json -o out.mid
 ```
 
-This parses the JSON (even if it's wrapped in markdown code blocks) and creates a playable MIDI file.
+**Using External AI Models**
 
-**For detailed prompting guidance**, including:
-- How to generate new compositions from scratch
-- How to modify existing compositions
-- How to generate new compositions inspired by existing MIDI files
-- System prompt templates and user prompt examples
-- Tips for different musical styles and forms
-
-See [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+If you prefer to use external AI models (ChatGPT, Claude, etc.) to generate JSON outside of the CLI tool, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md) for comprehensive guidance on system prompts, user prompts, and examples.
 
 ## AI Provider Setup
 
@@ -324,9 +297,9 @@ This creates:
 - `output/generate-output/generate/composition.json.<provider>.txt` - Raw AI response (e.g., `.openrouter.txt`, `.gemini.txt`, or `.ollama.txt`)
 - `output/generate-output/generate/composition.mid` - Rendered MIDI file (if `--render` is used)
 
-**Option 2: Use External AI Directly**
+**Option 2: Use External AI Models**
 
-Use the two-part prompt structure (system + user prompts) described in the Quick Start section. The AI Prompting Guide covers generating new compositions, modifying existing ones, and creating new works from existing MIDI files. For comprehensive guidance, examples, and system prompt templates, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+If you prefer to use external AI models (ChatGPT, Claude, etc.) to generate JSON outside of the CLI tool, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md) for comprehensive guidance on system prompts, user prompts, and examples for generating new compositions, modifying existing ones, and creating new works from existing MIDI files.
 
 #### From an Existing MIDI (Analysis → Generation)
 
@@ -471,76 +444,33 @@ See [`docs/guides/PEDAL_FIX_USAGE.md`](docs/guides/PEDAL_FIX_USAGE.md) for detai
 
 ## Building Effective Prompts
 
-When working with AI (either built-in provider or external), the key to success is splitting your prompt into two parts:
+When working with AI providers, you can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
 
-- **System prompt (model-facing)**: Stable "rules of the game" (format + schema constraints). Typically fixed and reused.
-- **User prompt (model-facing)**: Your musical brief (style, form, length, key, tempo, etc.). This is where you specify what you want.
-
-This two-part approach typically improves **schema adherence** and reduces output drift compared to a single combined prompt.
-
-### User Prompt Template
-
-You can phrase your request naturally—the model will interpret it. You don't need to include all parameters; provide only what matters to you.
-
-**Template structure:**
-
+**Example prompt:**
 ```
-[OPTIONAL OPENING - phrase naturally]
-Compose a piano piece: or I'd like a piano piece or Create a piano composition or just start with the title
+Title: "Morning Sketch"
+Form: ternary
+Length: ~64 beats
+Key: C major
+Tempo: 84
+Style/Character: lyrical, contemplative
 
-Title: "Morning Sketch" or "Sonata in C Minor"
-
-[OPTIONAL SPECIFICATIONS - include only what you want to specify]
-- Form: binary | ternary/ABA | rondo | sonata | theme and variations | free-form
-- Length: ~64 beats or ~200 beats (or describe: "short piece", "extended work", etc.)
-- Key: "C" | "Gm" | "F#" | "Bb"
-- Tempo: 84 | 120 | 160 (BPM, or describe: "slow", "moderate", "fast")
-- Time signature: 4/4 | 3/4 | 6/8
-- Style/Character: lyrical | dramatic | playful | contemplative | energetic | [your description]
-
-[DESCRIPTION - describe what you want in natural language]
 A gentle, flowing piece with a memorable melody that develops throughout.
 ```
 
-### Quick Reference: Choosing Parameters
+**Quick parameter reference:**
+- **Form**: binary, ternary, rondo, sonata, theme and variations, free-form
+- **Length**: ~64 beats (short), ~200 beats (extended), or describe in words
+- **Key**: "C", "Gm", "F#", "Bb" (major keys are brighter, minor keys are darker)
+- **Tempo**: 84 (BPM), or describe as "slow", "moderate", "fast"
+- **Style**: lyrical, dramatic, playful, contemplative, energetic, etc.
 
-**Form:**
-- **binary (A-B)**: Simple two-section structure. Good for short pieces (32-64 beats).
-- **ternary (A-B-A)**: Three-part form with a return. Classic structure for character pieces (48-128 beats).
-- **rondo**: Recurring main theme alternates with contrasting episodes. Good for lively, dance-like pieces.
-- **sonata form**: Large-scale form (150-300+ beats) with exposition, development, and recapitulation.
-- **theme and variations**: A clear theme followed by variations that transform it.
+**Tips for better results:**
+- Request "continuous music with no gaps between sections" for smooth transitions
+- Request "regular phrase lengths (4, 8, or 16 beats)" for structural clarity
+- For longer works, emphasize that all themes should relate through motivic development
 
-**Key:**
-- **Major keys** (C, G, D, F, Bb): Generally brighter, more optimistic, or energetic.
-- **Minor keys** (Am, Dm, Gm, Cm): Generally darker, more emotional, or introspective.
-
-**Tempo (BPM):**
-- **Very slow (40-60)**: Grave, largo. For solemn, meditative pieces.
-- **Slow (60-80)**: Adagio, andante. For lyrical, contemplative pieces.
-- **Moderate (80-100)**: Moderato. Balanced, comfortable pace.
-- **Moderately fast (100-120)**: Allegretto. Light, flowing.
-- **Fast (120-160)**: Allegro. Energetic, exciting.
-- **Very fast (160+)**: Presto, vivace. Brilliant, virtuosic.
-
-**Style/Character:**
-- **lyrical**: Song-like, melodic, expressive
-- **dramatic**: Intense, emotional, with strong contrasts
-- **playful**: Light, cheerful, with bouncy rhythms
-- **contemplative**: Thoughtful, introspective, often slower
-- **energetic**: Fast, active, with driving rhythms
-
-**Important considerations for cohesive compositions:**
-- **Thematic coherence**: When requesting longer works, emphasize that all themes should relate through motivic development.
-- **Continuous music**: Request "continuous music with no gaps between sections" or "smooth transitions throughout."
-- **Regular phrase structure**: Request "regular phrase lengths (4, 8, or 16 beats)" for structural clarity.
-
-The AI Prompting Guide is organized into three main workflows:
-1. **Generating New Compositions** - Creating original works from scratch
-2. **Modifying Existing Compositions** - Refining and extending existing works
-3. **Generating from Existing MIDI** - Creating new compositions inspired by existing files
-
-For comprehensive guidance, including detailed examples, system prompt templates, and tips for different musical styles, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md).
+**For external AI workflows:** If you're using external AI models (ChatGPT, Claude, etc.) to generate JSON outside of the CLI tool, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md) for comprehensive guidance including system prompt templates, detailed examples, and tips for different musical styles and forms.
 
 ## Advanced Features
 
@@ -589,21 +519,57 @@ By default, if an output file already exists, Pianist will automatically create 
 
 The `generate`, `modify`, `analyze`, and `expand` commands support `--model` to choose a specific model for the provider.
 
-**For Gemini:**
-- Default: `gemini-flash-latest` (always uses the latest Flash model)
-- Other options: `gemini-1.5-pro` (more capable), `gemini-2.5-flash` (specific version)
+**For OpenRouter (Recommended):**
 
-**For Ollama:**
+**Free tier options** (default: `mistralai/devstral-2512:free`):
+- `mistralai/devstral-2512:free` (recommended, default) - 262K context window
+- `xiaomi/mimo-v2-flash:free`
+- `tngtech/deepseek-r1t2-chimera:free`
+- `nex-agi/deepseek-v3.1-nex-n1:free`
+
+**Paid models** (higher quality, see [OpenRouter pricing](https://openrouter.ai/models)):
+- `anthropic/claude-sonnet-4.5` - Excellent for complex compositions (recommended, best balance)
+- `anthropic/claude-opus-4.5` - Most capable, best for large-scale works
+- `anthropic/claude-3.5-sonnet` - Previous generation (still available, lower cost)
+- `openai/gpt-4o` - Strong general performance
+- `google/gemini-2.5-flash` - Fast and capable (via OpenRouter)
+
+**Find latest models:** See [OpenRouter Models](https://openrouter.ai/models) for the complete list of available models, pricing, and updates.
+
+**For Ollama (Local):**
 - Default: `gpt-oss:20b` (best quality for composition tasks)
 - Other options: `gemma3:4b` (faster, smaller), `deepseek-r1:8b` (excellent reasoning)
 
+**Find latest models:** See [Ollama Library](https://ollama.ai/library) for available models and download commands.
+
+**For Gemini (Google):**
+- Default: `gemini-flash-latest` (uses latest Flash model, currently maps to `gemini-2.5-flash`)
+- **Current stable models** (shutdown dates: June-July 2026):
+  - `gemini-2.5-flash` (recommended, best balance of speed and quality)
+  - `gemini-2.5-pro` (more capable, best for complex compositions)
+  - `gemini-2.5-flash-lite` (cost-efficient, high throughput)
+- **Preview models** (future replacements):
+  - `gemini-3-flash-preview` (preview of next Flash model)
+  - `gemini-3-pro` (preview of next Pro model)
+- **Note**: Gemini 2.0 models are deprecated (shutdown February 2026). See [Gemini deprecations](https://ai.google.dev/gemini-api/docs/deprecations) for details.
+
+**Find latest models:** See [Gemini API Models](https://ai.google.dev/gemini-api/docs/models/gemini) for current models, capabilities, and [deprecation schedule](https://ai.google.dev/gemini-api/docs/deprecations).
+
 ```bash
-# Generate with OpenRouter using a specific model
+# Generate with OpenRouter using free model (default)
+./pianist generate --provider openrouter \
+  "Compose a complex sonata in C minor" -o composition.json
+
+# Generate with OpenRouter using paid model
 ./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" \
   "Compose a complex sonata in C minor" -o composition.json
 
 # Generate with Ollama using a specific model
 ./pianist generate --provider ollama --model gemma3:4b \
+  "Compose a complex sonata in C minor" -o composition.json
+
+# Generate with Gemini using latest model
+./pianist generate --provider gemini --model "gemini-2.5-pro" \
   "Compose a complex sonata in C minor" -o composition.json
 
 # Iterate with a specific model
@@ -634,20 +600,13 @@ analysis = analyze_midi("existing.mid")
 prompt = analysis_prompt_template(analysis, instructions="Write a calm nocturne.")
 ```
 
-### Prompting Guide
-
-See `AI_PROMPTING_GUIDE.md` for comprehensive guidance on:
-- **Generating new compositions** from scratch with effective prompts
-- **Modifying existing compositions** to refine and extend them
-- **Generating new works** inspired by existing MIDI files
-- System prompt templates that encourage motif development and musical form
-- User prompt examples for various styles, forms, and lengths
+### Schema and Format Reference
 
 For piano output, Pianist supports a **single Piano track** where each note (or sub-chord) can be annotated with explicit `hand` (`"lh"`/`"rh"`) and optional `voice` (1–4) via `NoteEvent` objects using the `groups` or `notes` fields.
 
 Pianist supports tempo changes within compositions, including instant tempo changes and gradual tempo changes (ritardando/accelerando) via `TempoEvent` objects.
 
-The prompting guide also recommends using a **system prompt** (format/schema invariants) plus a **user prompt** (musical brief) for better schema adherence.
+**For external AI workflows:** If you're using external AI models to generate JSON outside of the CLI tool, see [`AI_PROMPTING_GUIDE.md`](AI_PROMPTING_GUIDE.md) for comprehensive guidance including system prompt templates, user prompt examples, and tips for generating new compositions, modifying existing ones, and creating new works from existing MIDI files.
 
 ## Development
 

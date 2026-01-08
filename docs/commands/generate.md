@@ -81,7 +81,6 @@ pianist generate --provider openrouter "Title: Test" | pianist render -i - -o ou
 ## See Also
 
 - [`../workflows/ai_human_collaboration.md`](../workflows/ai_human_collaboration.md)
-- [`../guides/ai_prompting.md`](../guides/ai_prompting.md)
-- [`README.md`](README.md) - All commands
 - [`../../README.md`](../../README.md) - Main documentation
+- [`../../AI_PROMPTING_GUIDE.md`](../../AI_PROMPTING_GUIDE.md) - For external AI workflows (using ChatGPT, Claude, etc. outside the CLI)
 

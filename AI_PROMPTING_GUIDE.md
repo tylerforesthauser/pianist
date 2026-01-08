@@ -2,7 +2,11 @@
 
 ## Overview
 
-This guide is structured in two parts:
+**This guide is for users who want to generate Pianist composition JSON files using external AI models (ChatGPT, Claude, etc.) outside of the CLI tool.**
+
+If you're using Pianist's built-in AI providers (OpenRouter, Gemini, or Ollama), you don't need this guide—just use the `pianist generate`, `pianist modify`, `pianist expand`, and `pianist analyze` commands directly. See the main [README.md](README.md) for details.
+
+**For external AI workflows**, this guide is structured in two parts:
 - **Part 1: For Users** - How to create effective prompts and use Pianist's tools
 - **Part 2: Prompt Assets (Copy/Paste)** - System prompt templates, schema reference, and example output you can paste into your model prompts
 
