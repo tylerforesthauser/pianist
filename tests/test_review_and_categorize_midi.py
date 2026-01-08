@@ -42,6 +42,7 @@ def _write_test_midi(path: Path) -> None:
     mid.save(path)
 
 
+@pytest.mark.slow
 def test_extract_info_from_filename_basic() -> None:
     """Test filename extraction with basic patterns."""
     # Test composer - title format
@@ -64,11 +65,29 @@ def test_extract_info_from_filename_basic() -> None:
     assert info.get("title") is not None or info.get("catalog_number") is not None or info.get("opus") is not None
 
 
+@pytest.mark.slow
 def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> None:
     """Test that analyze_file correctly uses filename-extracted info when available."""
     # Create a MIDI file with a clear filename
     midi_file = tmp_path / "chopin-prelude-op28-no7.mid"
     _write_test_midi(midi_file)
+    
+    # Mock composition_from_midi FIRST to avoid expensive MIDI loading
+    from pianist.schema import Composition, Track, NoteEvent
+    def fake_composition_from_midi(*args, **kwargs):
+        return Composition(
+            title="Test",
+            bpm=120,
+            key_signature="A",
+            time_signature={"numerator": 4, "denominator": 4},
+            ppq=480,
+            tracks=[Track(events=[NoteEvent(start=0, duration=1, pitches=[60], velocity=80)])]
+        )
+    monkeypatch.setattr("pianist.iterate.composition_from_midi", fake_composition_from_midi)
+    
+    # Mock extract_melodic_signature to avoid expensive music21 operations
+    def fake_extract_melodic_signature(*args, **kwargs):
+        return [60, 64, 67]  # Simple signature
     
     # Mock AI provider to avoid actual API calls
     def fake_generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
@@ -112,14 +131,61 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
     import pianist.comprehensive_analysis
     monkeypatch.setattr(pianist.comprehensive_analysis, "analyze_for_user", fake_analyze_for_user)
     
-    # Run analyze_file with AI enabled
+    # Mock extract_melodic_signature in the review_and_categorize_midi module
+    import review_and_categorize_midi  # type: ignore[import]
+    monkeypatch.setattr(review_and_categorize_midi, "extract_melodic_signature", fake_extract_melodic_signature)
+    
+    # Mock analyze_composition to avoid expensive music21 operations in check_midi_file
+    from pianist.musical_analysis import MusicalAnalysis, HarmonicAnalysis
+    
+    def fake_analyze_composition(*args, **kwargs):
+        return MusicalAnalysis(
+            motifs=[],
+            phrases=[],
+            harmonic_progression=HarmonicAnalysis(
+                key="A",
+                chords=[],
+                roman_numerals=None,
+                cadences=None,
+                progression=None,
+                voice_leading=None,
+            ),
+            form=None,
+            key_ideas=[],
+            expansion_suggestions=[],
+        )
+    
+    monkeypatch.setattr("pianist.musical_analysis.analyze_composition", fake_analyze_composition)
+    
+    # Mock check_midi_file to avoid expensive operations
+    import importlib.util
+    check_midi_quality_path = project_root / "scripts" / "check_midi_quality.py"
+    spec = importlib.util.spec_from_file_location("check_midi_quality", check_midi_quality_path)
+    check_midi_quality = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check_midi_quality)
+    
+    class FakeQualityReport:
+        def __init__(self, file_path):
+            self.file_path = file_path
+            self.overall_score = 0.9
+            self.scores = {"technical": 0.9, "musical": 0.9, "structure": 0.9}
+            self.issues = []
+            self.summary = {}
+    
+    def fake_check_midi_file(*args, **kwargs):
+        return FakeQualityReport(midi_file)
+    
+    # Patch in both places
+    monkeypatch.setattr(check_midi_quality, "check_midi_file", fake_check_midi_file)
+    import review_and_categorize_midi  # type: ignore[import]
+    monkeypatch.setattr(review_and_categorize_midi, "check_midi_file", fake_check_midi_file)
+    
+    # Run analyze_file (AI always enabled)
     metadata, signature, ai_attempted, ai_identified = analyze_file(
         midi_file,
-        use_ai_quality=False,
-        use_ai_naming=True,
         verbose=False,
-        ai_provider="gemini",
-        ai_model="gemini-flash-latest",
+        ai_provider="openrouter",
+        ai_model="mistralai/devstral-2512:free",
         ai_delay=0.0,
         mark_original=False,
     )
@@ -136,6 +202,7 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
         assert len(metadata.suggested_name) > 0
 
 
+@pytest.mark.slow
 def test_analyze_file_with_clear_filename_info_priority(tmp_path: Path, monkeypatch) -> None:
     """Test that filename-extracted info takes priority over AI when clear info is available.
     
@@ -183,15 +250,35 @@ def test_analyze_file_with_clear_filename_info_priority(tmp_path: Path, monkeypa
     import pianist.comprehensive_analysis
     monkeypatch.setattr(pianist.comprehensive_analysis, "analyze_for_user", fake_analyze_for_user)
     
+    # Mock check_midi_file to avoid expensive music21 operations
+    import importlib.util
+    check_midi_quality_path = project_root / "scripts" / "check_midi_quality.py"
+    spec = importlib.util.spec_from_file_location("check_midi_quality", check_midi_quality_path)
+    check_midi_quality = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check_midi_quality)
+    
+    class FakeQualityReport:
+        def __init__(self, file_path):
+            self.file_path = file_path
+            self.overall_score = 0.9
+            self.scores = {"technical": 0.9, "musical": 0.9, "structure": 0.9}
+            self.issues = []
+            self.summary = {}
+    
+    def fake_check_midi_file(*args, **kwargs):
+        return FakeQualityReport(midi_file)
+    
+    monkeypatch.setattr(check_midi_quality, "check_midi_file", fake_check_midi_file)
+    import review_and_categorize_midi  # type: ignore[import]
+    monkeypatch.setattr(review_and_categorize_midi, "check_midi_file", fake_check_midi_file)
+    
     # This should not raise UnboundLocalError
     # The filename has clear info (composer + title), so it should use that instead of AI
     metadata, signature, ai_attempted, ai_identified = analyze_file(
         midi_file,
-        use_ai_quality=False,
-        use_ai_naming=True,
         verbose=False,
-        ai_provider="gemini",
-        ai_model="gemini-flash-latest",
+        ai_provider="openrouter",
+        ai_model="mistralai/devstral-2512:free",
         ai_delay=0.0,
         mark_original=False,
     )
@@ -207,6 +294,7 @@ def test_analyze_file_with_clear_filename_info_priority(tmp_path: Path, monkeypa
     assert metadata.suggested_description is not None
 
 
+@pytest.mark.slow
 def test_analyze_file_with_hyphenated_filename(tmp_path: Path, monkeypatch) -> None:
     """Test analyze_file with hyphenated filename pattern that should extract info."""
     # Create a MIDI file with hyphenated pattern
@@ -250,14 +338,58 @@ def test_analyze_file_with_hyphenated_filename(tmp_path: Path, monkeypatch) -> N
     import pianist.comprehensive_analysis
     monkeypatch.setattr(pianist.comprehensive_analysis, "analyze_for_user", fake_analyze_for_user)
     
+    # Mock analyze_composition to avoid expensive music21 operations in check_midi_file
+    from pianist.musical_analysis import MusicalAnalysis, HarmonicAnalysis
+    
+    def fake_analyze_composition(*args, **kwargs):
+        return MusicalAnalysis(
+            motifs=[],
+            phrases=[],
+            harmonic_progression=HarmonicAnalysis(
+                key="A",
+                chords=[],
+                roman_numerals=None,
+                cadences=None,
+                progression=None,
+                voice_leading=None,
+            ),
+            form=None,
+            key_ideas=[],
+            expansion_suggestions=[],
+        )
+    
+    # Patch analyze_composition in both the module and check_midi_quality
+    monkeypatch.setattr("pianist.musical_analysis.analyze_composition", fake_analyze_composition)
+    
+    # Mock check_midi_file to avoid expensive operations
+    import importlib.util
+    check_midi_quality_path = project_root / "scripts" / "check_midi_quality.py"
+    spec = importlib.util.spec_from_file_location("check_midi_quality", check_midi_quality_path)
+    check_midi_quality = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(check_midi_quality)
+    monkeypatch.setattr(check_midi_quality, "analyze_composition", fake_analyze_composition)
+    
+    class FakeQualityReport:
+        def __init__(self, file_path):
+            self.file_path = file_path
+            self.overall_score = 0.9
+            self.scores = {"technical": 0.9, "musical": 0.9, "structure": 0.9}
+            self.issues = []
+            self.summary = {}
+    
+    def fake_check_midi_file(*args, **kwargs):
+        return FakeQualityReport(midi_file)
+    
+    monkeypatch.setattr(check_midi_quality, "check_midi_file", fake_check_midi_file)
+    import review_and_categorize_midi  # type: ignore[import]
+    monkeypatch.setattr(review_and_categorize_midi, "check_midi_file", fake_check_midi_file)
+    
     # This should not raise any errors
     metadata, signature, ai_attempted, ai_identified = analyze_file(
         midi_file,
-        use_ai_quality=False,
-        use_ai_naming=True,
         verbose=False,
-        ai_provider="gemini",
-        ai_model="gemini-flash-latest",
+        ai_provider="openrouter",
+        ai_model="mistralai/devstral-2512:free",
         ai_delay=0.0,
         mark_original=False,
     )
