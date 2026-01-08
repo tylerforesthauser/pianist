@@ -529,6 +529,7 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
     - Transposition-aware matching (detects same pattern in different keys)
     - Interval pattern matching (detects same melodic contour)
     - Multiple window sizes (2-5 notes)
+    - Optimized hash-based pattern matching (O(n) instead of O(n²) for exact matches)
     
     Args:
         composition: The composition to analyze
@@ -597,52 +598,38 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
             start_time = window[0][0]
             patterns.append((start_time, pitches))
         
-        # Find matching patterns (exact, transposed, or interval-based)
-        matched_patterns: dict[int, list[float]] = {}  # pattern_index -> [occurrence_times]
+        # OPTIMIZATION: Use hash-based grouping for exact matches (O(n) instead of O(n²))
+        # Group patterns by normalized hash (transpose to start at 0)
+        exact_match_groups: dict[tuple[int, ...], list[tuple[float, list[int]]]] = {}
+        interval_match_groups: dict[tuple[int, ...], list[tuple[float, list[int]]]] = {}
         
-        for i, (start1, pattern1) in enumerate(patterns):
-            for j, (start2, pattern2) in enumerate(patterns[i+1:], start=i+1):
-                # Check for exact match
-                if pattern1 == pattern2:
-                    if i not in matched_patterns:
-                        matched_patterns[i] = []
-                    matched_patterns[i].append(start1)
-                    if j not in matched_patterns:
-                        matched_patterns[j] = []
-                    matched_patterns[j].append(start2)
-                # Check for transposed match
-                elif _detect_transposed_match(pattern1, pattern2):
-                    if i not in matched_patterns:
-                        matched_patterns[i] = []
-                    matched_patterns[i].append(start1)
-                    if j not in matched_patterns:
-                        matched_patterns[j] = []
-                    matched_patterns[j].append(start2)
-                # Check for interval pattern match
-                elif len(pattern1) == len(pattern2) and len(pattern1) >= 2:
-                    intervals1 = _extract_interval_pattern(pattern1)
-                    intervals2 = _extract_interval_pattern(pattern2)
-                    if intervals1 == intervals2:
-                        if i not in matched_patterns:
-                            matched_patterns[i] = []
-                        matched_patterns[i].append(start1)
-                        if j not in matched_patterns:
-                            matched_patterns[j] = []
-                        matched_patterns[j].append(start2)
+        for start, pitches in patterns:
+            # Normalize pattern (transpose to start at 0) for exact matching
+            normalized = tuple(_normalize_pitch_sequence(pitches))
+            if normalized not in exact_match_groups:
+                exact_match_groups[normalized] = []
+            exact_match_groups[normalized].append((start, pitches))
+            
+            # Also group by interval pattern for interval-based matching
+            if len(pitches) >= 2:
+                intervals = _extract_interval_pattern(pitches)
+                interval_key = tuple(intervals)
+                if interval_key not in interval_match_groups:
+                    interval_match_groups[interval_key] = []
+                interval_match_groups[interval_key].append((start, pitches))
         
-        # Create motifs from matched patterns
-        for pattern_idx, occurrences in matched_patterns.items():
-            if len(occurrences) >= 2:  # Pattern appears at least twice
-                start_time, pitches = patterns[pattern_idx]
-                
-                # Calculate duration
+        # Process exact matches (patterns that appear multiple times)
+        for normalized, group in exact_match_groups.items():
+            if len(group) >= 2:  # Pattern appears at least twice
+                occurrences = [start for start, _ in group]
                 first_occurrence = min(occurrences)
                 last_occurrence = max(occurrences)
-                
-                # Estimate motif duration (time span of all occurrences)
-                duration = last_occurrence - first_occurrence + (window_size * 0.5)  # Approximate
+                duration = last_occurrence - first_occurrence + (window_size * 0.5)
                 
                 if min_length <= duration <= max_length:
+                    # Use first pattern's pitches as representative
+                    _, pitches = group[0]
+                    
                     # Check if we already have a similar motif (avoid duplicates)
                     is_duplicate = False
                     for existing_motif in motifs:
@@ -655,9 +642,50 @@ def detect_motifs(composition: Composition, min_length: float = 0.5, max_length:
                         motifs.append(Motif(
                             start=first_occurrence,
                             duration=duration,
-                            pitches=pitches,
+                            pitches=list(pitches),
                             description=f"Recurring pattern ({len(occurrences)} occurrences, {window_size} notes)"
                         ))
+        
+        # Process interval-based matches (same melodic contour, different starting pitch)
+        # Only check patterns that didn't already match exactly
+        for interval_key, group in interval_match_groups.items():
+            if len(group) >= 2:
+                # Check for transposed matches within the group
+                # Group by normalized pattern to find transpositions
+                transposed_groups: dict[tuple[int, ...], list[tuple[float, list[int]]]] = {}
+                for start, pitches in group:
+                    normalized = tuple(_normalize_pitch_sequence(pitches))
+                    if normalized not in transposed_groups:
+                        transposed_groups[normalized] = []
+                    transposed_groups[normalized].append((start, pitches))
+                
+                # Process transposed groups
+                for normalized, transposed_group in transposed_groups.items():
+                    if len(transposed_group) >= 2:
+                        occurrences = [start for start, _ in transposed_group]
+                        first_occurrence = min(occurrences)
+                        last_occurrence = max(occurrences)
+                        duration = last_occurrence - first_occurrence + (window_size * 0.5)
+                        
+                        if min_length <= duration <= max_length:
+                            # Use first pattern's pitches as representative
+                            _, pitches = transposed_group[0]
+                            
+                            # Check if we already have a similar motif (avoid duplicates)
+                            is_duplicate = False
+                            for existing_motif in motifs:
+                                if (abs(existing_motif.start - first_occurrence) < 1.0 and
+                                    abs(existing_motif.duration - duration) < 1.0):
+                                    is_duplicate = True
+                                    break
+                            
+                            if not is_duplicate:
+                                motifs.append(Motif(
+                                    start=first_occurrence,
+                                    duration=duration,
+                                    pitches=list(pitches),
+                                    description=f"Transposed pattern ({len(occurrences)} occurrences, {window_size} notes)"
+                                ))
     
     # Remove duplicates and sort by start time
     unique_motifs: list[Motif] = []
@@ -956,7 +984,12 @@ def detect_form(composition: Composition, music21_stream: stream.Stream | None =
     return "custom"
 
 
-def identify_key_ideas(composition: Composition, music21_stream: stream.Stream | None = None) -> list[dict[str, Any]]:
+def identify_key_ideas(
+    composition: Composition,
+    music21_stream: stream.Stream | None = None,
+    motifs: list[Motif] | None = None,
+    phrases: list[Phrase] | None = None,
+) -> list[dict[str, Any]]:
     """
     Identify important musical ideas that should be preserved/developed.
     
@@ -966,6 +999,8 @@ def identify_key_ideas(composition: Composition, music21_stream: stream.Stream |
     Args:
         composition: The composition to analyze
         music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
+        motifs: Optional pre-computed motifs (avoids recomputation)
+        phrases: Optional pre-computed phrases (avoids recomputation)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
@@ -986,8 +1021,9 @@ def identify_key_ideas(composition: Composition, music21_stream: stream.Stream |
                 'importance': idea.importance,
             })
     
-    # Also detect motifs and phrases automatically
-    motifs = detect_motifs(composition, music21_stream=music21_stream)
+    # Use pre-computed motifs/phrases if provided, otherwise compute them
+    if motifs is None:
+        motifs = detect_motifs(composition, music21_stream=music21_stream)
     for i, motif in enumerate(motifs):
         key_ideas.append({
             'id': f'auto_motif_{i+1}',
@@ -998,7 +1034,8 @@ def identify_key_ideas(composition: Composition, music21_stream: stream.Stream |
             'importance': 'medium',
         })
     
-    phrases = detect_phrases(composition, music21_stream=music21_stream)
+    if phrases is None:
+        phrases = detect_phrases(composition, music21_stream=music21_stream)
     for i, phrase in enumerate(phrases):
         key_ideas.append({
             'id': f'auto_phrase_{i+1}',
@@ -1012,7 +1049,14 @@ def identify_key_ideas(composition: Composition, music21_stream: stream.Stream |
     return key_ideas
 
 
-def generate_expansion_strategies(composition: Composition, music21_stream: stream.Stream | None = None) -> list[str]:
+def generate_expansion_strategies(
+    composition: Composition,
+    music21_stream: stream.Stream | None = None,
+    motifs: list[Motif] | None = None,
+    phrases: list[Phrase] | None = None,
+    harmony: HarmonicAnalysis | None = None,
+    form: str | None = None,
+) -> list[str]:
     """
     Generate strategies for expanding the composition.
     
@@ -1021,6 +1065,10 @@ def generate_expansion_strategies(composition: Composition, music21_stream: stre
     Args:
         composition: The composition to analyze
         music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
+        motifs: Optional pre-computed motifs (avoids recomputation)
+        phrases: Optional pre-computed phrases (avoids recomputation)
+        harmony: Optional pre-computed harmonic analysis (avoids recomputation)
+        form: Optional pre-computed form (avoids recomputation)
     """
     if not MUSIC21_AVAILABLE:
         raise ImportError(
@@ -1029,11 +1077,15 @@ def generate_expansion_strategies(composition: Composition, music21_stream: stre
     
     strategies: list[str] = []
     
-    # Analyze composition (reuse stream to avoid re-conversion)
-    motifs = detect_motifs(composition, music21_stream=music21_stream)
-    phrases = detect_phrases(composition, music21_stream=music21_stream)
-    harmony = analyze_harmony(composition, music21_stream=music21_stream)
-    form = detect_form(composition, music21_stream=music21_stream)
+    # Use pre-computed analysis if provided, otherwise compute
+    if motifs is None:
+        motifs = detect_motifs(composition, music21_stream=music21_stream)
+    if phrases is None:
+        phrases = detect_phrases(composition, music21_stream=music21_stream)
+    if harmony is None:
+        harmony = analyze_harmony(composition, music21_stream=music21_stream)
+    if form is None:
+        form = detect_form(composition, music21_stream=music21_stream)
     
     # Generate strategies based on analysis
     if motifs:
@@ -1120,13 +1172,22 @@ def analyze_composition(composition: Composition, music21_stream: stream.Stream 
     
     if verbose:
         key_ideas_start = time.time()
-    key_ideas = identify_key_ideas(composition, music21_stream=music21_stream)
+    # Pass pre-computed motifs and phrases to avoid recomputation
+    key_ideas = identify_key_ideas(composition, music21_stream=music21_stream, motifs=motifs, phrases=phrases)
     if verbose:
         print(f"    [Timing] Identify key ideas: {time.time() - key_ideas_start:.2f}s", file=sys.stderr)
     
     if verbose:
         expansion_start = time.time()
-    expansion_suggestions = generate_expansion_strategies(composition, music21_stream=music21_stream)
+    # Pass pre-computed analysis to avoid recomputation
+    expansion_suggestions = generate_expansion_strategies(
+        composition,
+        music21_stream=music21_stream,
+        motifs=motifs,
+        phrases=phrases,
+        harmony=harmony,
+        form=form,
+    )
     if verbose:
         print(f"    [Timing] Generate expansion strategies: {time.time() - expansion_start:.2f}s", file=sys.stderr)
     

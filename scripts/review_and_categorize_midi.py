@@ -1052,16 +1052,32 @@ def analyze_file(
         print(f"  [Timing] Comprehensive analysis: {time.time() - comprehensive_start:.2f}s", file=sys.stderr)
     
     # Get quality report (with AI if requested)
-    # Pass composition to avoid reloading (major performance improvement)
-    # If AI quality is needed, we need to run it separately since
-    # analyze_for_user doesn't support it yet
+    # Pass composition and musical analysis to avoid reloading/recomputation (major performance improvement)
+    # Extract musical analysis from comprehensive result if available
+    musical_analysis = None
+    if comprehensive_result.get("musical_analysis"):
+        # We need to reconstruct the MusicalAnalysis object from the dict
+        # For now, we'll let check_midi_file recompute if needed, but pass composition
+        # TODO: Pass actual MusicalAnalysis object if we refactor to return it
+        pass
+    
     if verbose:
         quality_start = time.time()
     if use_ai_quality:
-        quality_report = check_midi_file(file_path, use_ai=True, composition=composition)
+        quality_report = check_midi_file(
+            file_path,
+            use_ai=True,
+            composition=composition,
+            musical_analysis=musical_analysis,
+        )
     else:
         # Use quality data from comprehensive analysis
-        quality_report = check_midi_file(file_path, use_ai=False, composition=composition)
+        quality_report = check_midi_file(
+            file_path,
+            use_ai=False,
+            composition=composition,
+            musical_analysis=musical_analysis,
+        )
     if verbose:
         print(f"  [Timing] Quality check: {time.time() - quality_start:.2f}s", file=sys.stderr)
     

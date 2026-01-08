@@ -243,8 +243,14 @@ def check_technical_quality(midi_analysis: Any, report: QualityReport) -> None:
         ))
 
 
-def check_musical_quality(composition: Any, report: QualityReport) -> None:
-    """Check musical quality using analysis."""
+def check_musical_quality(composition: Any, report: QualityReport, musical_analysis: Any | None = None) -> None:
+    """Check musical quality using analysis.
+    
+    Args:
+        composition: The composition to check
+        report: Quality report to update
+        musical_analysis: Optional pre-computed musical analysis (avoids recomputation)
+    """
     if not MUSIC21_AVAILABLE:
         report.add_issue(QualityIssue(
             "warning",
@@ -254,7 +260,11 @@ def check_musical_quality(composition: Any, report: QualityReport) -> None:
         return
     
     try:
-        analysis = analyze_composition(composition)
+        # Use pre-computed analysis if provided, otherwise compute it
+        if musical_analysis is None:
+            analysis = analyze_composition(composition)
+        else:
+            analysis = musical_analysis
         
         # Check for motifs
         if not analysis.motifs:
@@ -422,6 +432,7 @@ def check_midi_file(
     provider: str = "gemini",
     model: str | None = None,
     composition: Any | None = None,
+    musical_analysis: Any | None = None,
 ) -> QualityReport:
     """Check quality of a single MIDI file.
     
@@ -431,6 +442,7 @@ def check_midi_file(
         provider: AI provider name
         model: AI model name
         composition: Optional pre-loaded composition object (avoids reloading)
+        musical_analysis: Optional pre-computed musical analysis (avoids recomputation)
     """
     report = QualityReport(file_path)
     
@@ -458,7 +470,8 @@ def check_midi_file(
         try:
             if composition is None:
                 composition = composition_from_midi(file_path)
-            check_musical_quality(composition, report)
+            # Pass pre-computed analysis to avoid recomputation
+            check_musical_quality(composition, report, musical_analysis=musical_analysis)
             
             # AI assessment if requested
             if use_ai:

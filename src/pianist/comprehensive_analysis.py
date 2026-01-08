@@ -243,21 +243,10 @@ def analyze_for_user(
         # Extract technical metadata
         result["technical"] = extract_technical_metadata(midi_analysis)
         
-        # Quality check
-        quality_report = check_midi_file(file_path, use_ai=False)
-        
-        # Quality scores
-        result["quality"] = {
-            "overall_score": round(quality_report.overall_score, 3),
-            "technical_score": round(quality_report.scores.get("technical", 0.0), 3),
-            "musical_score": round(quality_report.scores.get("musical", 0.0), 3),
-            "structure_score": round(quality_report.scores.get("structure", 0.0), 3),
-            "issues": [issue.message for issue in quality_report.issues if issue.severity != "info"],
-        }
-        
-        # Musical analysis (if music21 is available)
+        # Musical analysis (if music21 is available) - do this first so we can pass it to quality check
         musical_analysis = None
         music21_stream = None
+        composition_for_analysis = composition  # Use provided composition if available
         if MUSIC21_AVAILABLE:
             try:
                 import time
@@ -335,6 +324,23 @@ def analyze_for_user(
             except Exception:
                 # Musical analysis failed, continue without it
                 pass
+        
+        # Quality check - pass pre-computed analysis to avoid recomputation
+        quality_report = check_midi_file(
+            file_path,
+            use_ai=False,
+            composition=composition_for_analysis,
+            musical_analysis=musical_analysis,
+        )
+        
+        # Quality scores
+        result["quality"] = {
+            "overall_score": round(quality_report.overall_score, 3),
+            "technical_score": round(quality_report.scores.get("technical", 0.0), 3),
+            "musical_score": round(quality_report.scores.get("musical", 0.0), 3),
+            "structure_score": round(quality_report.scores.get("structure", 0.0), 3),
+            "issues": [issue.message for issue in quality_report.issues if issue.severity != "info"],
+        }
         
         # Generate improvement suggestions
         result["improvement_suggestions"] = generate_improvement_suggestions(quality_report, musical_analysis)
