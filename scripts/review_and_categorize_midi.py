@@ -84,6 +84,180 @@ check_midi_file = check_midi_quality.check_midi_file
 QualityReport = check_midi_quality.QualityReport
 
 
+# ============================================================================
+# COMPOSER PATTERNS - Single Source of Truth
+# ============================================================================
+# Define all composers and their various name patterns in one place.
+# This makes it easy to add new composers - just add an entry here.
+# The patterns are automatically converted to different formats for different matching strategies.
+
+COMPOSER_DEFINITIONS: dict[str, dict[str, Any]] = {
+    "J.S. Bach": {
+        "canonical": "J.S. Bach",
+        "full_names": ["johann sebastian bach", "j.s. bach"],
+        "simple": ["bach"],
+        "abbreviations": [],
+    },
+    "Beethoven": {
+        "canonical": "Beethoven",
+        "full_names": ["ludwig van beethoven"],
+        "simple": ["beethoven"],
+        "abbreviations": [],
+    },
+    "Mozart": {
+        "canonical": "Mozart",
+        "full_names": ["wolfgang amadeus mozart", "w.a. mozart"],
+        "simple": ["mozart"],
+        "abbreviations": [],
+    },
+    "Chopin": {
+        "canonical": "Chopin",
+        "full_names": ["frédéric chopin", "frederic chopin"],
+        "simple": ["chopin"],
+        "abbreviations": [],
+    },
+    "Alexander Scriabin": {
+        "canonical": "Alexander Scriabin",
+        "full_names": ["alexander scriabin"],
+        "simple": ["scriabin"],
+        "abbreviations": ["a. scriabin"],
+    },
+    "Claude Debussy": {
+        "canonical": "Claude Debussy",
+        "full_names": ["claude debussy"],
+        "simple": ["debussy"],
+        "abbreviations": ["c. debussy"],
+    },
+    "Rachmaninoff": {
+        "canonical": "Rachmaninoff",
+        "full_names": ["sergei rachmaninoff", "sergei rachmaninov"],
+        "simple": ["rachmaninoff", "rachmaninov"],
+        "abbreviations": [],
+    },
+    "Schubert": {
+        "canonical": "Schubert",
+        "full_names": ["franz schubert", "franz peter schubert"],
+        "simple": ["schubert"],
+        "abbreviations": [],
+    },
+    "Robert Schumann": {
+        "canonical": "Robert Schumann",
+        "full_names": ["robert schumann", "robert alexander schumann"],
+        "simple": ["schumann"],
+        "abbreviations": [],
+    },
+    "Liszt": {
+        "canonical": "Liszt",
+        "full_names": ["franz liszt"],
+        "simple": ["liszt"],
+        "abbreviations": [],
+    },
+    "Brahms": {
+        "canonical": "Brahms",
+        "full_names": ["johannes brahms"],
+        "simple": ["brahms"],
+        "abbreviations": [],
+    },
+    "Muzio Clementi": {
+        "canonical": "Muzio Clementi",
+        "full_names": ["muzio clementi"],
+        "simple": ["clementi"],
+        "abbreviations": [],
+    },
+    "Erik Satie": {
+        "canonical": "Erik Satie",
+        "full_names": ["erik satie"],
+        "simple": ["satie"],
+        "abbreviations": [],
+    },
+    "Felix Mendelssohn": {
+        "canonical": "Felix Mendelssohn",
+        "full_names": ["felix mendelssohn", "felix mendelssohn-bartholdy"],
+        "simple": ["mendelssohn"],
+        "abbreviations": [],
+    },
+    "George Frideric Handel": {
+        "canonical": "George Frideric Handel",
+        "full_names": ["george frideric handel", "g.f. handel"],
+        "simple": ["handel"],
+        "abbreviations": [],
+    },
+    "Domenico Scarlatti": {
+        "canonical": "Domenico Scarlatti",
+        "full_names": ["domenico scarlatti"],
+        "simple": ["scarlatti"],
+        "abbreviations": [],
+    },
+    "Joseph Haydn": {
+        "canonical": "Joseph Haydn",
+        "full_names": ["joseph haydn", "franz joseph haydn"],
+        "simple": ["haydn"],
+        "abbreviations": [],
+    },
+    "Alban Berg": {
+        "canonical": "Alban Berg",
+        "full_names": ["alban berg"],
+        "simple": ["berg"],
+        "abbreviations": [],
+    },
+}
+
+
+def _build_composer_patterns() -> dict[str, dict[str, Any]]:
+    """
+    Build composer pattern dictionaries from COMPOSER_DEFINITIONS.
+    
+    Returns:
+        dict with keys:
+        - "regex_patterns": dict mapping regex patterns to canonical names
+        - "simple_patterns": dict mapping simple names to canonical names
+        - "end_patterns": dict mapping end-of-filename patterns to canonical names
+    """
+    regex_patterns: dict[str, str] = {}
+    simple_patterns: dict[str, str] = {}
+    end_patterns: dict[str, str] = {}
+    
+    for canonical, defn in COMPOSER_DEFINITIONS.items():
+        # Add full name regex patterns
+        for full_name in defn["full_names"]:
+            # Escape special regex chars and create word boundary pattern
+            escaped = re.escape(full_name)
+            pattern = rf'\b{escaped}\b'
+            regex_patterns[pattern] = canonical
+        
+        # Add abbreviation patterns
+        for abbrev in defn["abbreviations"]:
+            escaped = re.escape(abbrev)
+            pattern = rf'\b{escaped}\b'
+            regex_patterns[pattern] = canonical
+        
+        # Add simple patterns (for substring matching)
+        for simple in defn["simple"]:
+            simple_patterns[simple] = canonical
+        
+        # Add end patterns (for "Title -- Composer" format)
+        # Include full names, simple names, and abbreviations
+        for full_name in defn["full_names"]:
+            end_patterns[full_name] = canonical
+        for simple in defn["simple"]:
+            end_patterns[simple] = canonical
+        for abbrev in defn["abbreviations"]:
+            end_patterns[abbrev] = canonical
+    
+    return {
+        "regex_patterns": regex_patterns,
+        "simple_patterns": simple_patterns,
+        "end_patterns": end_patterns,
+    }
+
+
+# Build pattern dictionaries once at module load
+_COMPOSER_PATTERNS = _build_composer_patterns()
+COMPOSER_REGEX_PATTERNS = _COMPOSER_PATTERNS["regex_patterns"]
+COMPOSER_SIMPLE_PATTERNS = _COMPOSER_PATTERNS["simple_patterns"]
+COMPOSER_END_PATTERNS = _COMPOSER_PATTERNS["end_patterns"]
+
+
 @dataclass
 class FileMetadata:
     """Metadata collected for a MIDI file."""
@@ -327,11 +501,13 @@ def identify_composition_with_ai(
                 print(f"  [AI] Analyzing original composition and generating description using {provider}...", file=sys.stderr)
             else:
                 print(f"  [AI] Attempting to identify composition using {provider}...", file=sys.stderr)
+            sys.stderr.flush()
         
         # Add delay to avoid rate limits
         if delay_seconds > 0:
             if verbose:
                 print(f"  [AI] Waiting {delay_seconds:.1f}s to avoid rate limits...", file=sys.stderr)
+                sys.stderr.flush()
             time.sleep(delay_seconds)
         
         comp_json = composition_to_canonical_json(composition)
@@ -432,6 +608,7 @@ Respond ONLY with valid JSON, no other text."""
             except RuntimeError as e:
                 if verbose:
                     print(f"  [AI] {e}", file=sys.stderr)
+                    sys.stderr.flush()
                 return None
         elif provider == "openrouter":
             try:
@@ -440,15 +617,18 @@ Respond ONLY with valid JSON, no other text."""
             except OpenRouterError as e:
                 if verbose:
                     print(f"  [AI] {e}", file=sys.stderr)
+                    sys.stderr.flush()
                 # Check if it's a rate limit error
                 error_str = str(e)
                 if "429" in error_str or "rate limit" in error_str.lower() or "quota" in error_str.lower():
                     if verbose:
                         print(f"  [AI] Rate limit exceeded. Consider using --ai-delay", file=sys.stderr)
+                        sys.stderr.flush()
                 return None
             except Exception as e:
                 if verbose:
                     print(f"  [AI] Error: {e}", file=sys.stderr)
+                    sys.stderr.flush()
                 return None
         else:  # gemini
             try:
@@ -460,11 +640,16 @@ Respond ONLY with valid JSON, no other text."""
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
                     if verbose:
                         print(f"  [AI] Rate limit exceeded. Consider using --ai-delay or --ai-provider ollama", file=sys.stderr)
+                        sys.stderr.flush()
                     return None
+                if verbose:
+                    print(f"  [AI] Error: {e}", file=sys.stderr)
+                    sys.stderr.flush()
                 raise  # Re-raise other errors
         
         if verbose:
             print(f"  [AI] Received response (length: {len(response)})", file=sys.stderr)
+            sys.stderr.flush()
         
         # Try to parse JSON from response
         # Look for JSON object (handles multi-line)
@@ -475,6 +660,11 @@ Respond ONLY with valid JSON, no other text."""
                 if verbose:
                     identified = ai_data.get("identified", False)
                     print(f"  [AI] Identification result: identified={identified}", file=sys.stderr)
+                    if identified:
+                        composer = ai_data.get("composer", "")
+                        title = ai_data.get("title", "")
+                        print(f"  [AI] Identified as: {composer}: {title}", file=sys.stderr)
+                    sys.stderr.flush()
                 return ai_data
             except json.JSONDecodeError as e:
                 if verbose:
@@ -493,17 +683,244 @@ Respond ONLY with valid JSON, no other text."""
                     if verbose:
                         print(f"  [AI] Still failed to parse JSON: {e2}", file=sys.stderr)
                         print(f"  [AI] Response snippet: {response[:200]}", file=sys.stderr)
+                        sys.stderr.flush()
         else:
             if verbose:
                 print(f"  [AI] No JSON found in response", file=sys.stderr)
+                sys.stderr.flush()
     except ImportError as e:
         if verbose:
             print(f"  [AI] Import error: {e}", file=sys.stderr)
+            sys.stderr.flush()
     except Exception as e:
         if verbose:
             print(f"  [AI] Error during identification: {e}", file=sys.stderr)
             import traceback
             traceback.print_exc()
+            sys.stderr.flush()
+    
+    return None
+
+
+def enhance_name_with_ai(
+    filename_info: dict[str, Any],
+    metadata: FileMetadata,
+    composition: Any,
+    filename: str,
+    provider: str = "gemini",
+    model: str = "gemini-flash-latest",
+    verbose: bool = False,
+    delay_seconds: float = 0.0,
+) -> dict[str, Any] | None:
+    """
+    Use AI to enhance/improve a name extracted from filename.
+    
+    Takes filename-extracted info (e.g., "Scriabin: op16-no5 (Op. 16)") and uses AI
+    to generate a more complete, consistent name (e.g., "Alexander Scriabin: Prelude 
+    in F-sharp major, Op. 16, No. 5").
+    
+    Args:
+        filename_info: Dictionary with composer, title, catalog_number, etc. from filename
+        metadata: FileMetadata with musical analysis
+        composition: Composition object
+        filename: Original filename
+        provider: AI provider
+        model: AI model name
+        verbose: Verbose output
+        delay_seconds: Delay between AI calls
+    
+    Returns:
+        Dictionary with enhanced name info, or None if AI call failed
+    """
+    if not MUSIC21_AVAILABLE:
+        if verbose:
+            print(f"  [AI] music21 not available, skipping AI name enhancement", file=sys.stderr)
+        return None
+    
+    try:
+        from pianist.iterate import composition_to_canonical_json
+        
+        if verbose:
+            print(f"  [AI] Enhancing filename-extracted name using {provider}...", file=sys.stderr)
+            sys.stderr.flush()
+        
+        # Add delay to avoid rate limits
+        if delay_seconds > 0:
+            if verbose:
+                print(f"  [AI] Waiting {delay_seconds:.1f}s to avoid rate limits...", file=sys.stderr)
+                sys.stderr.flush()
+            time.sleep(delay_seconds)
+        
+        comp_json = composition_to_canonical_json(composition)
+        
+        # Extract key musical characteristics
+        harmonic_prog = metadata.harmonic_progression or "Unknown"
+        if harmonic_prog and len(harmonic_prog) > 200:
+            harmonic_prog = harmonic_prog[:200] + "..."
+        
+        # Build context from filename info
+        composer = filename_info.get("composer", "")
+        title = filename_info.get("title", "")
+        catalog = filename_info.get("catalog_number", "")
+        opus = filename_info.get("opus", "")
+        
+        # Extract key from filename if present (e.g., "Sonatina in C", "Prelude in F-sharp major")
+        filename_key = None
+        key_patterns = [
+            r'\bin\s+([A-G][#b]?)\s+(major|minor|maj|min)',
+            r'\bin\s+([A-G][#b]?)\s*[,\s]',  # Just "in C" or "in F#"
+            r'\b([A-G][#b]?)\s+(major|minor|maj|min)\s*[,\s]',  # "C major" or "F# minor"
+        ]
+        for pattern in key_patterns:
+            match = re.search(pattern, filename, re.IGNORECASE)
+            if match:
+                key_note = match.group(1).upper()
+                if len(match.groups()) > 1 and match.group(2):
+                    key_mode = match.group(2).lower()
+                    if key_mode in ['major', 'maj']:
+                        filename_key = f"{key_note} major"
+                    elif key_mode in ['minor', 'min']:
+                        filename_key = f"{key_note} minor"
+                else:
+                    # Default to major if mode not specified
+                    filename_key = f"{key_note} major"
+                break
+        
+        # Build a basic name from filename info for context
+        if title and catalog:
+            basic_name = f"{composer}: {title} ({catalog})"
+        elif title:
+            basic_name = f"{composer}: {title}"
+        elif catalog:
+            basic_name = f"{composer}: {catalog}"
+        else:
+            basic_name = composer
+        
+        # Determine which key to use - prefer filename key if present
+        key_to_use = filename_key or metadata.detected_key or 'Unknown'
+        key_source = "filename" if filename_key else ("detected" if metadata.detected_key else "unknown")
+        
+        prompt = f"""You are a musicologist enhancing a composition name extracted from a filename.
+
+The filename extraction found:
+- Composer: {composer or 'Unknown'}
+- Title: {title or 'Unknown'}
+- Catalog/Opus: {catalog or opus or 'Unknown'}
+- Basic name: {basic_name}
+{f"- Key from filename: {filename_key}" if filename_key else ""}
+
+Filename: {filename}
+Key: {key_to_use} ({key_source})
+Detected Key (from analysis): {metadata.detected_key or 'Unknown'}
+Detected Form: {metadata.detected_form or 'Unknown'}
+Time Signature: {metadata.time_signature or 'Unknown'}
+Tempo: {metadata.tempo_bpm or 'Unknown'} BPM
+Duration: {metadata.duration_beats:.1f} beats (~{metadata.bars:.1f} bars)
+
+Musical content (first 2000 characters):
+{comp_json[:2000]}
+
+Your task: Generate a complete, properly formatted composition name using the filename-extracted information as a starting point.
+
+Guidelines:
+1. Use the FULL composer name (e.g., "Alexander Scriabin" not just "Scriabin", "Frédéric Chopin" not just "Chopin", "Muzio Clementi" not just "Clementi")
+2. If the title is incomplete or unclear (e.g., "op16-no5"), infer the proper piece type (Prelude, Étude, Sonatina, etc.) from the musical content
+3. **IMPORTANT: Use the key from the filename if specified (e.g., "Sonatina in C" means C major). Only use the detected key if the filename doesn't specify a key.**
+4. Format catalog numbers properly (e.g., "Op. 16, No. 5" not "op16-no5")
+5. If you can identify this as a well-known composition, use the canonical title
+6. If it's not well-known, create a descriptive title based on the musical characteristics
+7. **CRITICAL: The "title" field should NOT include the composer name. Return composer and title separately. The title should be just the composition name (e.g., "Sonatina in C, Op. 36, No. 1b" not "Muzio Clementi: Sonatina in C, Op. 36, No. 1b")**
+
+Respond with JSON:
+{{
+  "composer": "Full composer name (e.g., 'Alexander Scriabin', 'Frédéric Chopin', 'Muzio Clementi')",
+  "title": "Complete composition title WITHOUT composer name (e.g., 'Prelude in F-sharp major, Op. 16, No. 5' or 'Sonatina in C, Op. 36, No. 1b')",
+  "catalog_number": "Properly formatted catalog number (e.g., 'Op. 16, No. 5')",
+  "style": "Baroque|Classical|Romantic|Modern|Other",
+  "description": "Brief description of the piece's musical characteristics, style, and mood"
+}}
+
+Respond ONLY with valid JSON, no other text."""
+        
+        # Call appropriate provider
+        if provider == "ollama":
+            try:
+                response = call_ollama(model=model, prompt=prompt, verbose=verbose)
+            except RuntimeError as e:
+                if verbose:
+                    print(f"  [AI] {e}", file=sys.stderr)
+                    sys.stderr.flush()
+                return None
+        elif provider == "openrouter":
+            try:
+                from pianist.ai_providers import generate_text_openrouter, OpenRouterError
+                response = generate_text_openrouter(model=model, prompt=prompt, verbose=verbose)
+            except OpenRouterError as e:
+                if verbose:
+                    print(f"  [AI] {e}", file=sys.stderr)
+                    sys.stderr.flush()
+                return None
+            except Exception as e:
+                if verbose:
+                    print(f"  [AI] Error: {e}", file=sys.stderr)
+                    sys.stderr.flush()
+                return None
+        else:  # gemini
+            try:
+                from pianist.ai_providers import generate_text
+                response = generate_text(model=model, prompt=prompt, verbose=verbose)
+            except Exception as e:
+                if verbose:
+                    print(f"  [AI] Error: {e}", file=sys.stderr)
+                    sys.stderr.flush()
+                return None
+        
+        if verbose:
+            print(f"  [AI] Received enhancement response (length: {len(response)})", file=sys.stderr)
+            sys.stderr.flush()
+        
+        # Try to parse JSON from response
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+        if json_match:
+            try:
+                ai_data = json.loads(json_match.group())
+                if verbose:
+                    print(f"  [AI] Successfully parsed enhancement response", file=sys.stderr)
+                    sys.stderr.flush()
+                return ai_data
+            except json.JSONDecodeError as e:
+                if verbose:
+                    print(f"  [AI] JSON parse error: {e}", file=sys.stderr)
+                    sys.stderr.flush()
+                # Try to fix common JSON issues
+                json_str = json_match.group()
+                json_str = re.sub(r',\s*}', '}', json_str)
+                json_str = re.sub(r',\s*]', ']', json_str)
+                try:
+                    ai_data = json.loads(json_str)
+                    if verbose:
+                        print(f"  [AI] Successfully parsed after fixing JSON", file=sys.stderr)
+                        sys.stderr.flush()
+                    return ai_data
+                except json.JSONDecodeError as e2:
+                    if verbose:
+                        print(f"  [AI] Still failed to parse JSON: {e2}", file=sys.stderr)
+                        print(f"  [AI] Response snippet: {response[:200]}", file=sys.stderr)
+                        sys.stderr.flush()
+        else:
+            if verbose:
+                print(f"  [AI] No JSON found in response", file=sys.stderr)
+                sys.stderr.flush()
+    except ImportError as e:
+        if verbose:
+            print(f"  [AI] Import error: {e}", file=sys.stderr)
+            sys.stderr.flush()
+    except Exception as e:
+        if verbose:
+            print(f"  [AI] Error during name enhancement: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.stderr.flush()
     
     return None
 
@@ -579,29 +996,14 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
     filename_lower = filename.lower()
     
     # Pattern 1: "Composer - Title" format (e.g., "Ludwig van Beethoven - Piano Sonata...")
-    dash_separator_match = re.search(r'^([^-]+?)\s*-\s*(.+?)(?:\.mid|\.midi)?$', filename, re.IGNORECASE)
+    # Also handles patterns like "chopin---prelude" (multiple dashes)
+    dash_separator_match = re.search(r'^([^-]+?)\s*-+\s*(.+?)(?:\.mid|\.midi)?$', filename, re.IGNORECASE)
     if dash_separator_match:
         composer_part = dash_separator_match.group(1).strip()
         title_part = dash_separator_match.group(2).strip()
         
-        # Extract composer from first part
-        composer_patterns = {
-            r'\bludwig\s+van\s+beethoven\b': "Beethoven",
-            r'\bjohann\s+sebastian\s+bach\b': "J.S. Bach",
-            r'\bj\.\s*s\.\s+bach\b': "J.S. Bach",
-            r'\bwolfgang\s+amadeus\s+mozart\b': "Mozart",
-            r'\bw\.\s*a\.\s+mozart\b': "Mozart",
-            r'\bfrédéric\s+chopin\b': "Chopin",
-            r'\bfrederic\s+chopin\b': "Chopin",
-            r'\balexander\s+scriabin\b': "Scriabin",
-            r'\bclaude\s+debussy\b': "Debussy",
-            r'\bsergei\s+rachmaninoff\b': "Rachmaninoff",
-            r'\bsergei\s+rachmaninov\b': "Rachmaninoff",
-            r'\bfranz\s+schubert\b': "Schubert",
-            r'\brobert\s+schumann\b': "Schumann",
-            r'\bfranz\s+liszt\b': "Liszt",
-            r'\bjohannes\s+brahms\b': "Brahms",
-        }
+        # Extract composer from first part using centralized patterns
+        composer_patterns = COMPOSER_REGEX_PATTERNS
         
         for pattern, composer in composer_patterns.items():
             if re.search(pattern, composer_part, re.IGNORECASE):
@@ -610,20 +1012,7 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
         
         # If no match, try simple composer name patterns
         if not info["composer"]:
-            simple_composer_patterns = {
-                "beethoven": "Beethoven",
-                "bach": "J.S. Bach",
-                "mozart": "Mozart",
-                "chopin": "Chopin",
-                "scriabin": "Scriabin",
-                "debussy": "Debussy",
-                "rachmaninoff": "Rachmaninoff",
-                "rachmaninov": "Rachmaninoff",
-                "schubert": "Schubert",
-                "schumann": "Schumann",
-                "liszt": "Liszt",
-                "brahms": "Brahms",
-            }
+            simple_composer_patterns = COMPOSER_SIMPLE_PATTERNS
             for pattern, composer in simple_composer_patterns.items():
                 if pattern in composer_part.lower():
                     info["composer"] = composer
@@ -680,22 +1069,43 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
         if info["composer"] and info["title"]:
             return info
     
+    # Pattern 1b: "Title -- Composer" format (e.g., "gymnopdie-no.1--erik-satie.mid")
+    # Check if composer is at the end after dashes
+    if not info["composer"]:
+        # Pattern: something ending with "--composer" or "-composer"
+        # Try double dash first (more specific)
+        end_composer_match = re.search(r'--([^-]+?)(?:\.mid|\.midi)?$', filename, re.IGNORECASE)
+        if not end_composer_match:
+            # Try single dash (but be more careful - might be part of title)
+            end_composer_match = re.search(r'-([a-z]+)(?:\.mid|\.midi)?$', filename, re.IGNORECASE)
+        
+        if end_composer_match:
+            composer_part_end = end_composer_match.group(1).strip()
+            # Try to match composer patterns in the end part using centralized patterns
+            end_composer_patterns = COMPOSER_END_PATTERNS
+            composer_part_lower = composer_part_end.lower().replace("-", " ").replace("_", " ")
+            # Sort by length (longest first) to match "erik satie" before "erik"
+            for pattern, composer in sorted(end_composer_patterns.items(), key=lambda x: -len(x[0])):
+                if pattern in composer_part_lower:
+                    info["composer"] = composer
+                    # Extract title from the beginning part (everything before the composer)
+                    # For "gymnopdie-no.1--erik-satie.mid", extract "gymnopdie-no.1"
+                    title_end_pos = filename.lower().rfind("--" + composer_part_end.lower())
+                    if title_end_pos == -1:
+                        title_end_pos = filename.lower().rfind("-" + composer_part_end.lower())
+                    if title_end_pos > 0:
+                        potential_title = filename[:title_end_pos].strip()
+                        # Clean up the title - convert to readable format
+                        potential_title = potential_title.replace("_", " ").replace("-", " ")
+                        # Capitalize properly
+                        potential_title = " ".join(word.capitalize() for word in potential_title.split())
+                        if potential_title and len(potential_title) > 2:
+                            info["title"] = potential_title
+                    break
+    
     # Pattern 2: Simple patterns (original logic for backward compatibility)
-    # Common composer patterns
-    composer_patterns = {
-        "bach": "J.S. Bach",
-        "beethoven": "Beethoven",
-        "mozart": "Mozart",
-        "chopin": "Chopin",
-        "scriabin": "Scriabin",
-        "debussy": "Debussy",
-        "rachmaninoff": "Rachmaninoff",
-        "rachmaninov": "Rachmaninoff",
-        "schubert": "Schubert",
-        "schumann": "Schumann",
-        "liszt": "Liszt",
-        "brahms": "Brahms",
-    }
+    # Use centralized composer patterns
+    composer_patterns = COMPOSER_SIMPLE_PATTERNS
     
     if not info["composer"]:
         for pattern, composer in composer_patterns.items():
@@ -729,16 +1139,89 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
             "prelude": "Prelude",
             "etude": "Étude",
             "sonata": "Sonata",
+            "sonatina": "Sonatina",
             "nocturne": "Nocturne",
             "waltz": "Waltz",
             "mazurka": "Mazurka",
             "impromptu": "Impromptu",
+            "fugue": "Fugue",
+            "gymnopédie": "Gymnopédie",
+            "gymnopedie": "Gymnopédie",
         }
         
         for pattern, piece_type in piece_types.items():
             if pattern in filename_lower:
-                info["title"] = piece_type
+                # Try to extract a more complete title
+                # Pattern: "prelude-no-7" or "prelude-op28-no7" -> "Prelude No. 7"
+                piece_match = re.search(rf'{pattern}[-\s]*(?:no\.?\s*|op\.?\s*\d+\s*no\.?\s*)(\d+)', filename_lower)
+                if piece_match:
+                    number = piece_match.group(1)
+                    info["title"] = f"{piece_type} No. {number}"
+                else:
+                    # Check for opus + number pattern: "prelude-op28-no7"
+                    opus_piece_match = re.search(rf'{pattern}.*?op\.?\s*(\d+).*?no\.?\s*(\d+)', filename_lower)
+                    if opus_piece_match:
+                        opus_num = opus_piece_match.group(1)
+                        no_num = opus_piece_match.group(2)
+                        info["title"] = f"{piece_type} No. {no_num}"
+                        if not info["opus"]:
+                            info["opus"] = f"Op. {opus_num} No. {no_num}"
+                            info["catalog_number"] = info["opus"]
+                    else:
+                        info["title"] = piece_type
                 break
+    
+    # Pattern 3: Handle hyphenated patterns like "chopin---prelude-no-7" or "prlude-opus-28-no-7"
+    # This handles cases where the dash separator pattern didn't match
+    if not info["title"] or (info["composer"] and not info["title"]):
+        # Look for patterns like: composer-piece-opus-no or piece-opus-no-composer
+        # Example: "chopin---prelude-no.-7-in-a-major-op.-28"
+        # Example: "prlude-opus-28-no.-7-in-a-major--chopin" (note: "prlude" is a typo for "prelude")
+        
+        # Pattern: piece-opus-no (e.g., "prlude-opus-28-no-7" or "prelude-opus-28-no-7")
+        # Handle typos like "prlude" -> "prelude"
+        piece_opus_no_match = re.search(r'(pr?elude|invention|etude|sonata|nocturne|waltz|mazurka|impromptu|fugue)[-\s]*opus[-\s]*(\d+)[-\s]*no\.?\s*(\d+)', filename_lower)
+        if piece_opus_no_match:
+            piece_type_raw = piece_opus_no_match.group(1)
+            # Fix common typos
+            if piece_type_raw == "prlude":
+                piece_type = "Prelude"
+            else:
+                piece_type = piece_type_raw.capitalize()
+            opus_num = piece_opus_no_match.group(2)
+            no_num = piece_opus_no_match.group(3)
+            info["title"] = f"{piece_type} No. {no_num}"
+            if not info["opus"]:
+                info["opus"] = f"Op. {opus_num} No. {no_num}"
+                info["catalog_number"] = info["opus"]
+        
+        # Pattern: piece-no-opus (e.g., "prelude-no-7-op-28" or "prlude-no-7-op-28")
+        if not info["title"]:
+            piece_no_opus_match = re.search(r'(pr?elude|invention|etude|sonata|nocturne|waltz|mazurka|impromptu|fugue)[-\s]*no\.?\s*(\d+).*?op\.?\s*(\d+)', filename_lower)
+            if piece_no_opus_match:
+                piece_type_raw = piece_no_opus_match.group(1)
+                if piece_type_raw == "prlude":
+                    piece_type = "Prelude"
+                else:
+                    piece_type = piece_type_raw.capitalize()
+                no_num = piece_no_opus_match.group(2)
+                opus_num = piece_no_opus_match.group(3)
+                info["title"] = f"{piece_type} No. {no_num}"
+                if not info["opus"]:
+                    info["opus"] = f"Op. {opus_num} No. {no_num}"
+                    info["catalog_number"] = info["opus"]
+        
+        # Pattern: composer-piece-no-opus (e.g., "chopin---prelude-no-7-op-28")
+        if not info["title"] and info["composer"]:
+            composer_piece_match = re.search(rf'({"|".join(composer_patterns.keys())})[-\s]+(pr?elude|invention|etude|sonata|nocturne|waltz|mazurka|impromptu|fugue)[-\s]*no\.?\s*(\d+)', filename_lower)
+            if composer_piece_match:
+                piece_type_raw = composer_piece_match.group(2)
+                if piece_type_raw == "prlude":
+                    piece_type = "Prelude"
+                else:
+                    piece_type = piece_type_raw.capitalize()
+                no_num = composer_piece_match.group(3)
+                info["title"] = f"{piece_type} No. {no_num}"
     
     return info
 
@@ -769,10 +1252,20 @@ def generate_suggested_name(
     
     # Strategy 0: Check filename first (before AI) to see if it contains clear composer/title info
     # This prevents AI-generated descriptive names from overriding clearly labeled filenames
+    if verbose:
+        print(f"  [Filename] Extracting info from filename: {filename}", file=sys.stderr)
+        sys.stderr.flush()
     filename_info = extract_info_from_filename(filename)
+    
+    if verbose:
+        print(f"  [Filename] Extracted: composer={filename_info.get('composer')}, title={filename_info.get('title')}, catalog={filename_info.get('catalog_number')}", file=sys.stderr)
+        sys.stderr.flush()
     
     # For original compositions, skip composer extraction from filename
     if metadata.is_original:
+        if verbose:
+            print(f"  [Filename] Marked as original composition, clearing extracted info", file=sys.stderr)
+            sys.stderr.flush()
         filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None, "movement": None}
     
     # If filename contains clear composer and title/catalog info, use it (skip AI descriptive names)
@@ -780,6 +1273,10 @@ def generate_suggested_name(
         filename_info.get("composer") and 
         (filename_info.get("title") or filename_info.get("catalog_number"))
     )
+    
+    if verbose:
+        print(f"  [Filename] Has clear info: {has_clear_filename_info}", file=sys.stderr)
+        sys.stderr.flush()
     
     # Strategy 1: Try AI identification/description if enabled
     # For original compositions, we still use AI but only for description (not identification)
@@ -826,6 +1323,10 @@ def generate_suggested_name(
                 suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
                 suggested_id = suggested_id[:50]
                 
+                if verbose:
+                    print(f"  [Name] Using AI-identified name: {suggested_name}", file=sys.stderr)
+                    sys.stderr.flush()
+                
                 return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
             else:
                 # AI provided description (either couldn't identify, or it's an original composition)
@@ -855,11 +1356,19 @@ def generate_suggested_name(
                         suggested_id = suggested_name.lower().replace(" ", "_")
                         suggested_id = "".join(c for c in suggested_id if c.isalnum() or c == "_")
                         suggested_id = suggested_id[:50]
+                        
+                        if verbose:
+                            print(f"  [Name] Using AI-generated descriptive name: {suggested_name}", file=sys.stderr)
+                            sys.stderr.flush()
+                        
                         return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
     # Strategy 2: Extract info from filename (skip if original composition)
     # Note: filename_info was already extracted above, but we check again here for clarity
     if not has_clear_filename_info:
+        if verbose:
+            print(f"  [Filename] Re-extracting info (no clear info found initially)", file=sys.stderr)
+            sys.stderr.flush()
         filename_info = extract_info_from_filename(filename)
         if metadata.is_original:
             filename_info = {"composer": None, "title": None, "catalog_number": None, "opus": None, "movement": None}
@@ -869,6 +1378,10 @@ def generate_suggested_name(
         composer = filename_info["composer"]
         title = filename_info.get("title", "")
         catalog = filename_info.get("catalog_number", "")
+        
+        if verbose:
+            print(f"  [Filename] Using filename info: composer={composer}, title={title}, catalog={catalog}", file=sys.stderr)
+            sys.stderr.flush()
         
         # Build title with catalog if available
         if title and catalog:
@@ -906,6 +1419,10 @@ def generate_suggested_name(
         if metadata.detected_form:
             description_parts.append(f"{metadata.detected_form} form")
         suggested_description = ", ".join(description_parts) if description_parts else "Classical composition"
+        
+        if verbose:
+            print(f"  [Name] Using filename-extracted name: {suggested_name}", file=sys.stderr)
+            sys.stderr.flush()
         
         return suggested_name, suggested_id, style_hint, suggested_description, ai_identified
     
@@ -1146,13 +1663,236 @@ def analyze_file(
         if use_ai_naming and MUSIC21_AVAILABLE:
             ai_attempted = True
         
-        # Use AI insights from comprehensive analysis if available, otherwise generate
-        if ai_insights and use_ai_naming:
-            suggested_name = ai_insights.get("suggested_name", Path(file_path).stem)
-            suggested_style = ai_insights.get("suggested_style")
-            suggested_description = ai_insights.get("suggested_description")
-            suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
-            ai_identified = True
+        # Check if filename has clear info that should take priority over AI
+        filename_info = extract_info_from_filename(file_path.name)
+        has_clear_filename_info = (
+            filename_info.get("composer") and 
+            (filename_info.get("title") or filename_info.get("catalog_number"))
+        )
+        
+        if verbose:
+            print(f"  [Filename] Has clear info: {has_clear_filename_info} (composer={filename_info.get('composer')}, title={filename_info.get('title')}, catalog={filename_info.get('catalog_number')})", file=sys.stderr)
+            sys.stderr.flush()
+        
+        # When AI is enabled, always use AI to enhance names (even if filename has clear info)
+        if use_ai_naming:
+            if has_clear_filename_info:
+                # Filename has clear info - use AI to enhance it
+                if verbose:
+                    print(f"  [AI] Filename has clear info, using AI to enhance name", file=sys.stderr)
+                    sys.stderr.flush()
+                
+                # Use AI to enhance the filename-extracted name
+                enhanced_info = enhance_name_with_ai(
+                    filename_info,
+                    temp_metadata,
+                    composition,
+                    file_path.name,
+                    provider=ai_provider,
+                    model=ai_model,
+                    verbose=verbose,
+                    delay_seconds=ai_delay,
+                )
+                
+                if enhanced_info:
+                    # Use AI-enhanced name
+                    title = enhanced_info.get("title", "")
+                    catalog = enhanced_info.get("catalog_number", "")
+                    ai_composer = enhanced_info.get("composer", "")
+                    
+                    # CRITICAL: Always use filename-extracted composer as the source of truth
+                    # The AI might not return composer, or might return a different format
+                    # We prefer the filename-extracted composer since it's what the user named the file
+                    filename_composer = filename_info.get("composer", "")
+                    if filename_composer:
+                        composer = filename_composer
+                        if verbose and ai_composer and ai_composer != filename_composer:
+                            print(f"  [AI] Using filename composer '{filename_composer}' instead of AI composer '{ai_composer}'", file=sys.stderr)
+                            sys.stderr.flush()
+                    elif ai_composer:
+                        composer = ai_composer
+                        if verbose:
+                            print(f"  [AI] Using AI composer '{ai_composer}' (filename had no composer)", file=sys.stderr)
+                            sys.stderr.flush()
+                    else:
+                        composer = ""
+                        if verbose:
+                            print(f"  [AI] Warning: No composer found in filename or AI response", file=sys.stderr)
+                            sys.stderr.flush()
+                    
+                    # Strip composer name from title if AI included it (defensive check)
+                    if composer and title:
+                        # Remove composer name from title if present
+                        composer_variations = [
+                            composer,
+                            composer.split()[-1] if " " in composer else composer,  # Last name only
+                        ]
+                        for comp_var in composer_variations:
+                            # Remove patterns like "Composer: " or "Composer - " from title
+                            title = re.sub(rf'^{re.escape(comp_var)}\s*[:-]\s*', '', title, flags=re.IGNORECASE)
+                            title = re.sub(rf'^{re.escape(comp_var)}\s+', '', title, flags=re.IGNORECASE)
+                        title = title.strip()
+                    
+                    if composer and title:
+                        if catalog:
+                            suggested_name = f"{composer}: {title} ({catalog})"
+                        else:
+                            suggested_name = f"{composer}: {title}"
+                    elif composer:
+                        # If we have composer but no title, use catalog or just composer
+                        if catalog:
+                            suggested_name = f"{composer}: {catalog}"
+                        else:
+                            suggested_name = composer
+                    elif title:
+                        # If we have title but no composer, this shouldn't happen but handle it
+                        suggested_name = title
+                    else:
+                        # Fallback to filename-extracted name if AI enhancement failed
+                        composer = filename_info.get("composer", "")
+                        title = filename_info.get("title", "")
+                        catalog = filename_info.get("catalog_number", "")
+                        if title and catalog:
+                            suggested_name = f"{composer}: {title} ({catalog})"
+                        elif title:
+                            suggested_name = f"{composer}: {title}"
+                        elif catalog:
+                            suggested_name = f"{composer}: {catalog}"
+                        else:
+                            suggested_name = composer
+                    
+                    suggested_style = enhanced_info.get("style")
+                    suggested_description = enhanced_info.get("description", "")
+                    ai_identified = True
+                else:
+                    # AI enhancement failed, fall back to filename-extracted name
+                    if verbose:
+                        print(f"  [AI] AI enhancement failed, using filename-extracted name", file=sys.stderr)
+                        sys.stderr.flush()
+                    composer = filename_info["composer"]
+                    title = filename_info.get("title", "")
+                    catalog = filename_info.get("catalog_number", "")
+                    
+                    if title and catalog:
+                        suggested_name = f"{composer}: {title} ({catalog})"
+                    elif title:
+                        suggested_name = f"{composer}: {title}"
+                    elif catalog:
+                        suggested_name = f"{composer}: {catalog}"
+                    else:
+                        suggested_name = composer
+                    
+                    # Infer style from composer
+                    composer_lower = filename_info["composer"].lower()
+                    if "bach" in composer_lower:
+                        suggested_style = "Baroque"
+                    elif "mozart" in composer_lower or "beethoven" in composer_lower:
+                        suggested_style = "Classical"
+                    elif any(c in composer_lower for c in ["chopin", "schumann", "liszt", "rachmaninoff", "scriabin"]):
+                        suggested_style = "Romantic"
+                    else:
+                        suggested_style = None
+                    
+                    description_parts = []
+                    if filename_info.get("title"):
+                        description_parts.append(filename_info["title"])
+                    if detected_form:
+                        description_parts.append(f"{detected_form} form")
+                    suggested_description = ", ".join(description_parts) if description_parts else "Classical composition"
+                    ai_identified = False
+                    
+                    if verbose:
+                        print(f"  [Name] Using filename-extracted name: {suggested_name}", file=sys.stderr)
+                        sys.stderr.flush()
+                
+                # Generate ID for filename-extracted or AI-enhanced names
+                suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+                suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+                suggested_id = suggested_id[:50]
+            else:
+                # Filename doesn't have clear info - use AI insights from comprehensive analysis
+                if ai_insights:
+                    if verbose:
+                        print(f"  [AI] Using AI insights from comprehensive analysis (filename has no clear info)", file=sys.stderr)
+                        sys.stderr.flush()
+                    suggested_name = ai_insights.get("suggested_name", Path(file_path).stem)
+                    suggested_style = ai_insights.get("suggested_style")
+                    suggested_description = ai_insights.get("suggested_description")
+                    ai_identified = True
+                    # Generate ID
+                    suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
+                    suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+                    suggested_id = suggested_id[:50]
+                else:
+                    # No AI insights available, use generate_suggested_name
+                    if verbose:
+                        naming_start = time.time()
+                    suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
+                        temp_metadata,
+                        composition,
+                        use_ai=use_ai_naming,
+                        verbose=verbose,
+                        ai_provider=ai_provider,
+                        ai_model=ai_model,
+                        ai_delay=ai_delay,
+                    )
+                    if verbose:
+                        print(f"  [Timing] Generate suggested name: {time.time() - naming_start:.2f}s", file=sys.stderr)
+                        print(f"  [Name] Generated name: {suggested_name}", file=sys.stderr)
+                        sys.stderr.flush()
+            
+            if verbose:
+                print(f"  [Name] Final name: {suggested_name}", file=sys.stderr)
+                sys.stderr.flush()
+        elif has_clear_filename_info:
+            # No AI enabled, use filename-extracted info directly
+            if verbose:
+                print(f"  [Filename] Using filename-extracted info (AI not enabled)", file=sys.stderr)
+                sys.stderr.flush()
+            composer = filename_info["composer"]
+            title = filename_info.get("title", "")
+            catalog = filename_info.get("catalog_number", "")
+            
+            # Build title with catalog if available
+            if title and catalog:
+                if catalog not in title:
+                    suggested_name = f"{composer}: {title} ({catalog})"
+                else:
+                    suggested_name = f"{composer}: {title}"
+            elif title:
+                suggested_name = f"{composer}: {title}"
+            elif catalog:
+                suggested_name = f"{composer}: {catalog}"
+            else:
+                suggested_name = composer
+            
+            # Infer style from composer
+            composer_lower = filename_info["composer"].lower()
+            if "bach" in composer_lower:
+                suggested_style = "Baroque"
+            elif "mozart" in composer_lower or "beethoven" in composer_lower:
+                suggested_style = "Classical"
+            elif any(c in composer_lower for c in ["chopin", "schumann", "liszt", "rachmaninoff", "scriabin"]):
+                suggested_style = "Romantic"
+            else:
+                suggested_style = None
+            
+            suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+            suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+            suggested_id = suggested_id[:50]
+            
+            # Build description
+            description_parts = []
+            if filename_info.get("title"):
+                description_parts.append(filename_info["title"])
+            if detected_form:
+                description_parts.append(f"{detected_form} form")
+            suggested_description = ", ".join(description_parts) if description_parts else "Classical composition"
+            ai_identified = False
+            
+            if verbose:
+                print(f"  [Name] Using filename-extracted name: {suggested_name}", file=sys.stderr)
+                sys.stderr.flush()
         else:
             if verbose:
                 naming_start = time.time()
@@ -1170,11 +1910,17 @@ def analyze_file(
     else:
         # Use AI insights if available, otherwise use filename
         if ai_insights and use_ai_naming:
+            if verbose:
+                print(f"  [AI] Using AI insights from comprehensive analysis (no composition available)", file=sys.stderr)
+                sys.stderr.flush()
             suggested_name = ai_insights.get("suggested_name", Path(file_path).stem)
             suggested_style = ai_insights.get("suggested_style")
             suggested_description = ai_insights.get("suggested_description")
             suggested_id = suggested_name.lower().replace(" ", "_").replace("'", "").replace(",", "")
             ai_identified = True
+            if verbose:
+                print(f"  [Name] Using AI-generated name from comprehensive analysis: {suggested_name}", file=sys.stderr)
+                sys.stderr.flush()
         else:
             suggested_name = Path(file_path).stem
             suggested_id = suggested_name.lower().replace(" ", "_")

@@ -400,12 +400,22 @@ Provide a brief analysis. Respond with JSON:
 
 Respond ONLY with valid JSON, no other text."""
                 
+                if verbose:
+                    import sys
+                    print(f"  [AI] Generating insights using {ai_provider}...", file=sys.stderr)
+                    sys.stderr.flush()
+                
                 response = generate_text_unified(
                     provider=ai_provider,
                     model=ai_model,
                     prompt=prompt,
-                    verbose=False
+                    verbose=verbose
                 )
+                
+                if verbose:
+                    import sys
+                    print(f"  [AI] Received AI insights response (length: {len(response)})", file=sys.stderr)
+                    sys.stderr.flush()
                 
                 # Parse JSON from response
                 import json
