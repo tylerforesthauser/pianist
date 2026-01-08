@@ -159,8 +159,14 @@ pytest -m integration
 ### Run All Tests Except Integration
 
 ```bash
+# Sequential execution
 pytest -m "not integration"
+
+# Parallel execution (faster, recommended)
+pytest -m "not integration" -n auto
 ```
+
+**Performance Note:** The test suite uses `pytest-xdist` for parallel execution. Use `-n auto` to automatically use all CPU cores, which can significantly reduce test runtime. Module-scoped fixtures cache expensive operations like music21 stream conversions.
 
 ### Run Specific Integration Test File
 
@@ -172,6 +178,14 @@ pytest tests/test_gemini_integration.py
 
 ```bash
 pytest -m integration -v
+```
+
+### Run Only Failed Tests
+
+During development, rerun only failed tests for faster iteration:
+
+```bash
+pytest -m "not integration" --lf
 ```
 
 ## CI/CD Configuration

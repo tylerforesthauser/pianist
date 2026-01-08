@@ -20,10 +20,14 @@ Instructions for AI agents working on the Pianist project.
 ## Build and test commands
 
 - Run unit tests: `source .venv/bin/activate && pytest -m "not integration"`
+- Run tests in parallel (faster): `source .venv/bin/activate && pytest -m "not integration" -n auto`
+- Run only failed tests: `source .venv/bin/activate && pytest -m "not integration" --lf`
 - Sync prompts: `make sync-prompts` (after modifying prompt templates)
 - Verify package: `./pianist --version` (or `python3 -m pianist --version`)
 
 **Test rules:** Always run unit tests after code changes. Suggest (don't run) integration tests - requires API keys. Fix failing tests before proceeding.
+
+**Test performance:** The test suite uses pytest-xdist for parallel execution. Use `-n auto` to automatically use all CPU cores. Module-scoped fixtures are used where safe to reduce redundant setup. Slow tests are marked with `@pytest.mark.slow` and can be excluded with `-m "not slow"`.
 
 ## Critical rules
 

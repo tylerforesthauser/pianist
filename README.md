@@ -618,12 +618,20 @@ Run the test suite:
 # Run all unit tests (excludes integration tests)
 pytest -m "not integration"
 
+# Run tests in parallel for faster execution (recommended)
+pytest -m "not integration" -n auto
+
+# Run only failed tests (faster iteration during development)
+pytest -m "not integration" --lf
+
 # Run only integration tests (requires API key)
 pytest -m integration
 
 # Run all tests
 pytest
 ```
+
+**Performance:** The test suite uses `pytest-xdist` for parallel execution. Use `-n auto` to automatically use all CPU cores, which can reduce test runtime from ~3 minutes to under 90 seconds on multi-core systems. Module-scoped fixtures are used to cache expensive operations like music21 stream conversions.
 
 For more information on integration testing best practices, see [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md).
 
