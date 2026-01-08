@@ -169,7 +169,7 @@ Create small, focused examples demonstrating specific techniques:
    - **Technical quality**: Note density, velocity, pitch range, timing
    - **Musical quality**: Motifs, phrases, harmony, form detection
    - **Structure quality**: Bar count, track structure
-   - **AI assessment** (optional): Musical coherence and suitability
+   - **AI assessment**: Musical coherence and suitability (when using `--ai` flag)
    
    See [`MIDI_QUALITY_CHECK.md`](MIDI_QUALITY_CHECK.md) for detailed information.
 

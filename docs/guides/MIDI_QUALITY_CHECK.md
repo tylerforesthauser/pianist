@@ -8,7 +8,7 @@ The `check_midi_quality.py` script analyzes MIDI files for:
 - **Technical quality**: File structure, note density, velocity, timing
 - **Musical quality**: Motif detection, phrase structure, harmonic coherence
 - **Structure quality**: Bar count, track organization
-- **AI assessment** (optional): Musical coherence and suitability evaluation
+- **AI assessment**: Musical coherence and suitability evaluation (when using `--ai` flag)
 
 ## Quick Start
 
