@@ -421,8 +421,17 @@ def check_midi_file(
     use_ai: bool = False,
     provider: str = "gemini",
     model: str | None = None,
+    composition: Any | None = None,
 ) -> QualityReport:
-    """Check quality of a single MIDI file."""
+    """Check quality of a single MIDI file.
+    
+    Args:
+        file_path: Path to MIDI file
+        use_ai: Whether to use AI for quality assessment
+        provider: AI provider name
+        model: AI model name
+        composition: Optional pre-loaded composition object (avoids reloading)
+    """
     report = QualityReport(file_path)
     
     try:
@@ -445,9 +454,10 @@ def check_midi_file(
         # Structure checks
         check_structure_quality(midi_analysis, report)
         
-        # Convert to composition for musical analysis
+        # Convert to composition for musical analysis (use provided if available)
         try:
-            composition = composition_from_midi(file_path)
+            if composition is None:
+                composition = composition_from_midi(file_path)
             check_musical_quality(composition, report)
             
             # AI assessment if requested

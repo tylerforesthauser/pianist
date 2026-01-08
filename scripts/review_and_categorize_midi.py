@@ -1012,32 +1012,7 @@ def analyze_file(
     Returns:
         (metadata, melodic_signature, ai_attempted, ai_identified)
     """
-    # Use comprehensive analysis for core analysis
-    # Note: analyze_for_user doesn't support AI quality assessment yet,
-    # so we handle that separately if needed
-    comprehensive_result = analyze_for_user(
-        file_path,
-        use_ai_insights=use_ai_naming,
-        ai_provider=ai_provider,
-        ai_model=ai_model,
-    )
-    
-    # Get quality report (with AI if requested)
-    # If AI quality is needed, we need to run it separately since
-    # analyze_for_user doesn't support it yet
-    if use_ai_quality:
-        quality_report = check_midi_file(file_path, use_ai=True)
-    else:
-        # Use quality data from comprehensive analysis
-        quality_report = check_midi_file(file_path, use_ai=False)
-    
-    # Extract data from comprehensive analysis result
-    technical = comprehensive_result.get("technical", {})
-    quality = comprehensive_result.get("quality", {})
-    musical = comprehensive_result.get("musical_analysis", {})
-    ai_insights = comprehensive_result.get("ai_insights")
-    
-    # Get composition for melodic signature and name generation
+    # Load composition ONCE and reuse it everywhere (major performance improvement for large files)
     composition = None
     melodic_signature: list[int] = []
     
@@ -1049,6 +1024,34 @@ def analyze_file(
         except Exception:
             # Analysis failed, continue without composition
             pass
+    
+    # Use comprehensive analysis for core analysis
+    # Pass composition to avoid reloading (major performance improvement)
+    # Note: analyze_for_user doesn't support AI quality assessment yet,
+    # so we handle that separately if needed
+    comprehensive_result = analyze_for_user(
+        file_path,
+        use_ai_insights=use_ai_naming,
+        ai_provider=ai_provider,
+        ai_model=ai_model,
+        composition=composition,  # Reuse loaded composition
+    )
+    
+    # Get quality report (with AI if requested)
+    # Pass composition to avoid reloading (major performance improvement)
+    # If AI quality is needed, we need to run it separately since
+    # analyze_for_user doesn't support it yet
+    if use_ai_quality:
+        quality_report = check_midi_file(file_path, use_ai=True, composition=composition)
+    else:
+        # Use quality data from comprehensive analysis
+        quality_report = check_midi_file(file_path, use_ai=False, composition=composition)
+    
+    # Extract data from comprehensive analysis result
+    technical = comprehensive_result.get("technical", {})
+    quality = comprehensive_result.get("quality", {})
+    musical = comprehensive_result.get("musical_analysis", {})
+    ai_insights = comprehensive_result.get("ai_insights")
     
     # Extract metadata from comprehensive analysis
     detected_key = musical.get("detected_key")

@@ -196,6 +196,7 @@ def analyze_for_user(
     use_ai_insights: bool = False,
     ai_provider: str = "gemini",
     ai_model: str | None = None,
+    composition: Any | None = None,
 ) -> dict[str, Any]:
     """
     Perform user-focused comprehensive analysis of a MIDI or JSON file.
@@ -257,7 +258,9 @@ def analyze_for_user(
         musical_analysis = None
         if MUSIC21_AVAILABLE:
             try:
-                composition = composition_from_midi(file_path)
+                # Use provided composition if available, otherwise load it
+                if composition is None:
+                    composition = composition_from_midi(file_path)
                 musical_analysis = analyze_composition(composition)
                 
                 # Format musical analysis
@@ -329,10 +332,8 @@ def analyze_for_user(
                     else:  # ollama
                         ai_model = "gpt-oss:20b"
                 
-                # Get composition for AI analysis
-                if musical_analysis is None:
-                    composition = composition_from_midi(file_path)
-                else:
+                # Get composition for AI analysis (reuse if already loaded)
+                if composition is None:
                     composition = composition_from_midi(file_path)
                 
                 comp_json = composition_to_canonical_json(composition)
