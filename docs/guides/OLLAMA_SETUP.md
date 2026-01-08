@@ -141,7 +141,7 @@ If you want to use Gemini but avoid rate limits:
 python3 scripts/review_and_categorize_midi.py \
   --dir input/ \
   --ai \
-  --ai-provider gemini \
+  --ai-provider openrouter \
   --ai-delay 2.0 \
   --output review_report.csv
 ```

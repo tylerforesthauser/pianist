@@ -35,7 +35,7 @@ python3 scripts/check_midi_quality.py --dir references/ --verbose
 
 ```bash
 # Using Gemini (cloud)
-python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+   python3 scripts/check_midi_quality.py file.mid --ai --provider openrouter
 
 # Using Ollama (local, no API key needed)
 python3 scripts/check_midi_quality.py file.mid --ai --provider ollama
@@ -187,7 +187,7 @@ python3 scripts/check_midi_quality.py --dir references/ --min-score 0.7
 ### With AI Assessment
 
 ```bash
-python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+   python3 scripts/check_midi_quality.py file.mid --ai --provider openrouter
 
 # Adds AI assessment section:
 # 🤖 AI Assessment:
@@ -308,7 +308,7 @@ python3 scripts/batch_import_references.py --dir references/ --metadata metadata
 ### AI Options
 
 - `--ai`: Use AI to assess musical quality
-- `--provider`: AI provider: `gemini` (cloud) or `ollama` (local). Default: `gemini`
+- `--provider`: AI provider: `openrouter` (cloud, default), `gemini` (cloud), or `ollama` (local). Default: `openrouter`
 - `--model`: Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
 
 ### Output Options

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Generate new compositions from text descriptions using an AI provider (Gemini cloud, Ollama local, or OpenRouter cloud).
+Generate new compositions from text descriptions using an AI provider (OpenRouter cloud - default, Gemini cloud, or Ollama local).
 
 ## Syntax
 
@@ -15,8 +15,8 @@ The description can be provided as a positional argument or piped from stdin.
 ## Options
 
 - `description` (positional, optional) - Text description of the composition. If omitted, reads from stdin.
-- `--provider` - AI provider to use: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required.
-- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
+- `--provider` - AI provider to use: `openrouter` (cloud, default), `gemini` (cloud), or `ollama` (local). Required if not set in config.
+- `--model` - Model name. Default: `mistralai/devstral-2512:free` (OpenRouter), `gemini-flash-latest` (Gemini), or `gpt-oss:20b` (Ollama). Only used with `--provider`.
 - `-o, --output` - Output JSON path. If omitted, prints to stdout.
 - `--render` - Also render the generated composition to MIDI. **Requires `--provider`**.
 - `-m, --midi` - MIDI output path. Auto-generated from output name if `--render` is used without this flag.
@@ -31,8 +31,15 @@ The description can be provided as a positional argument or piped from stdin.
 ### Generate Composition
 
 ```bash
+# Generate with OpenRouter (cloud, default)
+pianist generate --provider openrouter "Title: Morning Sketch
+Form: ternary
+Length: ~64 beats
+Key: C major
+Tempo: 84" -o composition.json --render
+
 # Generate with Gemini (cloud)
-pianist generate --provider gemini "Title: Morning Sketch
+pianist generate --provider openrouter "Title: Morning Sketch
 Form: ternary
 Length: ~64 beats
 Key: C major
@@ -55,7 +62,7 @@ pianist generate --provider ollama --model gemma3:4b "Title: Morning Sketch..." 
 
 ```bash
 # Output JSON to stdout
-pianist generate --provider gemini "Title: Test" | pianist render -i - -o out.mid
+pianist generate --provider openrouter "Title: Test" | pianist render -i - -o out.mid
 ```
 
 ## Use Cases

@@ -17,8 +17,8 @@ pianist modify -i <input.json> [options]
 - `-i, --input` - Input composition JSON (required)
 - `-o, --output` - Output JSON path
 - `--transpose, -t` - Transpose by semitones
-- `--provider` - AI provider for modification: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required for AI-based modifications.
-- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama)
+- `--provider` - AI provider for modification: `openrouter` (cloud, default), `gemini` (cloud), or `ollama` (local). Required for AI-based modifications if not set in config.
+- `--model` - Model name. Default: `mistralai/devstral-2512:free` (OpenRouter), `gemini-flash-latest` (Gemini), or `gpt-oss:20b` (Ollama)
 - `--instructions` - Modification instructions
 - `--render` - Also render to MIDI
 - `-p, --prompt` - Save prompt template

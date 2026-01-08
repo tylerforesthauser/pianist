@@ -22,9 +22,9 @@ pianist analyze -i <input.mid|input.json> [options]
 - `-o, --output` - Output path for JSON/text. If omitted, prints to stdout
 - `-p, --prompt` - Write prompt text to path (only used with `--format prompt`)
 - `--ai-naming` - Use AI to generate suggested name, style, and description
-- `--ai-provider` - AI provider for `--ai-naming`: `gemini` (default), `ollama`, or `openrouter`
+- `--ai-provider` - AI provider for `--ai-naming`: `openrouter` (default), `gemini`, or `ollama`
 - `--ai-model` - Model name for `--ai-naming`. Default: `gemini-flash-latest` (Gemini), `gpt-oss:20b` (Ollama), or `mistralai/devstral-2512:free` (OpenRouter). Free OpenRouter options: `mistralai/devstral-2512:free` (recommended), `xiaomi/mimo-v2-flash:free`, `tngtech/deepseek-r1t2-chimera:free`, `nex-agi/deepseek-v3.1-nex-n1:free`
-- `--provider` - AI provider to generate new composition: `gemini` (cloud) or `ollama` (local)
+- `--provider` - AI provider to generate new composition: `openrouter` (cloud, default), `gemini` (cloud), or `ollama` (local)
 - `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`
 - `--instructions` - Instructions for composition (only used with `--provider`)
 - `--render` - Also render AI-generated composition to MIDI (only valid with `--provider`)
@@ -81,20 +81,11 @@ pianist analyze -i existing.mid --format prompt -p prompt.txt \
 ### Composition Generation (with --provider)
 
 ```bash
-# Analyze MIDI and generate new composition with AI (Gemini)
-pianist analyze -i existing.mid --provider gemini \
+# Analyze MIDI and generate new composition with AI (OpenRouter - default)
+pianist analyze -i existing.mid --provider openrouter \
   --instructions "Compose something similar but more optimistic" \
   -o new_composition.json --render
 
-# Analyze MIDI and generate new composition with AI (Ollama)
-pianist analyze -i existing.mid --provider ollama \
-  --instructions "Compose something similar but more optimistic" \
-  -o new_composition.json --render
-```
-
-### Generate Composition from Analysis
-
-```bash
 # Analyze MIDI and generate new composition with AI (Gemini)
 pianist analyze -i existing.mid --provider gemini \
   --instructions "Compose something similar but more optimistic" \

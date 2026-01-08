@@ -159,7 +159,7 @@ Create small, focused examples demonstrating specific techniques:
    python3 scripts/check_midi_quality.py --dir references/ --verbose
    
    # Check with AI assessment
-   python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+   python3 scripts/check_midi_quality.py file.mid --ai --provider openrouter
    
    # Set minimum quality score threshold
    python3 scripts/check_midi_quality.py --dir references/ --min-score 0.7
@@ -261,7 +261,7 @@ The reference database is automatically used by the `expand` command:
 
 ```bash
 # Expand a composition (references will be automatically included)
-./pianist expand -i sketch.json --target-length 300 --provider gemini
+./pianist expand -i sketch.json --target-length 300 --provider openrouter
 ```
 
 ## Batch Import Script

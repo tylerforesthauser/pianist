@@ -20,15 +20,15 @@ Create a config file at `~/.pianist/config.toml` to set global defaults:
 
 ```toml
 [ai]
-provider = "gemini"
-model = "gemini-flash-latest"
+provider = "openrouter"
+model = "mistralai/devstral-2512:free"
 delay = 0.0
 
 # Or specify provider-specific models:
 [ai.models]
+openrouter = "mistralai/devstral-2512:free"
 gemini = "gemini-flash-latest"
 ollama = "gpt-oss:20b"
-openrouter = "mistralai/devstral-2512:free"
 ```
 
 ### Project Config File
@@ -48,8 +48,8 @@ Project config overrides user config, but both are overridden by command-line ar
 You can also set defaults using environment variables:
 
 ```bash
-export AI_PROVIDER="gemini"
-export AI_MODEL="gemini-flash-latest"
+export AI_PROVIDER="openrouter"
+export AI_MODEL="mistralai/devstral-2512:free"
 export AI_DELAY_SECONDS="0.5"
 ```
 
@@ -64,8 +64,8 @@ Environment variables override config files but are overridden by command-line a
 mkdir -p ~/.pianist
 cat > ~/.pianist/config.toml << EOF
 [ai]
-provider = "gemini"
-model = "gemini-flash-latest"
+provider = "openrouter"
+model = "mistralai/devstral-2512:free"
 EOF
 
 # Now all commands use these defaults
@@ -115,14 +115,14 @@ pianist generate --description "A waltz"
 
 ### `provider`
 
-The AI provider to use: `"gemini"`, `"ollama"`, or `"openrouter"`.
+The AI provider to use: `"openrouter"` (default), `"gemini"`, or `"ollama"`.
 
 ### `model`
 
 The model name to use. If not specified, defaults to provider-specific defaults:
+- OpenRouter: `"mistralai/devstral-2512:free"` (default)
 - Gemini: `"gemini-flash-latest"`
 - Ollama: `"gpt-oss:20b"`
-- OpenRouter: `"mistralai/devstral-2512:free"`
 
 You can specify a global model or provider-specific models:
 

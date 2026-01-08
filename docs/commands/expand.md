@@ -15,8 +15,8 @@ pianist expand -i <input.json> --target-length <beats> [options]
 - `-i, --input` - Input composition JSON (preferably annotated) (required)
 - `--target-length` - Target length in beats (required)
 - `-o, --output` - Output expanded JSON path. If omitted, prints to stdout.
-- `--provider` - AI provider to use: `gemini` (cloud), `ollama` (local), or `openrouter` (cloud). Required.
-- `--model` - Model name. Default: `gemini-flash-latest` (Gemini) or `gpt-oss:20b` (Ollama). Only used with `--provider`.
+- `--provider` - AI provider to use: `openrouter` (cloud, default), `gemini` (cloud), or `ollama` (local). Required if not set in config.
+- `--model` - Model name. Default: `mistralai/devstral-2512:free` (OpenRouter), `gemini-flash-latest` (Gemini), or `gpt-oss:20b` (Ollama). Only used with `--provider`.
 - `--preserve-motifs` - Preserve all marked motifs and develop them throughout
 - `--preserve` - Comma-separated list of idea IDs to preserve
 - `--validate` - Validate expansion quality before returning (checks motif preservation, development quality, harmonic coherence, form consistency)
@@ -32,21 +32,25 @@ pianist expand -i <input.json> --target-length <beats> [options]
 ### Expand Composition
 
 ```bash
+# Expand composition using AI (OpenRouter - default)
+pianist expand -i sketch.json --target-length 300 \
+  --provider openrouter -o expanded.json --render
+
 # Expand composition using AI (Gemini)
 pianist expand -i sketch.json --target-length 300 \
-  --provider gemini -o expanded.json --render
+  --provider openrouter -o expanded.json --render
 
 # Expand composition using AI (Ollama)
 pianist expand -i sketch.json --target-length 300 \
   --provider ollama -o expanded.json --render
 
-# Preserve specific motifs (with Ollama)
+# Preserve specific motifs (with OpenRouter)
 pianist expand -i annotated.json --target-length 300 \
-  --provider ollama --preserve-motifs -o expanded.json
+  --provider openrouter --preserve-motifs -o expanded.json
 
-# Preserve specific ideas by ID (with Ollama)
+# Preserve specific ideas by ID (with OpenRouter)
 pianist expand -i annotated.json --target-length 300 \
-  --provider ollama --preserve "motif_1,phrase_1" -o expanded.json
+  --provider openrouter --preserve "motif_1,phrase_1" -o expanded.json
 ```
 
 ### Expand with Validation
@@ -54,11 +58,11 @@ pianist expand -i annotated.json --target-length 300 \
 ```bash
 # Expand and validate the result
 pianist expand -i sketch.json --target-length 300 \
-  --provider gemini --validate -o expanded.json
+  --provider openrouter --validate -o expanded.json
 
 # Validate with verbose output to see detailed quality scores
 pianist expand -i sketch.json --target-length 300 \
-  --provider gemini --validate --verbose -o expanded.json
+  --provider openrouter --validate --verbose -o expanded.json
 ```
 
 Validation checks:

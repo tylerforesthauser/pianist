@@ -137,9 +137,51 @@ Pianist requires an AI provider to generate, analyze, and modify compositions. C
 **💡 Tip:** You can set your default provider using the [configuration system](docs/guides/CONFIGURATION.md) so you don't need to specify `--provider` on every command.
 
 Currently supported providers:
+- **OpenRouter** (Cloud) - Unified API for hundreds of AI models, requires API key (default)
 - **Gemini** (Google) - Cloud-based, requires API key
 - **Ollama** (Local) - Run AI models locally, no API key needed
-- **OpenRouter** (Cloud) - Unified API for hundreds of AI models, requires API key
+
+**Default Provider:** OpenRouter (free tier available)
+
+### OpenRouter (Default - Recommended)
+
+OpenRouter is the default provider and provides access to hundreds of AI models through a single API, including free options.
+
+1. **Sign up and get an API key:**
+   - Sign up at https://openrouter.ai
+   - Get your API key from the dashboard
+
+2. **Set your API key:**
+
+**Option 1: Environment variable (Recommended)**
+```bash
+export OPENROUTER_API_KEY='your-api-key-here'
+```
+
+**Option 2: .env file**
+```bash
+# Add to .env file
+OPENROUTER_API_KEY=your-api-key-here
+```
+
+3. **Use OpenRouter with pianist:**
+   ```bash
+   # Use OpenRouter with default model (mistralai/devstral-2512:free - free tier)
+   ./pianist generate --provider openrouter "Title: Morning Sketch..." -o composition.json
+   
+   # Use a specific model (see https://openrouter.ai/models for available models)
+   ./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" "Title: Morning Sketch..." -o composition.json
+   ```
+
+OpenRouter provides access to hundreds of AI models through a single API. See https://openrouter.ai/models for the full list of available models.
+
+**Free tier options:**
+- `mistralai/devstral-2512:free` (recommended, default)
+- `xiaomi/mimo-v2-flash:free`
+- `tngtech/deepseek-r1t2-chimera:free`
+- `nex-agi/deepseek-v3.1-nex-n1:free`
+
+### Gemini (Google)
 
 To enable Gemini integration:
 
