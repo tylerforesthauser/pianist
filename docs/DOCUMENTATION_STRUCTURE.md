@@ -37,7 +37,7 @@ Each command gets its own dedicated doc with:
 1. **`generate.md`** - Generate new compositions
    - [ ] Purpose: Create new compositions from text descriptions
    - [ ] Options: --provider, --model, --render, etc.
-   - [ ] Examples: Basic generation, with AI provider, without AI
+   - [ ] Examples: Basic generation with AI provider
    - [ ] Integration: How it works with AI_PROMPTING_GUIDE.md
 
 2. **`import.md`** - Import MIDI to JSON
@@ -114,7 +114,7 @@ End-to-end guides for common use cases.
 3. **`midi_analysis_generation.md`** - MIDI analysis workflow
    - [ ] Use case: Analyze existing MIDI, generate new composition
    - [ ] Workflow: Import → Analyze → Generate
-   - [ ] With/without AI provider
+   - [ ] AI provider usage
    - [ ] Examples: Style transfer, inspiration
 
 4. **`composition_iteration.md`** - Iterative refinement
@@ -124,7 +124,7 @@ End-to-end guides for common use cases.
    - [ ] Examples: Transposition, style changes, expansion
 
 5. **`manual_composition.md`** - Manual composition workflow
-   - [ ] Use case: Create JSON manually, no AI
+   - [ ] Use case: Create JSON manually
    - [ ] Workflow: Write JSON → Render → Refine
    - [ ] Schema reference: Link to reference/schema.md
    - [ ] Examples: Simple compositions, complex structures

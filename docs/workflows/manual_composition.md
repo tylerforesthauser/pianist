@@ -4,7 +4,7 @@
 
 ## Use Case
 
-Create compositions manually in JSON format without using AI.
+Create compositions manually in JSON format, then render to MIDI.
 
 ## Workflow
 
