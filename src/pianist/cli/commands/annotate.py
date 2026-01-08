@@ -20,7 +20,7 @@ from ...annotations import (
     set_development_direction,
 )
 from ...iterate import composition_to_canonical_json
-from ...musical_analysis import MUSIC21_AVAILABLE, analyze_composition as analyze_composition_musical
+from ...musical_analysis import MUSIC21_AVAILABLE, analyze_composition as analyze_composition_musical, _composition_to_music21_stream
 from ...parser import parse_composition_from_text
 from ...schema import KeyIdea, MusicalIntent
 
@@ -58,8 +58,9 @@ def handle_annotate(args) -> int:
                 return 1
             
             try:
-                # Perform musical analysis
-                musical_analysis = analyze_composition_musical(annotated_comp)
+                # Perform musical analysis with pre-converted stream to avoid redundant conversion
+                music21_stream = _composition_to_music21_stream(annotated_comp)
+                musical_analysis = analyze_composition_musical(annotated_comp, music21_stream=music21_stream)
                 
                 # Initialize musical_intent if it doesn't exist
                 if annotated_comp.musical_intent is None:

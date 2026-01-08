@@ -372,6 +372,25 @@ def generate_text_openrouter(*, model: str, prompt: str, verbose: bool = False) 
         raise OpenRouterError(error_msg) from e
 
 
+def get_default_model(provider: str) -> str:
+    """Get default model name for a provider.
+    
+    Args:
+        provider: AI provider ("gemini", "ollama", or "openrouter")
+    
+    Returns:
+        Default model name for the provider
+    """
+    if provider == "gemini":
+        return "gemini-flash-latest"
+    elif provider == "ollama":
+        return "gpt-oss:20b"
+    elif provider == "openrouter":
+        return "mistralai/devstral-2512:free"
+    else:
+        raise ValueError(f"Unsupported provider: {provider}. Use 'gemini', 'ollama', or 'openrouter'.")
+
+
 def generate_text_unified(*, provider: str, model: str, prompt: str, verbose: bool = False) -> str:
     """
     Unified interface for generating text from Gemini, Ollama, or OpenRouter.

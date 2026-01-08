@@ -16,7 +16,7 @@ from ..util import (
     resolve_output_path,
     write_text,
 )
-from ...ai_providers import GeminiError, OllamaError, generate_text_unified
+from ...ai_providers import GeminiError, OllamaError, OpenRouterError, generate_text_unified
 from ...analyze import analyze_midi, analysis_prompt_template
 from ...comprehensive_analysis import analyze_for_user
 from ...iterate import composition_to_canonical_json
@@ -163,12 +163,16 @@ def handle_analyze(args) -> int:
                 )
                 return 1
             
+            # Get AI provider and model from config or args
+            from ...config import get_ai_provider, get_ai_model
+            ai_provider = args.ai_provider or get_ai_provider()
+            ai_model = args.ai_model or get_ai_model(ai_provider)
+            
             # Perform comprehensive analysis
             analysis_result = analyze_for_user(
                 args.in_path,
-                use_ai_insights=args.ai_naming,
-                ai_provider=args.ai_provider,
-                ai_model=args.ai_model,
+                ai_provider=ai_provider,
+                ai_model=ai_model,
                 verbose=args.verbose,
             )
             
@@ -263,6 +267,9 @@ def handle_analyze(args) -> int:
                 # Relative path: resolve relative to output directory
                 raw_out_path = output_dir / raw_out_path.name
             
+            # Store original raw_out_path for custom path handling (before resolution)
+            custom_raw_path = args.raw_out_path
+            
             # Check if we have a cached response
             raw_text: str | None = None
             if raw_out_path is not None and raw_out_path.exists():
@@ -273,9 +280,9 @@ def handle_analyze(args) -> int:
             # If no cached response, call AI provider
             if raw_text is None:
                 # Set default model if not provided
-                model = args.model
-                if model is None:
-                    model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+                from ...config import get_ai_model
+                from ...ai_providers import get_default_model
+                model = args.model or get_ai_model(args.provider) or get_default_model(args.provider)
                 
                 try:
                     raw_text = generate_text_unified(
@@ -284,7 +291,7 @@ def handle_analyze(args) -> int:
                         prompt=prompt,
                         verbose=args.verbose
                     )
-                except (GeminiError, OllamaError) as e:
+                except (GeminiError, OllamaError, OpenRouterError) as e:
                     sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
                     return 1
 
@@ -303,16 +310,22 @@ def handle_analyze(args) -> int:
                         "or also provide --output (-o) to enable an automatic default.\n"
                     )
             else:
-                # Use unified output utility for coordinated versioning
-                # Always write sidecar if we have raw_text (even if cached)
-                result = write_output_with_sidecar(
-                    out_json_path,
-                    out_json,
-                    sidecar_content=raw_text,
-                    provider=args.provider,
-                    overwrite=args.overwrite,
-                )
-                sys.stdout.write(str(result.primary_path) + "\n")
+                # If custom raw path is provided, write it separately
+                if custom_raw_path is not None:
+                    write_text(out_json_path, out_json, version_if_exists=not args.overwrite)
+                    write_text(custom_raw_path, raw_text, version_if_exists=not args.overwrite)
+                    sys.stdout.write(str(out_json_path) + "\n")
+                else:
+                    # Use unified output utility for coordinated versioning
+                    # Always write sidecar if we have raw_text (even if cached)
+                    result = write_output_with_sidecar(
+                        out_json_path,
+                        out_json,
+                        sidecar_content=raw_text,
+                        provider=args.provider,
+                        overwrite=args.overwrite,
+                    )
+                    sys.stdout.write(str(result.primary_path) + "\n")
 
             if args.render:
                 render_midi_mido(comp, out_midi_path)
@@ -323,12 +336,16 @@ def handle_analyze(args) -> int:
 
         # If provider is not specified, use comprehensive analysis
         if not args.provider:
+            # Get AI provider and model from config or args
+            from ...config import get_ai_provider, get_ai_model
+            ai_provider = args.ai_provider or get_ai_provider()
+            ai_model = args.ai_model or get_ai_model(ai_provider)
+            
             # Perform comprehensive analysis
             analysis_result = analyze_for_user(
                 args.in_path,
-                use_ai_insights=args.ai_naming,
-                ai_provider=args.ai_provider,
-                ai_model=args.ai_model,
+                ai_provider=ai_provider,
+                ai_model=ai_model,
                 verbose=args.verbose,
             )
             
@@ -409,23 +426,20 @@ def setup_parser(parser):
         default="json",
         help="Output format: 'json' (default), 'text' (human-readable), 'prompt', or 'both'.",
     )
-    parser.add_argument(
-        "--ai-naming",
-        action="store_true",
-        help="Use AI to generate suggested name, style, and description (optional).",
-    )
+    from ...config import get_ai_provider, get_ai_model
+    
     parser.add_argument(
         "--ai-provider",
         type=str,
         choices=["gemini", "ollama", "openrouter"],
-        default="gemini",
-        help="AI provider for --ai-naming: 'gemini' (default), 'ollama', or 'openrouter'.",
+        default=None,
+        help="AI provider for analysis insights: 'gemini', 'ollama', or 'openrouter'. AI is always used for generating suggested name, style, and description. Defaults to config file or 'openrouter'.",
     )
     parser.add_argument(
         "--ai-model",
         type=str,
         default=None,
-        help="Model name for --ai-naming. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or mistralai/devstral-2512:free (OpenRouter). Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
+        help="Model name for AI analysis. Defaults to config file or provider default. Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
     )
     parser.add_argument(
         "-o", "--output",
@@ -444,15 +458,15 @@ def setup_parser(parser):
     parser.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for generating a new composition: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates analysis/prompt.",
+        help=f"AI provider to use for generating a new composition: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Defaults to config file or '{get_ai_provider()}'. If omitted, only generates analysis/prompt.",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help=f"Model name to use with the provider. Defaults to config file or provider default. Only used with --provider.",
     )
     parser.add_argument(
         "-r", "--raw",

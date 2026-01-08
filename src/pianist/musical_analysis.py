@@ -159,25 +159,45 @@ def _composition_to_music21_stream(composition: Composition) -> stream.Stream:
     return s
 
 
-def _detect_key_from_stream(s: stream.Stream) -> key.Key | None:
-    """Detect the key of a music21 stream."""
+def _detect_key_from_stream(s: stream.Stream, composition_key: str | None = None) -> key.Key | None:
+    """
+    Detect the key of a music21 stream.
+    
+    Args:
+        s: The music21 stream
+        composition_key: Optional key signature from composition (avoids expensive analysis)
+    
+    Returns:
+        Detected key or None
+    """
     if not MUSIC21_AVAILABLE:
         return None
     
+    # If we have a key from the composition, use it directly (much faster)
+    if composition_key:
+        try:
+            return key.Key(composition_key)
+        except Exception:
+            pass
+    
+    # Try to get key from key signature in stream (faster than full analysis)
     try:
-        # Use music21's key detection
+        ks = s.getElementsByClass(key.KeySignature)
+        if ks:
+            # Convert key signature to key (assume major)
+            # This is a simplification - could be minor
+            return key.Key(ks[0].tonic.name)
+    except Exception:
+        pass
+    
+    # Only do expensive analysis as last resort
+    try:
+        # Use music21's key detection (SLOW - only if no other option)
         detected = s.analyze('key')
         return detected
     except Exception:
-        # If key detection fails, try to infer from key signature
-        try:
-            ks = s.getElementsByClass(key.KeySignature)
-            if ks:
-                # Convert key signature to key (assume major)
-                # This is a simplification - could be minor
-                return key.Key(ks[0].tonic.name)
-        except Exception:
-            pass
+        pass
+    
     return None
 
 
@@ -363,8 +383,8 @@ def analyze_harmony(composition: Composition, music21_stream: stream.Stream | No
     else:
         s = music21_stream
     
-    # Detect or use key
-    detected_key_obj = _detect_key_from_stream(s)
+    # Detect or use key - pass composition key to avoid expensive analysis
+    detected_key_obj = _detect_key_from_stream(s, composition_key=composition.key_signature)
     detected_key: str | None = None
     if detected_key_obj:
         detected_key = detected_key_obj.name

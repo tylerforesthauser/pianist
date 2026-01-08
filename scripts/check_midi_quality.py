@@ -6,7 +6,7 @@ This script analyzes MIDI files for:
 - Technical quality (timing, velocity, structure)
 - Musical coherence (harmony, form, motifs)
 - Common issues (missing notes, timing errors, etc.)
-- Optional AI-based quality assessment
+- AI-based quality assessment
 
 Usage:
     # Check single file
@@ -15,8 +15,8 @@ Usage:
     # Check directory of files
     python3 scripts/check_midi_quality.py --dir references/ --verbose
 
-    # Check with AI assessment
-    python3 scripts/check_midi_quality.py file.mid --ai --provider gemini
+    # Check with AI assessment (always used)
+    python3 scripts/check_midi_quality.py file.mid --provider gemini
 """
 
 from __future__ import annotations
@@ -428,7 +428,6 @@ Be concise and specific."""
 
 def check_midi_file(
     file_path: Path,
-    use_ai: bool = False,
     provider: str = "gemini",
     model: str | None = None,
     composition: Any | None = None,
@@ -438,7 +437,6 @@ def check_midi_file(
     
     Args:
         file_path: Path to MIDI file
-        use_ai: Whether to use AI for quality assessment
         provider: AI provider name
         model: AI model name
         composition: Optional pre-loaded composition object (avoids reloading)
@@ -473,9 +471,8 @@ def check_midi_file(
             # Pass pre-computed analysis to avoid recomputation
             check_musical_quality(composition, report, musical_analysis=musical_analysis)
             
-            # AI assessment if requested
-            if use_ai:
-                get_ai_assessment(composition, report, provider, model)
+            # AI assessment
+            get_ai_assessment(composition, report, provider, model)
         except Exception as e:
             report.add_issue(QualityIssue(
                 "error",
@@ -570,23 +567,23 @@ def main() -> int:
         default="*.mid",
         help="Glob pattern for files in directory (default: *.mid)",
     )
-    parser.add_argument(
-        "--ai",
-        action="store_true",
-        help="Use AI to assess musical quality",
-    )
+    # Import config system
+    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+    from pianist.config import get_ai_provider, get_ai_model
+    from pianist.ai_providers import get_default_model
+    
     parser.add_argument(
         "--provider",
         type=str,
-        default="gemini",
+        default=None,
         choices=["gemini", "ollama", "openrouter"],
-        help="AI provider for assessment: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Default: gemini",
+        help=f"AI provider for assessment: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Defaults to config file or '{get_ai_provider()}'. AI is always used for quality assessment.",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or openai/gpt-4o (OpenRouter)",
+        help="Model name. Defaults to config file or provider default (mistralai/devstral-2512:free for OpenRouter).",
     )
     parser.add_argument(
         "--verbose", "-v",
@@ -628,7 +625,11 @@ def main() -> int:
     for file_path in sorted(files):
         if args.verbose:
             print(f"Checking: {file_path.name}...")
-        report = check_midi_file(file_path, args.ai, args.provider, args.model)
+        # Get provider and model from args or config
+        provider = args.provider or get_ai_provider()
+        model = args.model or get_ai_model(provider) or get_default_model(provider)
+        
+        report = check_midi_file(file_path, provider, model)
         reports.append(report)
         print_report(report, args.verbose)
     

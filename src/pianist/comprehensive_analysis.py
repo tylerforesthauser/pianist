@@ -19,6 +19,10 @@ It does NOT include:
 
 from __future__ import annotations
 
+import json
+import re
+import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +80,153 @@ def extract_technical_metadata(midi_analysis: Any) -> dict[str, Any]:
         "key_signature": key_signature,
         "tracks": len(midi_analysis.tracks),
     }
+
+
+# Import default model helper from ai_providers
+from .ai_providers import get_default_model
+
+
+def _format_musical_analysis(musical_analysis: Any) -> dict[str, Any]:
+    """Format musical analysis object into dictionary for result."""
+    return {
+        "detected_key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
+        "detected_form": musical_analysis.form,
+        "motif_count": len(musical_analysis.motifs),
+        "phrase_count": len(musical_analysis.phrases),
+        "chord_count": len(musical_analysis.harmonic_progression.chords) if musical_analysis.harmonic_progression else 0,
+        "harmonic_progression": " ".join(musical_analysis.harmonic_progression.progression[:10]) if musical_analysis.harmonic_progression and musical_analysis.harmonic_progression.progression else None,
+        "motifs": [
+            {
+                "start": m.start,
+                "duration": m.duration,
+                "pitches": m.pitches,
+                "description": m.description,
+            }
+            for m in musical_analysis.motifs
+        ],
+        "phrases": [
+            {
+                "start": p.start,
+                "duration": p.duration,
+                "description": p.description,
+            }
+            for p in musical_analysis.phrases
+        ],
+        "harmony": {
+            "chords": [
+                {
+                    "start": c.start,
+                    "pitches": c.pitches,
+                    "name": c.name,
+                    "roman_numeral": c.roman_numeral,
+                    "function": c.function,
+                    "inversion": c.inversion,
+                    "is_cadence": c.is_cadence,
+                    "cadence_type": c.cadence_type,
+                }
+                for c in musical_analysis.harmonic_progression.chords[:20]
+            ] if musical_analysis.harmonic_progression else [],
+            "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
+            "roman_numerals": musical_analysis.harmonic_progression.roman_numerals if musical_analysis.harmonic_progression else None,
+            "progression": musical_analysis.harmonic_progression.progression if musical_analysis.harmonic_progression else None,
+            "cadences": musical_analysis.harmonic_progression.cadences if musical_analysis.harmonic_progression else None,
+        } if musical_analysis.harmonic_progression else None,
+    }
+
+
+def _generate_ai_insights(
+    composition: Any,
+    file_path: Path,
+    result: dict[str, Any],
+    ai_provider: str,
+    ai_model: str | None,
+    verbose: bool = False,
+) -> dict[str, Any] | None:
+    """Generate AI insights for a composition.
+    
+    Returns:
+        Dictionary with ai_insights or None if generation failed
+    """
+    if not MUSIC21_AVAILABLE:
+        return None
+    
+    try:
+        from .iterate import composition_to_canonical_json
+        from .ai_providers import generate_text_unified, GeminiError, OllamaError
+        
+        # Set default model if not provided
+        if ai_model is None:
+            from .ai_providers import get_default_model
+            ai_model = get_default_model(ai_provider)
+        
+        comp_json = composition_to_canonical_json(composition)
+        
+        # Extract key info for prompt
+        detected_key = result["musical_analysis"].get("detected_key") or result["technical"].get("key_signature") or "Unknown"
+        detected_form = result["musical_analysis"].get("detected_form") or "Unknown"
+        tempo_bpm = result["technical"].get("tempo_bpm") or "Unknown"
+        duration_beats = result["technical"].get("duration_beats", 0)
+        bars = result["technical"].get("bars", 0)
+        motif_count = result["musical_analysis"].get("motif_count", 0)
+        phrase_count = result["musical_analysis"].get("phrase_count", 0)
+        
+        # Build prompt with duration info if available (for MIDI files)
+        duration_info = ""
+        if duration_beats > 0:
+            duration_info = f"Duration: {duration_beats:.1f} beats (~{bars:.1f} bars)\n"
+        
+        prompt = f"""You are a musicologist analyzing a piano composition.
+
+Filename: {file_path.name}
+Key: {detected_key}
+Form: {detected_form}
+Time Signature: {result['technical'].get('time_signature', 'Unknown')}
+Tempo: {tempo_bpm} BPM
+{duration_info}Motifs: {motif_count}
+Phrases: {phrase_count}
+
+Musical content (first 2000 characters):
+{comp_json[:2000]}
+
+Provide a brief analysis. Respond with JSON:
+{{
+  "suggested_name": "Descriptive title based on musical characteristics",
+  "suggested_style": "Baroque|Classical|Romantic|Modern|Other",
+  "suggested_description": "Brief description of the piece's musical characteristics, style, and mood"
+}}
+
+Respond ONLY with valid JSON, no other text."""
+        
+        if verbose:
+            print(f"  [AI] Generating insights using {ai_provider}...", file=sys.stderr)
+            sys.stderr.flush()
+        
+        response = generate_text_unified(
+            provider=ai_provider,
+            model=ai_model,
+            prompt=prompt,
+            verbose=verbose
+        )
+        
+        if verbose:
+            print(f"  [AI] Received AI insights response (length: {len(response)})", file=sys.stderr)
+            sys.stderr.flush()
+        
+        # Parse JSON from response
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+        if json_match:
+            try:
+                ai_data = json.loads(json_match.group())
+                return {
+                    "suggested_name": ai_data.get("suggested_name", "Unknown"),
+                    "suggested_style": ai_data.get("suggested_style", "Unknown"),
+                    "suggested_description": ai_data.get("suggested_description", "No description available"),
+                }
+            except json.JSONDecodeError:
+                return None
+        return None
+    except (GeminiError, OllamaError, Exception):
+        return None
 
 
 def generate_improvement_suggestions(quality_report: QualityReport, musical_analysis: Any | None) -> dict[str, Any]:
@@ -193,8 +344,7 @@ def generate_improvement_suggestions(quality_report: QualityReport, musical_anal
 
 def analyze_for_user(
     file_path: Path,
-    use_ai_insights: bool = False,
-    ai_provider: str = "gemini",
+    ai_provider: str = "openrouter",
     ai_model: str | None = None,
     composition: Any | None = None,
     verbose: bool = False,
@@ -207,15 +357,14 @@ def analyze_for_user(
     - Musical analysis (motifs, phrases, harmony, form)
     - Improvement suggestions (actionable advice)
     - Technical metadata
+    - AI-generated name, style, and description
     
     It does NOT include:
     - Duplicate detection
-    - Suggested names/IDs (unless use_ai_insights=True)
     - Suitability for database
     
     Args:
         file_path: Path to MIDI (.mid/.midi) or JSON (.json) file
-        use_ai_insights: If True, include AI-generated name, style, and description
         ai_provider: AI provider for insights ("gemini", "ollama", "openrouter")
         ai_model: Model name (defaults based on provider)
     
@@ -245,12 +394,8 @@ def analyze_for_user(
         
         # Musical analysis (if music21 is available) - do this first so we can pass it to quality check
         musical_analysis = None
-        music21_stream = None
-        composition_for_analysis = composition  # Use provided composition if available
         if MUSIC21_AVAILABLE:
             try:
-                import time
-                import time
                 # Use provided composition if available, otherwise load it
                 if composition is None:
                     load_start = time.time()
@@ -258,8 +403,6 @@ def analyze_for_user(
                     load_time = time.time() - load_start
                     if verbose:
                         print(f"  [Timing] Load MIDI: {load_time:.2f}s", file=sys.stderr)
-                else:
-                    load_time = 0.0
                 
                 # Convert to music21 stream once and reuse (major performance improvement)
                 from .musical_analysis import _composition_to_music21_stream
@@ -277,50 +420,7 @@ def analyze_for_user(
                     print(f"  [Timing] Musical analysis (motifs/phrases/harmony/form): {analysis_time:.2f}s", file=sys.stderr)
                 
                 # Format musical analysis
-                result["musical_analysis"] = {
-                    "detected_key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
-                    "detected_form": musical_analysis.form,
-                    "motif_count": len(musical_analysis.motifs),
-                    "phrase_count": len(musical_analysis.phrases),
-                    "chord_count": len(musical_analysis.harmonic_progression.chords) if musical_analysis.harmonic_progression else 0,
-                    "harmonic_progression": " ".join(musical_analysis.harmonic_progression.progression[:10]) if musical_analysis.harmonic_progression and musical_analysis.harmonic_progression.progression else None,
-                    "motifs": [
-                        {
-                            "start": m.start,
-                            "duration": m.duration,
-                            "pitches": m.pitches,
-                            "description": m.description,
-                        }
-                        for m in musical_analysis.motifs
-                    ],
-                    "phrases": [
-                        {
-                            "start": p.start,
-                            "duration": p.duration,
-                            "description": p.description,
-                        }
-                        for p in musical_analysis.phrases
-                    ],
-                    "harmony": {
-                        "chords": [
-                            {
-                                "start": c.start,
-                                "pitches": c.pitches,
-                                "name": c.name,
-                                "roman_numeral": c.roman_numeral,
-                                "function": c.function,
-                                "inversion": c.inversion,
-                                "is_cadence": c.is_cadence,
-                                "cadence_type": c.cadence_type,
-                            }
-                            for c in musical_analysis.harmonic_progression.chords[:20]  # Limit to first 20 chords
-                        ] if musical_analysis.harmonic_progression else [],
-                        "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
-                        "roman_numerals": musical_analysis.harmonic_progression.roman_numerals if musical_analysis.harmonic_progression else None,
-                        "progression": musical_analysis.harmonic_progression.progression if musical_analysis.harmonic_progression else None,
-                        "cadences": musical_analysis.harmonic_progression.cadences if musical_analysis.harmonic_progression else None,
-                    } if musical_analysis.harmonic_progression else None,
-                }
+                result["musical_analysis"] = _format_musical_analysis(musical_analysis)
             except Exception:
                 # Musical analysis failed, continue without it
                 pass
@@ -328,8 +428,9 @@ def analyze_for_user(
         # Quality check - pass pre-computed analysis to avoid recomputation
         quality_report = check_midi_file(
             file_path,
-            use_ai=False,
-            composition=composition_for_analysis,
+            provider=ai_provider,
+            model=ai_model,
+            composition=composition,
             musical_analysis=musical_analysis,
         )
         
@@ -345,96 +446,12 @@ def analyze_for_user(
         # Generate improvement suggestions
         result["improvement_suggestions"] = generate_improvement_suggestions(quality_report, musical_analysis)
         
-        # AI insights (optional)
-        if use_ai_insights and MUSIC21_AVAILABLE:
-            try:
-                from .iterate import composition_to_canonical_json
-                from .ai_providers import generate_text_unified, GeminiError, OllamaError
-                
-                # Set default model if not provided
-                if ai_model is None:
-                    if ai_provider == "gemini":
-                        ai_model = "gemini-flash-latest"
-                    elif ai_provider == "openrouter":
-                        # Default to a free OpenRouter model (recommended: mistralai/devstral-2512:free)
-                        # Other free options: xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free
-                        ai_model = "mistralai/devstral-2512:free"
-                    else:  # ollama
-                        ai_model = "gpt-oss:20b"
-                
-                # Get composition for AI analysis (reuse if already loaded)
-                if composition is None:
-                    composition = composition_from_midi(file_path)
-                
-                comp_json = composition_to_canonical_json(composition)
-                
-                # Extract key info for prompt
-                detected_key = result["musical_analysis"].get("detected_key") or result["technical"].get("key_signature") or "Unknown"
-                detected_form = result["musical_analysis"].get("detected_form") or "Unknown"
-                tempo_bpm = result["technical"].get("tempo_bpm") or "Unknown"
-                duration_beats = result["technical"].get("duration_beats", 0)
-                bars = result["technical"].get("bars", 0)
-                motif_count = result["musical_analysis"].get("motif_count", 0)
-                phrase_count = result["musical_analysis"].get("phrase_count", 0)
-                
-                prompt = f"""You are a musicologist analyzing a piano composition.
-
-Filename: {file_path.name}
-Key: {detected_key}
-Form: {detected_form}
-Time Signature: {result['technical'].get('time_signature', 'Unknown')}
-Tempo: {tempo_bpm} BPM
-Duration: {duration_beats:.1f} beats (~{bars:.1f} bars)
-Motifs: {motif_count}
-Phrases: {phrase_count}
-
-Musical content (first 2000 characters):
-{comp_json[:2000]}
-
-Provide a brief analysis. Respond with JSON:
-{{
-  "suggested_name": "Descriptive title based on musical characteristics",
-  "suggested_style": "Baroque|Classical|Romantic|Modern|Other",
-  "suggested_description": "Brief description of the piece's musical characteristics, style, and mood"
-}}
-
-Respond ONLY with valid JSON, no other text."""
-                
-                if verbose:
-                    import sys
-                    print(f"  [AI] Generating insights using {ai_provider}...", file=sys.stderr)
-                    sys.stderr.flush()
-                
-                response = generate_text_unified(
-                    provider=ai_provider,
-                    model=ai_model,
-                    prompt=prompt,
-                    verbose=verbose
-                )
-                
-                if verbose:
-                    import sys
-                    print(f"  [AI] Received AI insights response (length: {len(response)})", file=sys.stderr)
-                    sys.stderr.flush()
-                
-                # Parse JSON from response
-                import json
-                import re
-                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
-                if json_match:
-                    try:
-                        ai_data = json.loads(json_match.group())
-                        result["ai_insights"] = {
-                            "suggested_name": ai_data.get("suggested_name", "Unknown"),
-                            "suggested_style": ai_data.get("suggested_style", "Unknown"),
-                            "suggested_description": ai_data.get("suggested_description", "No description available"),
-                        }
-                    except json.JSONDecodeError:
-                        # Failed to parse, skip AI insights
-                        pass
-            except (GeminiError, OllamaError, Exception):
-                # AI insights failed, continue without them
-                pass
+        # AI insights
+        if composition is None:
+            composition = composition_from_midi(file_path)
+        ai_insights = _generate_ai_insights(composition, file_path, result, ai_provider, ai_model, verbose)
+        if ai_insights:
+            result["ai_insights"] = ai_insights
     
     # Handle JSON files
     elif suffix == ".json":
@@ -474,50 +491,7 @@ Respond ONLY with valid JSON, no other text."""
         musical_analysis = analyze_composition(composition, music21_stream=music21_stream)
         
         # Format musical analysis
-        result["musical_analysis"] = {
-            "detected_key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
-            "detected_form": musical_analysis.form,
-            "motif_count": len(musical_analysis.motifs),
-            "phrase_count": len(musical_analysis.phrases),
-            "chord_count": len(musical_analysis.harmonic_progression.chords) if musical_analysis.harmonic_progression else 0,
-            "harmonic_progression": " ".join(musical_analysis.harmonic_progression.progression[:10]) if musical_analysis.harmonic_progression and musical_analysis.harmonic_progression.progression else None,
-            "motifs": [
-                {
-                    "start": m.start,
-                    "duration": m.duration,
-                    "pitches": m.pitches,
-                    "description": m.description,
-                }
-                for m in musical_analysis.motifs
-            ],
-            "phrases": [
-                {
-                    "start": p.start,
-                    "duration": p.duration,
-                    "description": p.description,
-                }
-                for p in musical_analysis.phrases
-            ],
-            "harmony": {
-                "chords": [
-                    {
-                        "start": c.start,
-                        "pitches": c.pitches,
-                        "name": c.name,
-                        "roman_numeral": c.roman_numeral,
-                        "function": c.function,
-                        "inversion": c.inversion,
-                        "is_cadence": c.is_cadence,
-                        "cadence_type": c.cadence_type,
-                    }
-                    for c in musical_analysis.harmonic_progression.chords[:20]  # Limit to first 20 chords
-                ] if musical_analysis.harmonic_progression else [],
-                "key": musical_analysis.harmonic_progression.key if musical_analysis.harmonic_progression else None,
-                "roman_numerals": musical_analysis.harmonic_progression.roman_numerals if musical_analysis.harmonic_progression else None,
-                "progression": musical_analysis.harmonic_progression.progression if musical_analysis.harmonic_progression else None,
-                "cadences": musical_analysis.harmonic_progression.cadences if musical_analysis.harmonic_progression else None,
-            } if musical_analysis.harmonic_progression else None,
-        }
+        result["musical_analysis"] = _format_musical_analysis(musical_analysis)
         
         # For JSON files, we can't do full quality checking (no MIDI file)
         # But we can still provide basic quality assessment based on musical analysis
@@ -544,79 +518,10 @@ Respond ONLY with valid JSON, no other text."""
         quality_report = QualityReport(file_path)
         result["improvement_suggestions"] = generate_improvement_suggestions(quality_report, musical_analysis)
         
-        # AI insights (optional)
-        if use_ai_insights:
-            try:
-                from .iterate import composition_to_canonical_json
-                from .ai_providers import generate_text_unified, GeminiError, OllamaError
-                
-                # Set default model if not provided
-                if ai_model is None:
-                    if ai_provider == "gemini":
-                        ai_model = "gemini-flash-latest"
-                    elif ai_provider == "openrouter":
-                        # Default to a free OpenRouter model (recommended: mistralai/devstral-2512:free)
-                        # Other free options: xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free
-                        ai_model = "mistralai/devstral-2512:free"
-                    else:  # ollama
-                        ai_model = "gpt-oss:20b"
-                
-                comp_json = composition_to_canonical_json(composition)
-                
-                # Extract key info for prompt
-                detected_key = result["musical_analysis"].get("detected_key") or result["technical"].get("key_signature") or "Unknown"
-                detected_form = result["musical_analysis"].get("detected_form") or "Unknown"
-                tempo_bpm = result["technical"].get("tempo_bpm") or "Unknown"
-                motif_count = result["musical_analysis"].get("motif_count", 0)
-                phrase_count = result["musical_analysis"].get("phrase_count", 0)
-                
-                prompt = f"""You are a musicologist analyzing a piano composition.
-
-Filename: {file_path.name}
-Key: {detected_key}
-Form: {detected_form}
-Time Signature: {result['technical'].get('time_signature', 'Unknown')}
-Tempo: {tempo_bpm} BPM
-Motifs: {motif_count}
-Phrases: {phrase_count}
-
-Musical content (first 2000 characters):
-{comp_json[:2000]}
-
-Provide a brief analysis. Respond with JSON:
-{{
-  "suggested_name": "Descriptive title based on musical characteristics",
-  "suggested_style": "Baroque|Classical|Romantic|Modern|Other",
-  "suggested_description": "Brief description of the piece's musical characteristics, style, and mood"
-}}
-
-Respond ONLY with valid JSON, no other text."""
-                
-                response = generate_text_unified(
-                    provider=ai_provider,
-                    model=ai_model,
-                    prompt=prompt,
-                    verbose=False
-                )
-                
-                # Parse JSON from response
-                import json
-                import re
-                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
-                if json_match:
-                    try:
-                        ai_data = json.loads(json_match.group())
-                        result["ai_insights"] = {
-                            "suggested_name": ai_data.get("suggested_name", "Unknown"),
-                            "suggested_style": ai_data.get("suggested_style", "Unknown"),
-                            "suggested_description": ai_data.get("suggested_description", "No description available"),
-                        }
-                    except json.JSONDecodeError:
-                        # Failed to parse, skip AI insights
-                        pass
-            except (GeminiError, OllamaError, Exception):
-                # AI insights failed, continue without them
-                pass
+        # AI insights
+        ai_insights = _generate_ai_insights(composition, file_path, result, ai_provider, ai_model, verbose)
+        if ai_insights:
+            result["ai_insights"] = ai_insights
     else:
         raise ValueError(f"Unsupported file type: {suffix}. Expected .mid, .midi, or .json")
     

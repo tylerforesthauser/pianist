@@ -45,8 +45,12 @@ def handle_generate(args) -> int:
             out_json_path = None
         
         # Validate --render requires --provider
-        if args.render and args.provider is None:
-            raise ValueError("--render is only supported with --provider for 'generate'.")
+        # Get provider from args or config
+        from ...config import get_ai_provider
+        provider = args.provider or get_ai_provider()
+        
+        if args.render and provider is None:
+            raise ValueError("--render requires --provider or config file to specify AI provider.")
         
         # For MIDI, auto-generate path if --render is used without explicit path
         if args.render:
@@ -77,16 +81,7 @@ def handle_generate(args) -> int:
         if prompt_out_path is not None:
             write_text(prompt_out_path, template)
         
-        # If no provider specified, just output the prompt
-        if args.provider is None:
-            if args.out_path is None:
-                sys.stdout.write(template)
-            else:
-                write_text(out_json_path, template)
-                sys.stdout.write(str(out_json_path) + "\n")
-            return 0
-        
-        # Generate composition using AI provider
+        # Generate composition using AI provider (provider already resolved above)
         # Use the full prompt for API calls (better quality)
         prompt = generation_prompt_for_api(description)
         
@@ -94,7 +89,7 @@ def handle_generate(args) -> int:
         raw_out_path: Path | None = args.raw_out_path
         if raw_out_path is None and out_json_path is not None:
             # Default: next to JSON output (only if --out was provided)
-            raw_out_path = derive_raw_path(out_json_path, args.provider)
+            raw_out_path = derive_raw_path(out_json_path, provider)
         elif raw_out_path is not None and not raw_out_path.is_absolute():
             # Relative path: resolve relative to output directory
             raw_out_path = output_dir / raw_out_path.name
@@ -109,13 +104,13 @@ def handle_generate(args) -> int:
         # If no cached response, call AI provider
         if raw_text is None:
             # Set default model if not provided
-            model = args.model
-            if model is None:
-                model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
+            from ...config import get_ai_model
+            from ...ai_providers import get_default_model
+            model = args.model or get_ai_model(provider) or get_default_model(provider)
             
             try:
                 raw_text = generate_text_unified(
-                    provider=args.provider,
+                    provider=provider,
                     model=model,
                     prompt=prompt,
                     verbose=args.verbose
@@ -145,7 +140,7 @@ def handle_generate(args) -> int:
                 out_json_path,
                 out_json,
                 sidecar_content=raw_text,
-                provider=args.provider,
+                    provider=provider,
                 overwrite=args.overwrite,
             )
             sys.stdout.write(str(result.primary_path) + "\n")
@@ -177,18 +172,21 @@ def setup_parser(parser):
         default=None,
         help="Output JSON path. If omitted, prints to stdout.",
     )
+    from ...config import get_ai_provider
+    
     parser.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        required=False,
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for generation: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates a prompt template (use --prompt to save it).",
+        help=f"AI provider to use for generation: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Defaults to config file or '{get_ai_provider()}'.",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help=f"Model name to use with the provider. Defaults to config file or provider default. Only used with --provider.",
     )
     parser.add_argument(
         "-r", "--raw",

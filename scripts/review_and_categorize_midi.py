@@ -22,14 +22,11 @@ Usage:
     # Resume from previous run (skips already-analyzed files)
     python3 scripts/review_and_categorize_midi.py --dir references/ --resume --output review_report.csv
 
-    # Resume and retry AI on files that didn't use AI or failed to identify
-    python3 scripts/review_and_categorize_midi.py --dir references/ --resume --ai --retry-ai --output review_report.csv
+    # Review directory of MIDI files
+    python3 scripts/review_and_categorize_midi.py --dir references/ --output review_report.csv
 
-    # Force AI re-identification on all cached files (even if already identified)
-    python3 scripts/review_and_categorize_midi.py --dir references/ --resume --ai --force-ai --output review_report.csv
-
-    # Review with AI-assisted naming
-    python3 scripts/review_and_categorize_midi.py --dir references/ --ai --output review_report.csv
+    # Review with specific AI provider
+    python3 scripts/review_and_categorize_midi.py --dir references/ --ai-provider ollama --output review_report.csv
 
     # Review with duplicate detection threshold
     python3 scripts/review_and_categorize_midi.py --dir references/ --similarity-threshold 0.7
@@ -71,6 +68,11 @@ from pianist.musical_analysis import (
     detect_form,
     analyze_harmony,
     MUSIC21_AVAILABLE,
+    MusicalAnalysis,
+    HarmonicAnalysis,
+    Motif,
+    Phrase,
+    ChordAnalysis,
 )
 from pianist.comprehensive_analysis import analyze_for_user
 
@@ -304,9 +306,89 @@ class FileMetadata:
     is_original: bool
 
 
-def extract_melodic_signature(composition: Any) -> list[int]:
+def _reconstruct_musical_analysis(musical_dict: dict[str, Any]) -> MusicalAnalysis | None:
+    """
+    Reconstruct MusicalAnalysis object from dictionary format.
+    
+    This allows us to pass pre-computed analysis to check_midi_file,
+    avoiding redundant computation.
+    
+    Args:
+        musical_dict: Dictionary from _format_musical_analysis()
+    
+    Returns:
+        MusicalAnalysis object or None if reconstruction fails
+    """
+    if not musical_dict or not MUSIC21_AVAILABLE:
+        return None
+    
+    try:
+        # Reconstruct motifs
+        motifs = []
+        for m_dict in musical_dict.get("motifs", []):
+            motifs.append(Motif(
+                start=m_dict.get("start", 0.0),
+                duration=m_dict.get("duration", 0.0),
+                pitches=m_dict.get("pitches", []),
+                description=m_dict.get("description"),
+            ))
+        
+        # Reconstruct phrases
+        phrases = []
+        for p_dict in musical_dict.get("phrases", []):
+            phrases.append(Phrase(
+                start=p_dict.get("start", 0.0),
+                duration=p_dict.get("duration", 0.0),
+                description=p_dict.get("description"),
+            ))
+        
+        # Reconstruct harmonic analysis
+        harmony = None
+        harmony_dict = musical_dict.get("harmony")
+        if harmony_dict:
+            chords = []
+            for c_dict in harmony_dict.get("chords", []):
+                chords.append(ChordAnalysis(
+                    start=c_dict.get("start", 0.0),
+                    pitches=c_dict.get("pitches", []),
+                    name=c_dict.get("name", ""),
+                    roman_numeral=c_dict.get("roman_numeral"),
+                    function=c_dict.get("function"),
+                    inversion=c_dict.get("inversion"),
+                    is_cadence=c_dict.get("is_cadence", False),
+                    cadence_type=c_dict.get("cadence_type"),
+                ))
+            
+            harmony = HarmonicAnalysis(
+                chords=chords,
+                key=harmony_dict.get("key"),
+                roman_numerals=harmony_dict.get("roman_numerals"),
+                progression=harmony_dict.get("progression"),
+                cadences=harmony_dict.get("cadences"),
+                voice_leading=None,  # Not included in formatted dict
+            )
+        
+        # Reconstruct full analysis
+        return MusicalAnalysis(
+            motifs=motifs,
+            phrases=phrases,
+            harmonic_progression=harmony,
+            form=musical_dict.get("detected_form"),
+            key_ideas=[],  # Not included in formatted dict
+            expansion_suggestions=[],  # Not included in formatted dict
+        )
+    except Exception:
+        # If reconstruction fails, return None (will trigger recomputation)
+        return None
+
+
+def extract_melodic_signature(composition: Any, music21_stream: Any | None = None) -> list[int]:
     """
     Extract a melodic signature (pitch sequence) for duplicate detection.
+    
+    Args:
+        composition: The composition to extract signature from
+        music21_stream: Optional pre-converted music21 stream (avoids re-conversion)
     
     Returns:
         List of MIDI pitch values representing the main melodic line
@@ -315,23 +397,14 @@ def extract_melodic_signature(composition: Any) -> list[int]:
         return []
     
     try:
-        from music21 import stream, note, chord
+        from music21 import note, chord
         
-        s = stream.Stream()
-        
-        # Convert composition to music21 stream (simplified)
-        for track in composition.tracks:
-            for event in track.events:
-                if hasattr(event, 'pitches') and event.pitches:
-                    if len(event.pitches) == 1:
-                        n = note.Note(event.pitches[0])
-                        n.offset = getattr(event, 'start', 0)
-                        s.insert(n)
-                    else:
-                        # Use lowest pitch for melodic signature
-                        c = chord.Chord(sorted(event.pitches))
-                        c.offset = getattr(event, 'start', 0)
-                        s.insert(c)
+        # Use pre-converted stream if provided, otherwise convert
+        if music21_stream is None:
+            from pianist.musical_analysis import _composition_to_music21_stream
+            s = _composition_to_music21_stream(composition)
+        else:
+            s = music21_stream
         
         # Extract melodic line (first 50 notes, normalized)
         melodic_pitches: list[int] = []
@@ -974,6 +1047,72 @@ def is_original_composition(filename: str) -> bool:
     return False
 
 
+def load_metadata_json(file_path: Path) -> dict[str, Any] | None:
+    """
+    Load metadata from companion JSON file if it exists.
+    
+    Looks for filename.mid.json alongside the MIDI file.
+    
+    Returns:
+        Dictionary with metadata or None if file doesn't exist
+    """
+    json_path = file_path.with_suffix(file_path.suffix + ".json")
+    
+    if json_path.exists():
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+                return metadata
+        except json.JSONDecodeError as e:
+            print(f"Warning: Invalid JSON in {json_path}: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"Warning: Could not load metadata from {json_path}: {e}", file=sys.stderr)
+            return None
+    
+    return None
+
+
+def extract_composer_from_directory(file_path: Path) -> str | None:
+    """
+    Extract composer from directory structure.
+    
+    Examples:
+    - references/J.S. Bach/file.mid -> "J.S. Bach"
+    - references/Chopin/Preludes/file.mid -> "Chopin"
+    - references/Original/file.mid -> None (will be marked as original)
+    
+    Returns:
+        Composer name if found, None otherwise
+    """
+    parent_dir = file_path.parent.name
+    
+    # Check if parent is a known composer directory (exact match)
+    for canonical_name in COMPOSER_DEFINITIONS.keys():
+        if parent_dir == canonical_name:
+            return canonical_name
+    
+    # Check if parent matches composer patterns (case-insensitive)
+    parent_lower = parent_dir.lower()
+    
+    # Try simple patterns first
+    for pattern, composer in COMPOSER_SIMPLE_PATTERNS.items():
+        if pattern in parent_lower:
+            return composer
+    
+    # Try regex patterns
+    for pattern, composer in COMPOSER_REGEX_PATTERNS.items():
+        if re.search(pattern, parent_dir, re.IGNORECASE):
+            return composer
+    
+    # Check for special directories that indicate original/unknown works
+    special_dirs = ["original", "unknown", "traditional", "custom", "my"]
+    if parent_lower in special_dirs:
+        return None  # Will be handled as original/unknown
+    
+    return None
+
+
 def extract_info_from_filename(filename: str) -> dict[str, Any]:
     """
     Extract composition information from filename patterns.
@@ -1229,7 +1368,6 @@ def extract_info_from_filename(filename: str) -> dict[str, Any]:
 def generate_suggested_name(
     metadata: FileMetadata,
     composition: Any,
-    use_ai: bool = False,
     verbose: bool = False,
     ai_provider: str = "gemini",
     ai_model: str | None = None,
@@ -1238,24 +1376,84 @@ def generate_suggested_name(
     """
     Generate a suggested name, ID, style, and description for a file.
     
-    Uses multiple strategies:
-    1. Try AI identification (if use_ai=True) to identify well-known compositions
-    2. Extract info from filename patterns
-    3. Fall back to analysis-based generation
+    Uses multiple strategies (in priority order):
+    1. Load metadata from companion JSON file (filename.mid.json)
+    2. Extract composer from directory structure
+    3. Extract info from filename patterns
+    4. Try AI identification to identify well-known compositions
+    5. Fall back to analysis-based generation
     
     Returns:
         (name, id, style, description, ai_identified)
         where ai_identified is True if AI successfully identified the composition
     """
     filename = metadata.filename
+    file_path = Path(metadata.filepath) if hasattr(metadata, 'filepath') and metadata.filepath else None
     ai_identified = False
     
-    # Strategy 0: Check filename first (before AI) to see if it contains clear composer/title info
+    # Strategy 0: Load metadata from companion JSON file (highest priority)
+    json_metadata = None
+    if file_path:
+        json_metadata = load_metadata_json(file_path)
+        if json_metadata and verbose:
+            print(f"  [Metadata JSON] Loaded metadata from {file_path.with_suffix(file_path.suffix + '.json')}", file=sys.stderr)
+            sys.stderr.flush()
+    
+    # If we have JSON metadata, use it (highest priority)
+    if json_metadata:
+        composer = json_metadata.get("composer", "")
+        title = json_metadata.get("title", "")
+        catalog = json_metadata.get("catalog_number") or json_metadata.get("opus", "")
+        style_hint = json_metadata.get("style")
+        suggested_description = json_metadata.get("description", "")
+        
+        # Build suggested name
+        if composer and title:
+            if catalog:
+                suggested_name = f"{composer}: {title} ({catalog})"
+            else:
+                suggested_name = f"{composer}: {title}"
+        elif composer:
+            suggested_name = composer
+            if title:
+                suggested_name = f"{composer}: {title}"
+        elif title:
+            suggested_name = title
+        else:
+            suggested_name = "Unknown Composition"
+        
+        # Generate ID
+        suggested_id = suggested_name.lower().replace(" ", "_").replace(":", "_")
+        suggested_id = "".join(c for c in suggested_id if c.isalnum() or c in ["_", "-"])
+        suggested_id = suggested_id[:50]
+        
+        if verbose:
+            print(f"  [Name] Using metadata JSON: {suggested_name}", file=sys.stderr)
+            sys.stderr.flush()
+        
+        return suggested_name, suggested_id, style_hint, suggested_description, False
+    
+    # Strategy 1: Extract composer from directory structure
+    directory_composer = None
+    if file_path:
+        directory_composer = extract_composer_from_directory(file_path)
+        if directory_composer and verbose:
+            print(f"  [Directory] Extracted composer from directory: {directory_composer}", file=sys.stderr)
+            sys.stderr.flush()
+    
+    # Strategy 2: Check filename for composer/title info
     # This prevents AI-generated descriptive names from overriding clearly labeled filenames
     if verbose:
         print(f"  [Filename] Extracting info from filename: {filename}", file=sys.stderr)
         sys.stderr.flush()
     filename_info = extract_info_from_filename(filename)
+    
+    # If directory provided composer but filename didn't, use directory composer
+    if directory_composer and not filename_info.get("composer"):
+        filename_info["composer"] = directory_composer
+        if verbose:
+            print(f"  [Directory] Using directory composer: {directory_composer}", file=sys.stderr)
+            sys.stderr.flush()
     
     if verbose:
         print(f"  [Filename] Extracted: composer={filename_info.get('composer')}, title={filename_info.get('title')}, catalog={filename_info.get('catalog_number')}", file=sys.stderr)
@@ -1278,17 +1476,13 @@ def generate_suggested_name(
         print(f"  [Filename] Has clear info: {has_clear_filename_info}", file=sys.stderr)
         sys.stderr.flush()
     
-    # Strategy 1: Try AI identification/description if enabled
-    # For original compositions, we still use AI but only for description (not identification)
-    if use_ai and MUSIC21_AVAILABLE:
+    # Strategy 3: Try AI identification/description
+    # For original compositions, AI provides description but doesn't attempt identification
+    if MUSIC21_AVAILABLE:
         # Set default model if not provided
         if ai_model is None:
-            if ai_provider == "gemini":
-                ai_model = "gemini-flash-latest"
-            elif ai_provider == "openrouter":
-                ai_model = "openai/gpt-4o"  # Default OpenRouter model
-            else:  # ollama
-                ai_model = "gpt-oss:20b"
+            from pianist.ai_providers import get_default_model
+            ai_model = get_default_model(ai_provider)
         
         ai_identification = identify_composition_with_ai(
             metadata, composition, filename,
@@ -1512,8 +1706,6 @@ def generate_suggested_name(
 
 def analyze_file(
     file_path: Path,
-    use_ai_quality: bool = False,
-    use_ai_naming: bool = False,
     verbose: bool = False,
     ai_provider: str = "gemini",
     ai_model: str | None = None,
@@ -1542,9 +1734,12 @@ def analyze_file(
                 print(f"  [Timing] Load composition from MIDI: {time.time() - load_start:.2f}s", file=sys.stderr)
             
             # Extract melodic signature for duplicate detection
+            # Convert to music21 stream once and reuse for signature extraction
             if verbose:
                 sig_start = time.time()
-            melodic_signature = extract_melodic_signature(composition)
+            from pianist.musical_analysis import _composition_to_music21_stream
+            music21_stream = _composition_to_music21_stream(composition)
+            melodic_signature = extract_melodic_signature(composition, music21_stream=music21_stream)
             if verbose:
                 print(f"  [Timing] Extract melodic signature: {time.time() - sig_start:.2f}s", file=sys.stderr)
         except Exception:
@@ -1559,7 +1754,6 @@ def analyze_file(
         comprehensive_start = time.time()
     comprehensive_result = analyze_for_user(
         file_path,
-        use_ai_insights=use_ai_naming,
         ai_provider=ai_provider,
         ai_model=ai_model,
         composition=composition,  # Reuse loaded composition
@@ -1573,28 +1767,19 @@ def analyze_file(
     # Extract musical analysis from comprehensive result if available
     musical_analysis = None
     if comprehensive_result.get("musical_analysis"):
-        # We need to reconstruct the MusicalAnalysis object from the dict
-        # For now, we'll let check_midi_file recompute if needed, but pass composition
-        # TODO: Pass actual MusicalAnalysis object if we refactor to return it
-        pass
+        # Reconstruct MusicalAnalysis object from dict to avoid recomputation
+        musical_analysis = _reconstruct_musical_analysis(comprehensive_result["musical_analysis"])
     
     if verbose:
         quality_start = time.time()
-    if use_ai_quality:
-        quality_report = check_midi_file(
-            file_path,
-            use_ai=True,
-            composition=composition,
-            musical_analysis=musical_analysis,
-        )
-    else:
-        # Use quality data from comprehensive analysis
-        quality_report = check_midi_file(
-            file_path,
-            use_ai=False,
-            composition=composition,
-            musical_analysis=musical_analysis,
-        )
+    # Get quality report with AI assessment
+    quality_report = check_midi_file(
+        file_path,
+        provider=ai_provider,
+        model=ai_model,
+        composition=composition,
+        musical_analysis=musical_analysis,
+    )
     if verbose:
         print(f"  [Timing] Quality check: {time.time() - quality_start:.2f}s", file=sys.stderr)
     
@@ -1660,7 +1845,8 @@ def analyze_file(
         )
         
         # Track if AI is being used
-        if use_ai_naming and MUSIC21_AVAILABLE:
+        # Generate suggested name using AI
+        if MUSIC21_AVAILABLE:
             ai_attempted = True
         
         # Check if filename has clear info that should take priority over AI
@@ -1674,8 +1860,8 @@ def analyze_file(
             print(f"  [Filename] Has clear info: {has_clear_filename_info} (composer={filename_info.get('composer')}, title={filename_info.get('title')}, catalog={filename_info.get('catalog_number')})", file=sys.stderr)
             sys.stderr.flush()
         
-        # When AI is enabled, always use AI to enhance names (even if filename has clear info)
-        if use_ai_naming:
+        # Use AI to enhance names (even if filename has clear info)
+        if True:
             if has_clear_filename_info:
                 # Filename has clear info - use AI to enhance it
                 if verbose:
@@ -1830,7 +2016,6 @@ def analyze_file(
                     suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
                         temp_metadata,
                         composition,
-                        use_ai=use_ai_naming,
                         verbose=verbose,
                         ai_provider=ai_provider,
                         ai_model=ai_model,
@@ -1899,7 +2084,6 @@ def analyze_file(
             suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
                 temp_metadata,
                 composition,
-                use_ai=use_ai_naming,
                 verbose=verbose,
                 ai_provider=ai_provider,
                 ai_model=ai_model,
@@ -1909,7 +2093,8 @@ def analyze_file(
                 print(f"  [Timing] Generate suggested name: {time.time() - naming_start:.2f}s", file=sys.stderr)
     else:
         # Use AI insights if available, otherwise use filename
-        if ai_insights and use_ai_naming:
+        # Use AI insights if available
+        if ai_insights:
             if verbose:
                 print(f"  [AI] Using AI insights from comprehensive analysis (no composition available)", file=sys.stderr)
                 sys.stderr.flush()
@@ -2000,7 +2185,6 @@ def retry_ai_naming_only(
         suggested_name, suggested_id, suggested_style, suggested_description, ai_identified = generate_suggested_name(
             cached_metadata,
             composition,
-            use_ai=True,
             verbose=verbose,
             ai_provider=ai_provider,
             ai_model=ai_model,
@@ -2060,12 +2244,20 @@ def detect_duplicates_incremental(
     Detect duplicates for a new file against existing files.
     
     Updates both the new file's metadata and existing files' metadata if duplicates are found.
+    Checks metadata to avoid false positives (different pieces that are musically similar).
     """
     # Compare new file against all existing files
     for existing_meta, existing_sig in zip(existing_metadata, existing_signatures):
         similarity = calculate_similarity(new_metadata, existing_meta, new_signature, existing_sig)
         
         if similarity >= similarity_threshold:
+            # Check if they're actually different pieces before marking as duplicates
+            name1 = new_metadata.suggested_name or ""
+            name2 = existing_meta.suggested_name or ""
+            if are_different_pieces(name1, name2):
+                # Musically similar but different pieces - don't mark as duplicates
+                continue
+            
             new_metadata.similar_files.append(existing_meta.filename)
             new_metadata.similarity_scores[existing_meta.filename] = similarity
             existing_meta.similar_files.append(new_metadata.filename)
@@ -2079,12 +2271,39 @@ def assign_duplicate_groups(
     Assign duplicate group names to all files with similar files.
     
     This should be called after all incremental duplicate detection is complete.
+    Filters out false positives (different pieces) before grouping.
     """
     groups: dict[str, list[int]] = defaultdict(list)
     group_counter = 0
     
+    # First pass: filter out false positives from all similar_files relationships
     for i, meta in enumerate(all_metadata):
         if meta.similar_files:
+            name1 = meta.suggested_name or ""
+            filtered_similar = []
+            for similar_filename in meta.similar_files:
+                # Find the metadata for this similar file
+                similar_meta = next((m for m in all_metadata if m.filename == similar_filename), None)
+                if similar_meta:
+                    name2 = similar_meta.suggested_name or ""
+                    # Only keep if they're NOT different pieces
+                    if not are_different_pieces(name1, name2):
+                        filtered_similar.append(similar_filename)
+                    else:
+                        # Remove from the other file's list too (clean up both sides)
+                        if meta.filename in similar_meta.similar_files:
+                            similar_meta.similar_files.remove(meta.filename)
+                        if meta.filename in similar_meta.similarity_scores:
+                            del similar_meta.similarity_scores[meta.filename]
+            
+            # Update similar_files to only include legitimate duplicates
+            meta.similar_files = filtered_similar
+    
+    # Second pass: assign groups (only files with legitimate similar_files)
+    for i, meta in enumerate(all_metadata):
+        if not meta.similar_files:
+            continue
+            
             # Check if already in a group
             found_group = None
             for group_name, group_indices in groups.items():
@@ -2121,6 +2340,7 @@ def detect_duplicates(
     
     This is the full batch version - compares all pairs.
     For incremental detection, use detect_duplicates_incremental instead.
+    Checks metadata to avoid false positives (different pieces that are musically similar).
     """
     # Compare all pairs
     for i, (meta1, sig1) in enumerate(zip(all_metadata, all_signatures)):
@@ -2131,6 +2351,13 @@ def detect_duplicates(
             similarity = calculate_similarity(meta1, meta2, sig1, sig2)
             
             if similarity >= similarity_threshold:
+                # Check if they're actually different pieces before marking as duplicates
+                name1 = meta1.suggested_name or ""
+                name2 = meta2.suggested_name or ""
+                if are_different_pieces(name1, name2):
+                    # Musically similar but different pieces - don't mark as duplicates
+                    continue
+                
                 meta1.similar_files.append(meta2.filename)
                 meta1.similarity_scores[meta2.filename] = similarity
                 meta2.similar_files.append(meta1.filename)
@@ -2138,6 +2365,158 @@ def detect_duplicates(
     
     # Assign duplicate groups
     assign_duplicate_groups(all_metadata)
+
+
+def are_different_pieces(name1: str, name2: str) -> bool:
+    """
+    Check if two files represent different pieces (not duplicates).
+    
+    This prevents false positives where musically similar pieces are incorrectly
+    grouped as duplicates (e.g., prelude vs prelude+fugue, movement vs full work).
+    
+    Returns True if they are different pieces and should NOT be considered duplicates.
+    """
+    name1_lower = name1.lower()
+    name2_lower = name2.lower()
+    
+    # Check for prelude vs prelude+fugue
+    has_prelude_only_1 = 'prelude' in name1_lower and 'fugue' not in name1_lower
+    has_prelude_fugue_1 = 'prelude' in name1_lower and 'fugue' in name1_lower
+    has_prelude_only_2 = 'prelude' in name2_lower and 'fugue' not in name2_lower
+    has_prelude_fugue_2 = 'prelude' in name2_lower and 'fugue' in name2_lower
+    
+    if (has_prelude_only_1 and has_prelude_fugue_2) or (has_prelude_fugue_1 and has_prelude_only_2):
+        return True
+    
+    # Check for movement vs full work
+    movement_indicators = ['i.', 'ii.', 'iii.', 'iv.', 'v.', 'allegro', 'andante', 'adagio', 'presto', 'largo', 'movement']
+    has_movement_1 = any(indicator in name1_lower for indicator in movement_indicators)
+    has_movement_2 = any(indicator in name2_lower for indicator in movement_indicators)
+    
+    # Check if one is a full work (has "sonata", "suite", etc. but no movement indicator)
+    has_full_work_1 = any(x in name1_lower for x in ['sonata', 'suite', 'concerto']) and not has_movement_1
+    has_full_work_2 = any(x in name2_lower for x in ['sonata', 'suite', 'concerto']) and not has_movement_2
+    
+    if (has_movement_1 and has_full_work_2) or (has_full_work_1 and has_movement_2):
+        return True
+    
+    # Check for collection vs single piece
+    # Collections have: "nos.", "nos 1-2", "24 preludes", "3 nocturnes", etc.
+    # Single pieces have: "no. 1", "op. 9, no. 1" (but not "nos.")
+    collection_indicators = [
+        'nos.', 'nos ',  # Multiple numbers
+        '24 preludes', '3 nocturnes', '5 mazurkas',  # Explicit counts
+    ]
+    has_collection_1 = any(indicator in name1_lower for indicator in collection_indicators)
+    has_collection_2 = any(indicator in name2_lower for indicator in collection_indicators)
+    
+    # Check if it's a single piece (has "no. X" but not "nos.")
+    # Single pieces typically have format like "Op. 9, No. 1" or end with "No. X"
+    is_single_1 = ':' in name1 and not has_collection_1 and ('no. ' in name1_lower or ', no. ' in name1_lower)
+    is_single_2 = ':' in name2 and not has_collection_2 and ('no. ' in name2_lower or ', no. ' in name2_lower)
+    
+    # Also check for explicit collection patterns
+    explicit_collection_1 = any(x in name1_lower for x in ['24 preludes', '3 nocturnes', '5 mazurkas', 'nos. 1-2', 'nos 1-2'])
+    explicit_collection_2 = any(x in name2_lower for x in ['24 preludes', '3 nocturnes', '5 mazurkas', 'nos. 1-2', 'nos 1-2'])
+    
+    # If one is explicitly a collection and the other is a single piece, they're different
+    if (explicit_collection_1 and is_single_2) or (is_single_1 and explicit_collection_2):
+        return True
+    
+    return False
+
+
+def filter_duplicates_and_quality(
+    all_metadata: list[FileMetadata],
+    min_quality: float = 0.0,
+    verbose: bool = False,
+) -> list[FileMetadata]:
+    """
+    Filter dataset to remove duplicates and low-quality files.
+    
+    Args:
+        all_metadata: List of FileMetadata objects
+        min_quality: Minimum quality score to keep (default: 0.0 = no filtering)
+        verbose: Print detailed progress
+    
+    Returns:
+        Filtered list of FileMetadata objects
+    """
+    original_count = len(all_metadata)
+    
+    # Filter by quality
+    if min_quality > 0:
+        all_metadata = [m for m in all_metadata if m.quality_score >= min_quality]
+        if verbose:
+            print(f"Filtered {original_count - len(all_metadata)} files below quality threshold {min_quality}")
+    
+    # Group by duplicate_group
+    duplicate_groups: dict[str, list[FileMetadata]] = defaultdict(list)
+    non_duplicates: list[FileMetadata] = []
+    
+    for meta in all_metadata:
+        if meta.duplicate_group:
+            duplicate_groups[meta.duplicate_group].append(meta)
+        else:
+            non_duplicates.append(meta)
+    
+    if not duplicate_groups:
+        return all_metadata
+    
+    if verbose:
+        print(f"Found {len(duplicate_groups)} duplicate groups with {sum(len(files) for files in duplicate_groups.values())} files")
+        print(f"Found {len(non_duplicates)} non-duplicate files")
+    
+    # Process duplicate groups - keep only the best file from each group
+    kept_files: list[FileMetadata] = []
+    
+    for group_name, files in duplicate_groups.items():
+        if len(files) < 2:
+            # Single file in group - treat as non-duplicate
+            files[0].is_duplicate = False
+            files[0].duplicate_group = ""
+            files[0].similar_files = []
+            files[0].similarity_scores = {}
+            non_duplicates.extend(files)
+            continue
+        
+        # All groups at this point are legitimate duplicates (false positives prevented during detection)
+        # Keep only the best one
+            # Sort by quality score (descending)
+            sorted_files = sorted(files, key=lambda m: m.quality_score, reverse=True)
+            
+            # If there's a clear winner (quality difference > 0.01), use it
+            best_file = sorted_files[0]
+            if len(sorted_files) > 1:
+                best_quality = sorted_files[0].quality_score
+                second_quality = sorted_files[1].quality_score
+                if best_quality - second_quality <= 0.01:
+                    # Tie - prefer files with better filenames (no typos)
+                    typos = ['prlude', 'frdric', 'gymnopdie']
+                    for f in sorted_files:
+                        filename_lower = f.filename.lower()
+                        if not any(typo in filename_lower for typo in typos):
+                            best_file = f
+                            break
+            
+            # Clear duplicate flags for the kept file
+            best_file.is_duplicate = False
+            best_file.duplicate_group = ""
+            best_file.similar_files = []
+            best_file.similarity_scores = {}
+            kept_files.append(best_file)
+    
+    if verbose:
+        print(f"Reduced {len(duplicate_groups)} duplicate groups to {len(kept_files)} files (kept best file from each group)")
+    
+    # Combine kept files with non-duplicates
+    final_files = non_duplicates + kept_files
+    
+    if verbose:
+        print(f"\nFiltered dataset: {len(final_files)} files (reduced from {original_count})")
+        print(f"Reduction: {original_count - len(final_files)} files removed ({100 * (original_count - len(final_files)) / original_count:.1f}%)")
+    
+    return final_files
 
 
 def write_csv_report(
@@ -2395,31 +2774,30 @@ def main() -> int:
         help="Output JSON file path (optional)",
     )
     
-    parser.add_argument(
-        "--ai",
-        action="store_true",
-        help="Use AI for quality assessment and naming",
-    )
+    # Import config system
+    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+    from pianist.config import get_ai_provider, get_ai_model, get_ai_delay
     
     parser.add_argument(
         "--ai-provider",
         type=str,
         choices=["gemini", "ollama", "openrouter"],
-        default=os.getenv("AI_PROVIDER", "gemini"),
-        help="AI provider to use: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Default: gemini",
+        default=None,
+        help=f"AI provider to use: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Defaults to config file or '{get_ai_provider()}'. AI is always used for quality assessment and naming.",
     )
     
     parser.add_argument(
         "--ai-model",
         type=str,
-        help="AI model name. Default: gemini-flash-latest (Gemini), gpt-oss:20b (Ollama), or mistralai/devstral-2512:free (OpenRouter). Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
+        default=None,
+        help="AI model name. Defaults to config file or provider default (mistralai/devstral-2512:free for OpenRouter). Free OpenRouter options: mistralai/devstral-2512:free (recommended), xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free",
     )
     
     parser.add_argument(
         "--ai-delay",
         type=float,
-        default=float(os.getenv("AI_DELAY_SECONDS", "0")),
-        help="Delay in seconds between AI calls to avoid rate limits (default: 0)",
+        default=None,
+        help=f"Delay in seconds between AI calls to avoid rate limits. Defaults to config file or {get_ai_delay()}.",
     )
     
     parser.add_argument(
@@ -2459,17 +2837,6 @@ def main() -> int:
         help="Directory for temporary result files (default: .midi_review_cache)",
     )
     
-    parser.add_argument(
-        "--retry-ai",
-        action="store_true",
-        help="Re-run AI identification on cached files that didn't use AI or failed to identify (requires --resume and --ai)",
-    )
-    
-    parser.add_argument(
-        "--force-ai",
-        action="store_true",
-        help="Force AI re-identification on all cached files, even if AI already successfully identified them (requires --resume and --ai)",
-    )
     
     parser.add_argument(
         "--mark-original",
@@ -2477,19 +2844,21 @@ def main() -> int:
         help="Mark all files as original/unknown compositions (skip AI identification and composer name suggestions)",
     )
     
+    parser.add_argument(
+        "--filter-duplicates",
+        action="store_true",
+        help="Filter out duplicate files, keeping only the best file from each duplicate group",
+    )
+    
+    parser.add_argument(
+        "--min-quality",
+        type=float,
+        default=0.0,
+        help="Minimum quality score to keep when filtering (default: 0.0 = no quality filtering)",
+    )
+    
     args = parser.parse_args()
     
-    # Validate flag combinations
-    if args.force_ai and not (args.resume and args.ai):
-        parser.error("--force-ai requires both --resume and --ai flags")
-    
-    if args.retry_ai and not (args.resume and args.ai):
-        parser.error("--retry-ai requires both --resume and --ai flags")
-    
-    # --force-ai and --retry-ai are mutually exclusive
-    # --force-ai takes precedence (forces retry on all files, even if already identified)
-    if args.force_ai and args.retry_ai:
-        parser.error("--force-ai and --retry-ai are mutually exclusive. Use --force-ai to retry on all files, or --retry-ai to retry only on files that need it.")
     
     # Set up temp directory
     temp_dir = args.temp_dir or Path(".midi_review_cache")
@@ -2582,103 +2951,13 @@ def main() -> int:
                 is_original_composition(file_path.name)
             )
             
-            # Check if we should force AI (overrides retry-ai logic)
-            if args.force_ai and args.ai:
-                # Force re-run AI naming only (don't re-run full analysis)
-                if args.verbose:
-                    print(f"[{i}/{len(files)}] Re-running AI naming only (forced): {file_path.name}")
-                
-                # Set default model if not provided
-                ai_model = args.ai_model
-                if ai_model is None:
-                    if args.ai_provider == "gemini":
-                        ai_model = "gemini-flash-latest"
-                    elif args.ai_provider == "openrouter":
-                        ai_model = "mistralai/devstral-2512:free"
-                    else:  # ollama
-                        ai_model = "gpt-oss:20b"
-                
-                # Retry only AI naming, reuse cached analysis
-                updated_meta, ai_attempted, ai_identified = retry_ai_naming_only(
-                    file_path,
-                    meta,
-                    sig,
-                    verbose=args.verbose,
-                    ai_provider=args.ai_provider,
-                    ai_model=ai_model,
-                    ai_delay=args.ai_delay,
-                )
-                
-                # Update metadata and save
-                all_metadata.append(updated_meta)
-                all_signatures.append(sig)
-                file_ai_info[str(file_path)] = (sig, ai_attempted, ai_identified)
-                save_file_result(updated_meta, sig, temp_dir, file_path, ai_attempted, ai_identified)
-                analyzed_count += 1
-                continue
-            
-            # Check if we should retry AI
-            elif args.retry_ai and args.ai:
-                # Skip retry for original compositions (they don't need AI identification)
-                if is_original_file:
-                    if args.verbose:
-                        print(f"[{i}/{len(files)}] Skipping (original composition, no AI retry needed): {file_path.name}")
-                    all_metadata.append(meta)
-                    all_signatures.append(sig)
-                    skipped_count += 1
-                    continue
-                
-                # Retry if: AI wasn't attempted before, or AI was attempted but didn't identify
-                if not cached_ai_attempted or (cached_ai_attempted and not cached_ai_identified):
-                    # Need to retry AI naming only (don't re-run full analysis)
-                    if args.verbose:
-                        reason = "AI not attempted" if not cached_ai_attempted else "AI failed to identify"
-                        print(f"[{i}/{len(files)}] Re-running AI naming only ({reason}): {file_path.name}")
-                    
-                    # Set default model if not provided
-                    ai_model = args.ai_model
-                    if ai_model is None:
-                        if args.ai_provider == "gemini":
-                            ai_model = "gemini-flash-latest"
-                        elif args.ai_provider == "openrouter":
-                            ai_model = "mistralai/devstral-2512:free"
-                        else:  # ollama
-                            ai_model = "gpt-oss:20b"
-                    
-                    # Retry only AI naming, reuse cached analysis
-                    updated_meta, ai_attempted, ai_identified = retry_ai_naming_only(
-                        file_path,
-                        meta,
-                        sig,
-                        verbose=args.verbose,
-                        ai_provider=args.ai_provider,
-                        ai_model=ai_model,
-                        ai_delay=args.ai_delay,
-                    )
-                    
-                    # Update metadata and save
-                    all_metadata.append(updated_meta)
-                    all_signatures.append(sig)
-                    file_ai_info[str(file_path)] = (sig, ai_attempted, ai_identified)
-                    save_file_result(updated_meta, sig, temp_dir, file_path, ai_attempted, ai_identified)
-                    analyzed_count += 1
-                    continue
-                else:
-                    # AI already identified, skip
-                    if args.verbose:
-                        print(f"[{i}/{len(files)}] Skipping (already analyzed, AI identified): {file_path.name}")
-                    all_metadata.append(meta)
-                    all_signatures.append(sig)
-                    skipped_count += 1
-                    continue
-            else:
-                # Normal resume - skip already analyzed files
-                if args.verbose:
-                    print(f"[{i}/{len(files)}] Skipping (already analyzed): {file_path.name}")
-                all_metadata.append(meta)
-                all_signatures.append(sig)
-                skipped_count += 1
-                continue
+            # Normal resume - skip already analyzed files
+            if args.verbose:
+                print(f"[{i}/{len(files)}] Skipping (already analyzed): {file_path.name}")
+            all_metadata.append(meta)
+            all_signatures.append(sig)
+            skipped_count += 1
+            continue
         
         # Analyze new file (or re-analyze with AI)
         print(f"[{i}/{len(files)}] Analyzing: {file_path.name}")
@@ -2686,27 +2965,20 @@ def main() -> int:
         try:
             start_time = time.time()
             
-            # Set default model if not provided
-            ai_model = args.ai_model
-            if ai_model is None:
-                if args.ai_provider == "gemini":
-                    ai_model = "gemini-flash-latest"
-                elif args.ai_provider == "openrouter":
-                    # Default to a free OpenRouter model (recommended: mistralai/devstral-2512:free)
-                    # Other free options: xiaomi/mimo-v2-flash:free, tngtech/deepseek-r1t2-chimera:free, nex-agi/deepseek-v3.1-nex-n1:free
-                    ai_model = "mistralai/devstral-2512:free"
-                else:  # ollama
-                    ai_model = "gpt-oss:20b"
+            # Get provider and model from args or config
+            from pianist.config import get_ai_provider, get_ai_model
+            from pianist.ai_providers import get_default_model
+            ai_provider = args.ai_provider or get_ai_provider()
+            ai_model = args.ai_model or get_ai_model(ai_provider) or get_default_model(ai_provider)
+            ai_delay = args.ai_delay if args.ai_delay is not None else get_ai_delay()
             
-            # Run analysis (including any retry/force logic decided earlier) with AI parameters
+            # Run analysis with AI (always used)
             metadata, signature, ai_attempted, ai_identified = analyze_file(
                 file_path,
-                use_ai_quality=args.ai,
-                use_ai_naming=args.ai,
                 verbose=args.verbose,
-                ai_provider=args.ai_provider,
+                ai_provider=ai_provider,
                 ai_model=ai_model,
-                ai_delay=args.ai_delay,
+                ai_delay=ai_delay,
                 mark_original=args.mark_original,
             )
             
@@ -2745,6 +3017,15 @@ def main() -> int:
             print(f"Run with --resume to continue from here.")
             # Still write what we have so far
             if all_metadata:
+                # Filter duplicates and quality if requested
+                if args.filter_duplicates:
+                    if args.verbose:
+                        print("\nFiltering duplicates and low-quality files...")
+                    all_metadata = filter_duplicates_and_quality(
+                        all_metadata,
+                        min_quality=args.min_quality,
+                        verbose=args.verbose,
+                    )
                 output_csv = args.output or Path("review_report.csv")
                 write_csv_report(all_metadata, output_csv)
                 print(f"Partial report written to: {output_csv}")
@@ -2827,6 +3108,16 @@ def main() -> int:
                 groups[meta.duplicate_group].append(meta.filename)
         for group_name, filenames in groups.items():
             print(f"  {group_name}: {', '.join(filenames)}")
+    
+    # Filter duplicates and quality if requested
+    if args.filter_duplicates:
+        if args.verbose:
+            print("\nFiltering duplicates and low-quality files...")
+        all_metadata = filter_duplicates_and_quality(
+            all_metadata,
+            min_quality=args.min_quality,
+            verbose=args.verbose,
+        )
     
     # Write reports
     output_csv = args.output or Path("review_report.csv")

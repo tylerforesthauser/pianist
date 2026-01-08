@@ -71,9 +71,11 @@ def generate_expansion_strategy(
             "music21 is required for expansion strategy generation. Install it with: pip install music21"
         )
     
-    # Get or compute analysis
+    # Get or compute analysis with pre-converted stream to avoid redundant conversion
     if analysis is None:
-        analysis = analyze_composition(composition)
+        from .musical_analysis import _composition_to_music21_stream
+        music21_stream = _composition_to_music21_stream(composition)
+        analysis = analyze_composition(composition, music21_stream=music21_stream)
     
     # Calculate current length
     current_length = 0.0

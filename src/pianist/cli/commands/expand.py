@@ -48,77 +48,17 @@ def handle_expand(args) -> int:
         base_name = derive_base_name_from_path(args.in_path, "expand-output")
         output_dir = get_output_base_dir(base_name, "expand")
         
-        # If no provider, generate and display expansion strategy
-        if args.provider is None:
-            if MUSIC21_AVAILABLE:
-                try:
-                    # Perform analysis
-                    musical_analysis = analyze_composition_musical(comp)
-                    
-                    # Generate detailed expansion strategy
-                    strategy = generate_expansion_strategy(
-                        comp,
-                        args.target_length,
-                        analysis=musical_analysis
-                    )
-                    
-                    # Display strategy
-                    sys.stdout.write("Expansion Strategy:\n")
-                    sys.stdout.write("=" * 60 + "\n")
-                    sys.stdout.write(f"Current length: {current_length:.2f} beats\n")
-                    sys.stdout.write(f"Target length: {args.target_length:.2f} beats\n")
-                    expansion_ratio = args.target_length / current_length if current_length > 0 else 1.0
-                    sys.stdout.write(f"Expansion ratio: {expansion_ratio:.2f}x\n\n")
-                    
-                    sys.stdout.write(f"Overall Approach:\n{strategy.overall_approach}\n\n")
-                    
-                    if strategy.motif_developments:
-                        sys.stdout.write("Motif Developments:\n")
-                        for dev in strategy.motif_developments:
-                            sys.stdout.write(f"  - {dev.description}\n")
-                        sys.stdout.write("\n")
-                    
-                    if strategy.section_expansions:
-                        sys.stdout.write("Section Expansions:\n")
-                        for exp in strategy.section_expansions:
-                            sys.stdout.write(f"  - {exp.description}\n")
-                        sys.stdout.write("\n")
-                    
-                    if strategy.transitions:
-                        sys.stdout.write("Transitions:\n")
-                        for trans in strategy.transitions:
-                            sys.stdout.write(f"  - {trans}\n")
-                        sys.stdout.write("\n")
-                    
-                    if strategy.preserve:
-                        sys.stdout.write("Preserve:\n")
-                        for item in strategy.preserve:
-                            sys.stdout.write(f"  - {item}\n")
-                        sys.stdout.write("\n")
-                    
-                    # For now, just copy the composition (no AI to expand it)
-                    expanded_comp = comp
-                except Exception as e:
-                    if args.debug:
-                        traceback.print_exc(file=sys.stderr)
-                    sys.stderr.write(f"warning: Could not generate expansion strategy: {e}\n")
-                    sys.stderr.write(
-                        f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
-                    )
-                    expanded_comp = comp
-            else:
-                sys.stderr.write(
-                    "warning: Expansion strategy generation requires music21. "
-                    "Install with: pip install music21\n"
-                )
-                sys.stderr.write(
-                    f"Current: {current_length:.2f} beats, Target: {args.target_length:.2f} beats\n"
-                )
-                expanded_comp = comp
-        else:
-            # Generate expansion prompt with analysis and strategy
-            # Perform musical analysis to inform expansion
-            if MUSIC21_AVAILABLE:
+        # Get provider from args or config
+        from ...config import get_ai_provider
+        provider = args.provider or get_ai_provider()
+        
+        if not provider:
+            sys.stderr.write("error: --provider is required or must be set in config file\n")
+            return 1
+        
+        # Generate expansion prompt with analysis and strategy
+        # Perform musical analysis to inform expansion
+        if MUSIC21_AVAILABLE:
                 try:
                     musical_analysis = analyze_composition_musical(comp)
                     
@@ -214,87 +154,87 @@ def handle_expand(args) -> int:
                         f"Preserve the original musical ideas and develop them naturally. "
                         f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
                     )
-            else:
-                # No music21 available, use basic instructions
-                expansion_instructions = (
-                    f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
-                    f"Preserve the original musical ideas and develop them naturally. "
-                    f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
-                )
-            
-            if args.preserve_motifs:
-                expansion_instructions += " Preserve all marked motifs and develop them throughout."
-            
-            if args.preserve:
-                preserve_ids = [id.strip() for id in args.preserve.split(",")]
-                expansion_instructions += f" Preserve these specific ideas: {', '.join(preserve_ids)}."
-            
-            template = iteration_prompt_template(comp, instructions=expansion_instructions)
-            prompt = prompt_from_template(template)
-            
-            # Determine output directory and paths
-            base_name = derive_base_name_from_path(args.in_path, "expand-output")
-            output_dir = get_output_base_dir(base_name, "expand")
-            
-            if args.out_path is not None:
-                out_json_path = resolve_output_path(
-                    args.out_path, output_dir, "composition.json", "expand"
-                )
-            else:
-                out_json_path = None
-            
-            # Determine raw output path
-            raw_out_path: Path | None = args.raw_out_path
-            if raw_out_path is None and out_json_path is not None:
-                raw_out_path = derive_raw_path(out_json_path, args.provider)
-            elif raw_out_path is not None and not raw_out_path.is_absolute():
-                raw_out_path = output_dir / raw_out_path.name
-            
-            # Check for cached response
-            raw_text: str | None = None
-            cached_raw_path: Path | None = None
-            if raw_out_path is not None and raw_out_path.exists():
-                if args.verbose:
-                    sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
-                raw_text = read_text(raw_out_path)
-                cached_raw_path = raw_out_path
-            
-            # Call AI provider if no cached response
-            if raw_text is None:
-                # Set default model if not provided
-                model = args.model
-                if model is None:
-                    model = "gemini-flash-latest" if args.provider == "gemini" else "gpt-oss:20b"
-                
-                if args.verbose:
-                    sys.stderr.write(f"Calling AI provider ({args.provider}) for expansion...\n")
-                
-                try:
-                    raw_text = generate_text_unified(
-                        provider=args.provider,
-                        model=model,
-                        prompt=prompt,
-                        verbose=args.verbose
-                    )
-                except (GeminiError, OllamaError) as e:
-                    sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
-                    return 1
-            
-            # Parse expanded composition
-            expanded_comp = parse_composition_from_text(raw_text)
-            
-            # Calculate expanded length
-            expanded_length = 0.0
-            for track in expanded_comp.tracks:
-                for event in track.events:
-                    event_end = event.start + (getattr(event, "duration", 0.0))
-                    expanded_length = max(expanded_length, event_end)
+        else:
+            # No music21 available, use basic instructions
+            expansion_instructions = (
+                f"Expand this composition from {current_length:.2f} beats to {args.target_length:.2f} beats. "
+                f"Preserve the original musical ideas and develop them naturally. "
+                f"Maintain the same style, tempo ({comp.bpm} bpm), and key signature ({comp.key_signature or 'original'})."
+            )
+        
+        if args.preserve_motifs:
+            expansion_instructions += " Preserve all marked motifs and develop them throughout."
+        
+        if args.preserve:
+            preserve_ids = [id.strip() for id in args.preserve.split(",")]
+            expansion_instructions += f" Preserve these specific ideas: {', '.join(preserve_ids)}."
+        
+        template = iteration_prompt_template(comp, instructions=expansion_instructions)
+        prompt = prompt_from_template(template)
+        
+        # Determine output directory and paths
+        base_name = derive_base_name_from_path(args.in_path, "expand-output")
+        output_dir = get_output_base_dir(base_name, "expand")
+        
+        if args.out_path is not None:
+            out_json_path = resolve_output_path(
+                args.out_path, output_dir, "composition.json", "expand"
+            )
+        else:
+            out_json_path = None
+        
+        # Determine raw output path
+        raw_out_path: Path | None = args.raw_out_path
+        if raw_out_path is None and out_json_path is not None:
+            raw_out_path = derive_raw_path(out_json_path, provider)
+        elif raw_out_path is not None and not raw_out_path.is_absolute():
+            raw_out_path = output_dir / raw_out_path.name
+        
+        # Check for cached response
+        raw_text: str | None = None
+        cached_raw_path: Path | None = None
+        if raw_out_path is not None and raw_out_path.exists():
+            if args.verbose:
+                sys.stderr.write(f"Using cached AI response from {raw_out_path}\n")
+            raw_text = read_text(raw_out_path)
+            cached_raw_path = raw_out_path
+        
+        # Call AI provider if no cached response
+        if raw_text is None:
+            # Set default model if not provided
+            from ...config import get_ai_model
+            from ...ai_providers import get_default_model
+            model = args.model or get_ai_model(provider) or get_default_model(provider)
             
             if args.verbose:
-                sys.stderr.write(f"Expanded length: {expanded_length:.2f} beats\n")
+                sys.stderr.write(f"Calling AI provider ({provider}) for expansion...\n")
             
-            # Validate if requested
-            if args.validate:
+            try:
+                raw_text = generate_text_unified(
+                    provider=provider,
+                    model=model,
+                    prompt=prompt,
+                    verbose=args.verbose
+                )
+            except (GeminiError, OllamaError) as e:
+                sys.stderr.write(f"error: {type(e).__name__}: {e}\n")
+                return 1
+        
+        # Parse expanded composition
+        expanded_comp = parse_composition_from_text(raw_text)
+        
+        # Calculate expanded length
+        expanded_length = 0.0
+        for track in expanded_comp.tracks:
+            for event in track.events:
+                event_end = event.start + (getattr(event, "duration", 0.0))
+                expanded_length = max(expanded_length, event_end)
+        
+        if args.verbose:
+            sys.stderr.write(f"Expanded length: {expanded_length:.2f} beats\n")
+        
+        # Validate if requested
+        if args.validate:
                 if MUSIC21_AVAILABLE:
                     try:
                         validation_result = validate_expansion(
@@ -376,56 +316,47 @@ def handle_expand(args) -> int:
                             f"warning: Expanded composition ({expanded_length:.2f} beats) "
                             f"is significantly shorter than target ({args.target_length:.2f} beats).\n"
                         )
-            
-            # Save expanded composition
-            expanded_json = composition_to_canonical_json(expanded_comp)
-            
-            if args.out_path is None:
-                sys.stdout.write(expanded_json)
-                # Save raw response if we have it and no JSON output path
-                if raw_text is not None and raw_out_path is not None:
-                    if cached_raw_path is None:
-                        write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
-            else:
-                # Use unified output utility for coordinated versioning
-                # Always write sidecar if we have raw_text (even if cached)
-                result = write_output_with_sidecar(
-                    out_json_path,
-                    expanded_json,
-                    sidecar_content=raw_text,
-                    provider=args.provider,
-                    overwrite=args.overwrite,
-                )
-                sys.stdout.write(str(result.primary_path) + "\n")
-            
-            # Render if requested
-            if args.render:
-                if args.out_midi_path is None:
-                    if args.out_path is not None:
-                        midi_name = args.out_path.stem + ".mid"
-                    else:
-                        midi_name = args.in_path.stem + "_expanded.mid"
-                    out_midi_path = resolve_output_path(
-                        Path(midi_name), output_dir, "composition.mid", "expand"
-                    )
-                else:
-                    out_midi_path = resolve_output_path(
-                        args.out_midi_path, output_dir, "composition.mid", "expand"
-                    )
-                render_midi_mido(expanded_comp, out_midi_path)
-                sys.stdout.write(f"Rendered to: {out_midi_path}\n")
-                return 0
-            
-            return 0
         
-        # No provider case: save unchanged composition
+        # Save expanded composition
         expanded_json = composition_to_canonical_json(expanded_comp)
+        
         if args.out_path is None:
             sys.stdout.write(expanded_json)
+            # Save raw response if we have it and no JSON output path
+            if raw_text is not None and raw_out_path is not None:
+                if cached_raw_path is None:
+                    write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
         else:
-            out_path = resolve_output_path(args.out_path, output_dir, args.in_path.name, "expand")
-            write_text(out_path, expanded_json)
-            sys.stdout.write(str(out_path) + "\n")
+            # Use unified output utility for coordinated versioning
+            # Always write sidecar if we have raw_text (even if cached)
+            result = write_output_with_sidecar(
+                out_json_path,
+                expanded_json,
+                sidecar_content=raw_text,
+                provider=provider,
+                overwrite=args.overwrite,
+            )
+            sys.stdout.write(str(result.primary_path) + "\n")
+        
+        # Render if requested
+        if args.render:
+            if args.out_midi_path is None:
+                if args.out_path is not None:
+                    midi_name = args.out_path.stem + ".mid"
+                else:
+                    midi_name = args.in_path.stem + "_expanded.mid"
+                out_midi_path = resolve_output_path(
+                    Path(midi_name), output_dir, "composition.mid", "expand"
+                )
+            else:
+                out_midi_path = resolve_output_path(
+                    args.out_midi_path, output_dir, "composition.mid", "expand"
+                )
+            render_midi_mido(expanded_comp, out_midi_path)
+            sys.stdout.write(f"Rendered to: {out_midi_path}\n")
+            return 0
+        
+        return 0
     except Exception as exc:
         if args.debug:
             traceback.print_exc(file=sys.stderr)
@@ -456,18 +387,21 @@ def setup_parser(parser):
         required=True,
         help="Target length in beats.",
     )
+    from ...config import get_ai_provider
+    
     parser.add_argument(
         "--provider",
         type=str,
-        choices=["gemini", "ollama"],
+        required=False,
+        choices=["gemini", "ollama", "openrouter"],
         default=None,
-        help="AI provider to use for expansion: 'gemini' (cloud) or 'ollama' (local). If omitted, only generates expansion strategy.",
+        help=f"AI provider to use for expansion: 'gemini' (cloud), 'ollama' (local), or 'openrouter' (cloud). Defaults to config file or '{get_ai_provider()}'.",
     )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use with the provider. Default: gemini-flash-latest (Gemini) or gpt-oss:20b (Ollama). Only used with --provider.",
+        help=f"Model name to use with the provider. Defaults to config file or provider default. Only used with --provider.",
     )
     parser.add_argument(
         "--preserve-motifs",
