@@ -195,6 +195,58 @@ pytest
 - ✅ **Run tests** before completing any coding task
 - ✅ **Fix failing tests** before proceeding with other work
 
+### Handling Test Failures
+
+**CRITICAL: When tests fail, verify the code under test is correct before adjusting tests.**
+
+**When implementing or updating tests and encountering failures:**
+
+1. **First, verify the implementation is correct:**
+   - ✅ Review the code being tested to understand its intended behavior
+   - ✅ Check documentation, function docstrings, and related code to confirm expected behavior
+   - ✅ Manually test the code with the same inputs as the failing test
+   - ✅ Verify the implementation logic matches the requirements/specifications
+
+2. **Fix the implementation if it's incorrect:**
+   - ✅ If the code is wrong, fix the implementation first
+   - ✅ Don't adjust tests to match incorrect behavior
+   - ✅ Ensure the fix aligns with the intended functionality and requirements
+
+3. **Only adjust tests if the implementation is correct:**
+   - ✅ If the implementation is correct but the test expectations are wrong, update the test
+   - ✅ If the test is testing the wrong thing, refactor the test to test the right behavior
+   - ✅ If the test setup or fixtures are incorrect, fix those
+
+4. **Workflow for handling test failures:**
+   ```
+   Test fails → Investigate failure → Verify implementation correctness → 
+   If implementation wrong: Fix implementation → Re-run tests
+   If implementation correct: Update test expectations → Re-run tests
+   ```
+
+**What NOT to do:**
+- ❌ **Don't blindly change tests** to make them pass without verifying the code is correct
+- ❌ **Don't assume tests are always right** - tests can have bugs too
+- ❌ **Don't skip verification** - always understand why the test is failing
+- ❌ **Don't make tests less strict** just to make them pass - ensure they still validate correct behavior
+
+**Example scenarios:**
+
+**Scenario 1: Implementation is wrong**
+- Test expects function to return sorted list, but implementation returns unsorted
+- ✅ **Correct approach**: Fix the implementation to sort the list
+- ❌ **Wrong approach**: Change test to accept unsorted list
+
+**Scenario 2: Test expectation is wrong**
+- Implementation correctly sorts a list, but test expects unsorted output
+- ✅ **Correct approach**: Update test to expect sorted output
+- ❌ **Wrong approach**: Break the implementation to return unsorted
+
+**Scenario 3: Test is testing wrong thing**
+- Test checks for exact string match, but implementation correctly returns equivalent but formatted differently
+- ✅ **Correct approach**: Update test to check for equivalent content, not exact format
+- ❌ **Wrong approach**: Change implementation to match exact test expectation if it's less correct
+
 ## Code Quality Guidelines
 
 ### Python Code Style
