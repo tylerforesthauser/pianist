@@ -51,7 +51,7 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
     out_midi = tmp_path / "composition.mid"
 
     def fake_generate_text_unified(
-        *, _provider: str, model: str, prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         assert model
         assert "REFERENCE ANALYSIS" in prompt
@@ -100,7 +100,7 @@ def test_cli_analyze_with_provider_verbose(tmp_path: Path, monkeypatch) -> None:
     verbose_called = []
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
@@ -352,7 +352,7 @@ def test_cli_analyze_custom_model(tmp_path: Path, monkeypatch) -> None:
     models_called = []
 
     def fake_generate_text_unified(
-        *, _provider: str, model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         models_called.append(model)
         return _valid_composition_json()

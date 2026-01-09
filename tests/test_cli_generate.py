@@ -94,7 +94,7 @@ def test_cli_generate_with_provider(tmp_path: Path, monkeypatch) -> None:
     """Test generate with AI provider generates composition."""
 
     def fake_generate_text_unified(
-        *, _provider: str, model: str, prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         assert model
         assert "Compose a piano piece" in prompt or "Title: Test Piece" in prompt
