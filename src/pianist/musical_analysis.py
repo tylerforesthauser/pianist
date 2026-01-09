@@ -15,11 +15,7 @@ from typing import Any
 
 try:
     from music21 import (
-        analysis,
         chord,
-        converter,
-        harmony,
-        interval,
         key,
         meter,
         note,
@@ -627,7 +623,7 @@ def detect_motifs(
 
     # Extract melodic line (lowest pitch at each time point for simplicity)
     melodic_line: list[tuple[float, int]] = []  # (start, pitch)
-    for start, duration, pitches in all_notes:
+    for start, _duration, pitches in all_notes:
         if pitches:
             # Use lowest pitch for melodic analysis
             melodic_line.append((start, min(pitches)))
@@ -669,7 +665,7 @@ def detect_motifs(
                 interval_match_groups[interval_key].append((start, pitches))
 
         # Process exact matches (patterns that appear multiple times)
-        for normalized, group in exact_match_groups.items():
+        for _normalized, group in exact_match_groups.items():
             if len(group) >= 2:  # Pattern appears at least twice
                 occurrences = [start for start, _ in group]
                 first_occurrence = min(occurrences)
@@ -702,7 +698,7 @@ def detect_motifs(
 
         # Process interval-based matches (same melodic contour, different starting pitch)
         # Only check patterns that didn't already match exactly
-        for interval_key, group in interval_match_groups.items():
+        for _interval_key, group in interval_match_groups.items():
             if len(group) >= 2:
                 # Check for transposed matches within the group
                 # Group by normalized pattern to find transpositions
@@ -714,7 +710,7 @@ def detect_motifs(
                     transposed_groups[normalized].append((start, pitches))
 
                 # Process transposed groups
-                for normalized, transposed_group in transposed_groups.items():
+                for _normalized, transposed_group in transposed_groups.items():
                     if len(transposed_group) >= 2:
                         occurrences = [start for start, _ in transposed_group]
                         first_occurrence = min(occurrences)
@@ -955,10 +951,12 @@ def _detect_sections_automatically(
             # Compare with earlier phrases
             for earlier_phrase in current_section_phrases[:-1]:
                 # Simple heuristic: if phrases are very similar, might be section return
-                if abs(phrase.duration - earlier_phrase.duration) < 0.5:
+                if (
+                    abs(phrase.duration - earlier_phrase.duration) < 0.5
+                    and len(current_section_phrases) >= 3
+                ):
                     # Could be a return - mark as potential boundary
-                    if len(current_section_phrases) >= 3:
-                        is_boundary = True
+                    is_boundary = True
 
         if is_boundary or i == len(phrases) - 1:
             # End current section
@@ -1009,9 +1007,8 @@ def detect_form(
     explicit_sections: list[str] = []
     for track in composition.tracks:
         for event in track.events:
-            if hasattr(event, "type") and event.type == "section":
-                if hasattr(event, "label"):
-                    explicit_sections.append(event.label)
+            if hasattr(event, "type") and event.type == "section" and hasattr(event, "label"):
+                explicit_sections.append(event.label)
 
     # If explicit sections exist, use them
     if explicit_sections:

@@ -106,13 +106,13 @@ def test_generate_text_real_api_empty_prompt() -> None:
 
     # Empty prompt might return an error or empty response
     # The API behavior may vary, so we just check it doesn't crash
-    try:
+    from contextlib import suppress
+
+    with suppress(GeminiError):
         generate_text(model="gemini-flash-latest", prompt="", verbose=False)
         # If it succeeds, result might be empty or have content
         # Both are acceptable behaviors
-    except GeminiError:
         # API rejecting empty prompt is also acceptable
-        pass
 
 
 @pytest.mark.integration

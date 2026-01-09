@@ -225,7 +225,7 @@ def _suggest_section_techniques(expansion_point: Any, expansion_ratio: float) ->
     return techniques[:3] if techniques else ["phrase_extension"]
 
 
-def _suggest_phrase_techniques(phrase: Any, expansion_ratio: float) -> list[str]:
+def _suggest_phrase_techniques(_phrase: Any, expansion_ratio: float) -> list[str]:
     """Suggest extension techniques for a phrase."""
     techniques: list[str] = []
 
@@ -242,7 +242,7 @@ def _suggest_phrase_techniques(phrase: Any, expansion_ratio: float) -> list[str]
 
 
 def _suggest_transitions(
-    composition: Composition, analysis: MusicalAnalysis, expansion_ratio: float
+    _composition: Composition, analysis: MusicalAnalysis, expansion_ratio: float
 ) -> list[str]:
     """Suggest how to create transitions between sections."""
     transitions: list[str] = []
@@ -297,8 +297,8 @@ def _determine_preserve_list(composition: Composition, analysis: MusicalAnalysis
 def _generate_overall_approach(
     composition: Composition,
     analysis: MusicalAnalysis,
-    current_length: float,
-    target_length: float,
+    _current_length: float,
+    _target_length: float,
     expansion_ratio: float,
 ) -> str:
     """Generate a high-level description of the expansion approach."""

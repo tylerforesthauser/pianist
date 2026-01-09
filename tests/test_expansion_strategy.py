@@ -63,7 +63,7 @@ def test_generate_expansion_strategy_basic(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_generate_expansion_strategy_with_analysis(tmp_path: Path) -> None:
+def test_generate_expansion_strategy_with_analysis(_tmp_path: Path) -> None:
     """Test expansion strategy generation with pre-computed analysis."""
     comp_json = {
         "title": "Test",
@@ -95,7 +95,7 @@ def test_generate_expansion_strategy_with_analysis(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_generate_expansion_strategy_with_expansion_points(tmp_path: Path) -> None:
+def test_generate_expansion_strategy_with_expansion_points(_tmp_path: Path) -> None:
     """Test expansion strategy with explicit expansion points."""
     comp_json = {
         "title": "Test",
@@ -137,7 +137,7 @@ def test_generate_expansion_strategy_with_expansion_points(tmp_path: Path) -> No
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_suggest_motif_development(tmp_path: Path) -> None:
+def test_suggest_motif_development(_tmp_path: Path) -> None:
     """Test motif development suggestion."""
     from pianist.musical_analysis import Motif
 
@@ -150,7 +150,7 @@ def test_suggest_motif_development(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_suggest_phrase_extension(tmp_path: Path) -> None:
+def test_suggest_phrase_extension(_tmp_path: Path) -> None:
     """Test phrase extension suggestion."""
     from pianist.musical_analysis import Phrase
 
@@ -171,7 +171,7 @@ def test_suggest_section_expansion() -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_expansion_strategy_preserve_list(tmp_path: Path) -> None:
+def test_expansion_strategy_preserve_list(_tmp_path: Path) -> None:
     """Test that expansion strategy includes preserve list."""
     comp_json = {
         "title": "Test",

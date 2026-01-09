@@ -82,7 +82,7 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
     # Mock composition_from_midi FIRST to avoid expensive MIDI loading
     from pianist.schema import Composition, NoteEvent, Track
 
-    def fake_composition_from_midi(*args, **kwargs):
+    def fake_composition_from_midi(*_args, **_kwargs):
         return Composition(
             title="Test",
             bpm=120,
@@ -95,17 +95,17 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
     monkeypatch.setattr("pianist.iterate.composition_from_midi", fake_composition_from_midi)
 
     # Mock extract_melodic_signature to avoid expensive music21 operations
-    def fake_extract_melodic_signature(*args, **kwargs):
+    def fake_extract_melodic_signature(*_args, **_kwargs):
         return [60, 64, 67]  # Simple signature
 
     # Mock AI provider to avoid actual API calls
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         return '{"suggested_name": "AI Generated Name", "suggested_style": "Romantic", "suggested_description": "AI description"}'
 
     # Mock comprehensive_analysis to return AI insights
-    def fake_analyze_for_user(*args, **kwargs):
+    def fake_analyze_for_user(*_args, **_kwargs):
         return {
             "technical": {
                 "duration_beats": 1.0,
@@ -153,7 +153,7 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
     # Mock analyze_composition to avoid expensive music21 operations in check_midi_file
     from pianist.musical_analysis import HarmonicAnalysis, MusicalAnalysis
 
-    def fake_analyze_composition(*args, **kwargs):
+    def fake_analyze_composition(*_args, **_kwargs):
         return MusicalAnalysis(
             motifs=[],
             phrases=[],
@@ -183,7 +183,7 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
             self.issues = []
             self.summary = {}
 
-    def fake_check_midi_file(*args, **kwargs):
+    def fake_check_midi_file(*_args, **_kwargs):
         return FakeQualityReport(midi_file)
 
     # Patch the quality module
@@ -227,7 +227,7 @@ def test_analyze_file_with_clear_filename_info_priority(tmp_path: Path, monkeypa
     _write_test_midi(midi_file)
 
     # Mock comprehensive_analysis to return AI insights
-    def fake_analyze_for_user(*args, **kwargs):
+    def fake_analyze_for_user(*_args, **_kwargs):
         return {
             "technical": {
                 "duration_beats": 1.0,
@@ -276,7 +276,7 @@ def test_analyze_file_with_clear_filename_info_priority(tmp_path: Path, monkeypa
             self.issues = []
             self.summary = {}
 
-    def fake_check_midi_file(*args, **kwargs):
+    def fake_check_midi_file(*_args, **_kwargs):
         return FakeQualityReport(midi_file)
 
     # Patch the quality module
@@ -315,7 +315,7 @@ def test_analyze_file_with_hyphenated_filename(tmp_path: Path, monkeypatch) -> N
     _write_test_midi(midi_file)
 
     # Mock comprehensive_analysis
-    def fake_analyze_for_user(*args, **kwargs):
+    def fake_analyze_for_user(*_args, **_kwargs):
         return {
             "technical": {
                 "duration_beats": 1.0,
@@ -355,7 +355,7 @@ def test_analyze_file_with_hyphenated_filename(tmp_path: Path, monkeypatch) -> N
     # Mock analyze_composition to avoid expensive music21 operations in check_midi_file
     from pianist.musical_analysis import HarmonicAnalysis, MusicalAnalysis
 
-    def fake_analyze_composition(*args, **kwargs):
+    def fake_analyze_composition(*_args, **_kwargs):
         return MusicalAnalysis(
             motifs=[],
             phrases=[],
@@ -386,7 +386,7 @@ def test_analyze_file_with_hyphenated_filename(tmp_path: Path, monkeypatch) -> N
             self.issues = []
             self.summary = {}
 
-    def fake_check_midi_file(*args, **kwargs):
+    def fake_check_midi_file(*_args, **_kwargs):
         return FakeQualityReport(midi_file)
 
     # Patch the quality module

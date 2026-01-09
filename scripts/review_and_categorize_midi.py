@@ -506,18 +506,19 @@ def is_filename_generic_or_unclear(
     has_structure = bool(re.search(r"[-_]", filename)) or bool(re.search(r"\s+", filename))
 
     # If no structure and no extracted info, likely generic
-    if not has_structure and filename_info:
-        if not filename_info.get("composer") and not filename_info.get("title"):
-            return True
-
-    return False
+    return bool(
+        not has_structure
+        and filename_info
+        and not filename_info.get("composer")
+        and not filename_info.get("title")
+    )
 
 
 def identify_from_filename_with_ai(
     filename: str,
     filename_info: dict[str, Any],
     metadata: FileMetadata,
-    composition: Any,
+    composition: Any,  # noqa: ARG001
     provider: str = "gemini",
     model: str = "gemini-flash-latest",
     verbose: bool = False,

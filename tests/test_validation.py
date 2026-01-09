@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_validate_expansion_basic(tmp_path: Path) -> None:
+def test_validate_expansion_basic(_tmp_path: Path) -> None:
     """Test basic expansion validation."""
     original_json = {
         "title": "Original",
@@ -69,7 +69,7 @@ def test_validate_expansion_basic(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_validate_expansion_with_target_length(tmp_path: Path) -> None:
+def test_validate_expansion_with_target_length(_tmp_path: Path) -> None:
     """Test validation with target length checking."""
     original_json = {
         "title": "Original",
@@ -112,7 +112,7 @@ def test_validate_expansion_with_target_length(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_check_motif_preservation(tmp_path: Path) -> None:
+def test_check_motif_preservation(_tmp_path: Path) -> None:
     """Test motif preservation checking."""
     original_json = {
         "title": "Original",
@@ -196,7 +196,7 @@ def test_check_motif_preservation(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_assess_development_quality(tmp_path: Path) -> None:
+def test_assess_development_quality(_tmp_path: Path) -> None:
     """Test development quality assessment."""
     comp_json = {
         "title": "Test",
@@ -229,7 +229,7 @@ def test_assess_development_quality(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_check_harmonic_coherence(tmp_path: Path) -> None:
+def test_check_harmonic_coherence(_tmp_path: Path) -> None:
     """Test harmonic coherence checking."""
     comp_json = {
         "title": "Test",
@@ -279,7 +279,7 @@ def test_check_harmonic_coherence(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_check_form_consistency(tmp_path: Path) -> None:
+def test_check_form_consistency(_tmp_path: Path) -> None:
     """Test form consistency checking."""
     comp_json = {
         "title": "Test",
@@ -315,7 +315,7 @@ def test_validate_expansion_without_music21() -> None:
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
-def test_validate_expansion_preserves_key_ideas(tmp_path: Path) -> None:
+def test_validate_expansion_preserves_key_ideas(_tmp_path: Path) -> None:
     """Test validation with musical_intent key ideas."""
     original_json = {
         "title": "Original",

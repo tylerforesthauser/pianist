@@ -50,16 +50,19 @@ class CompositionDiff:
 
 def _events_match(event1: Event, event2: Event, tolerance: float = 0.01) -> bool:
     """Check if two events are essentially the same."""
-    if type(event1) != type(event2):
+    if type(event1) is not type(event2):
         return False
 
     # Compare basic properties
     if abs(event1.start - event2.start) > tolerance:
         return False
 
-    if hasattr(event1, "duration") and hasattr(event2, "duration"):
-        if abs(event1.duration - event2.duration) > tolerance:
-            return False
+    if (
+        hasattr(event1, "duration")
+        and hasattr(event2, "duration")
+        and abs(event1.duration - event2.duration) > tolerance
+    ):
+        return False
 
     # Type-specific comparisons
     if isinstance(event1, NoteEvent) and isinstance(event2, NoteEvent):
@@ -214,7 +217,7 @@ def diff_compositions(original: Composition, modified: Composition) -> Compositi
     return diff
 
 
-def format_diff_text(diff: CompositionDiff, show_preserved: bool = False) -> str:
+def format_diff_text(diff: CompositionDiff, _show_preserved: bool = False) -> str:
     """Format a diff as human-readable text."""
     lines = []
 

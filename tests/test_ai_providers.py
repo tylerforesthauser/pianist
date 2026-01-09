@@ -29,12 +29,12 @@ def _create_mock_requests():
     class ConnectionError(Exception):
         pass
 
-    class Timeout(Exception):
+    class TimeoutError(Exception):
         pass
 
     mock_requests.exceptions = MagicMock()
     mock_requests.exceptions.ConnectionError = ConnectionError
-    mock_requests.exceptions.Timeout = Timeout
+    mock_requests.exceptions.Timeout = TimeoutError
 
     return mock_requests
 
@@ -43,9 +43,11 @@ def test_generate_text_ollama_requires_requests(monkeypatch) -> None:
     """Test that generate_text_ollama raises error when requests is not available."""
     monkeypatch.setattr("pianist.ai_providers.requests", None, raising=False)
 
-    with patch.dict("sys.modules", {"requests": None}):
-        with pytest.raises(OllamaError, match="requests library required"):
-            generate_text_ollama(model="test-model", prompt="test", verbose=False)
+    with (
+        patch.dict("sys.modules", {"requests": None}),
+        pytest.raises(OllamaError, match="requests library required"),
+    ):
+        generate_text_ollama(model="test-model", prompt="test", verbose=False)
 
 
 def test_generate_text_ollama_connection_error(monkeypatch) -> None:
@@ -55,9 +57,11 @@ def test_generate_text_ollama_connection_error(monkeypatch) -> None:
     mock_requests = _create_mock_requests()
     mock_requests.post.side_effect = mock_requests.exceptions.ConnectionError("Connection refused")
 
-    with patch.dict("sys.modules", {"requests": mock_requests}):
-        with pytest.raises(OllamaError, match="Could not connect to Ollama"):
-            generate_text_ollama(model="test-model", prompt="test", verbose=False)
+    with (
+        patch.dict("sys.modules", {"requests": mock_requests}),
+        pytest.raises(OllamaError, match="Could not connect to Ollama"),
+    ):
+        generate_text_ollama(model="test-model", prompt="test", verbose=False)
 
 
 def test_generate_text_ollama_timeout(monkeypatch) -> None:
@@ -67,9 +71,11 @@ def test_generate_text_ollama_timeout(monkeypatch) -> None:
     mock_requests = _create_mock_requests()
     mock_requests.post.side_effect = mock_requests.exceptions.Timeout("Request timed out")
 
-    with patch.dict("sys.modules", {"requests": mock_requests}):
-        with pytest.raises(OllamaError, match="timed out after 3600 seconds"):
-            generate_text_ollama(model="test-model", prompt="test", verbose=False)
+    with (
+        patch.dict("sys.modules", {"requests": mock_requests}),
+        pytest.raises(OllamaError, match="timed out after 3600 seconds"),
+    ):
+        generate_text_ollama(model="test-model", prompt="test", verbose=False)
 
 
 def test_generate_text_ollama_empty_response(monkeypatch) -> None:
@@ -83,9 +89,11 @@ def test_generate_text_ollama_empty_response(monkeypatch) -> None:
     mock_requests = _create_mock_requests()
     mock_requests.post.return_value = mock_response
 
-    with patch.dict("sys.modules", {"requests": mock_requests}):
-        with pytest.raises(OllamaError, match="empty response"):
-            generate_text_ollama(model="test-model", prompt="test", verbose=False)
+    with (
+        patch.dict("sys.modules", {"requests": mock_requests}),
+        pytest.raises(OllamaError, match="empty response"),
+    ):
+        generate_text_ollama(model="test-model", prompt="test", verbose=False)
 
 
 def test_generate_text_ollama_success(monkeypatch) -> None:
@@ -165,9 +173,9 @@ def test_generate_text_ollama_error_includes_timing(monkeypatch) -> None:
     with (
         patch.dict("sys.modules", {"requests": mock_requests}),
         patch("pianist.ai_providers.time.time", side_effect=[0.0, 2.5]),
+        pytest.raises(OllamaError, match=r"after 2\.5s"),
     ):
-        with pytest.raises(OllamaError, match="after 2.5s"):
-            generate_text_ollama(model="test-model", prompt="test", verbose=True)
+        generate_text_ollama(model="test-model", prompt="test", verbose=True)
 
 
 def test_generate_text_unified_gemini(monkeypatch) -> None:

@@ -38,7 +38,7 @@ def resolve_output_path(
     provided_path: Path | None,
     default_dir: Path,
     default_filename: str,
-    command: str,
+    command: str,  # noqa: ARG001
 ) -> Path:
     """
     Resolve an output path, defaulting to the output directory structure if not provided or relative.

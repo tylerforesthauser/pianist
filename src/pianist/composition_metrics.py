@@ -160,11 +160,11 @@ def _detect_phrases(
         # 2. Note density drop
         # 3. Longer note duration (cadential)
 
-        if gap > 1.0 and gap < 4.0:  # Between phrases, not sections
-            # Check if this looks like a phrase ending
-            if current.duration_beats >= 1.0:  # Longer note suggests cadence
-                phrases.append((current_phrase_start, current.start_beats + current.duration_beats))
-                current_phrase_start = next_note.start_beats
+        if (
+            gap > 1.0 and gap < 4.0 and current.duration_beats >= 1.0
+        ):  # Between phrases, not sections, longer note suggests cadence
+            phrases.append((current_phrase_start, current.start_beats + current.duration_beats))
+            current_phrase_start = next_note.start_beats
 
     # Add final phrase
     if notes:
@@ -236,12 +236,11 @@ def _detect_motifs(
             window_size = 0
 
             for pat_intervals, pat_rhythms, pat_idx in patterns:
-                if pat_idx == first_note_idx:
+                if pat_idx == first_note_idx and tuple(pat_intervals) == intervals:
                     # Check if this pattern matches (intervals should match)
-                    if tuple(pat_intervals) == intervals:
-                        original_rhythms = pat_rhythms
-                        window_size = len(pat_rhythms)
-                        break
+                    original_rhythms = pat_rhythms
+                    window_size = len(pat_rhythms)
+                    break
 
             if original_rhythms is None or window_size == 0:
                 continue  # Skip if we can't find the original pattern
@@ -306,12 +305,10 @@ def _analyze_gaps(notes: list[_NoteEvent], sections: list[_Section]) -> GapAnaly
         first_note_in_next = None
 
         for note in notes:
-            if current_section.start_beats <= note.start_beats < current_section.end_beats:
-                if (
-                    last_note_in_section is None
-                    or note.start_beats > last_note_in_section.start_beats
-                ):
-                    last_note_in_section = note
+            if current_section.start_beats <= note.start_beats < current_section.end_beats and (
+                last_note_in_section is None or note.start_beats > last_note_in_section.start_beats
+            ):
+                last_note_in_section = note
 
         for note in notes:
             if next_section.start_beats <= note.start_beats < next_section.end_beats:

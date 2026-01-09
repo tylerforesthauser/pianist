@@ -66,7 +66,7 @@ def test_modify_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
 
     # Mock the AI provider - double patch pattern
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         return _valid_composition_json()
 
@@ -136,7 +136,7 @@ def test_modify_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     call_count = {"count": 0}
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         call_count["count"] += 1
         comp = json.loads(_valid_composition_json())
@@ -207,7 +207,7 @@ def test_analyze_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
     output_json = tmp_path / "analysis.json"
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         return _valid_composition_json()
 
@@ -268,7 +268,7 @@ def test_expand_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
     output_json = tmp_path / "expanded.json"
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         # Return an expanded composition that meets target length
         comp = json.loads(_valid_composition_json())
@@ -334,7 +334,7 @@ def test_generate_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
     output_json = tmp_path / "generated.json"
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         return _valid_composition_json()
 
@@ -382,7 +382,7 @@ def test_different_providers_create_different_sidecars(tmp_path: Path, monkeypat
     output_json = tmp_path / "output.json"
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False
+        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
     ) -> str:
         return _valid_composition_json()
 

@@ -217,12 +217,14 @@ def test_generate_text_handles_import_error(monkeypatch) -> None:
     """Test that missing google-genai package raises appropriate error."""
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
-    with patch.dict("sys.modules", {"google": None, "google.genai": None}):
-        with pytest.raises(GeminiError, match="Gemini support is not installed"):
-            generate_text(model="gemini-2.5-flash", prompt="test", verbose=False)
+    with (
+        patch.dict("sys.modules", {"google": None, "google.genai": None}),
+        pytest.raises(GeminiError, match="Gemini support is not installed"),
+    ):
+        generate_text(model="gemini-2.5-flash", prompt="test", verbose=False)
 
 
-def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -> None:
+def test_generate_text_error_includes_timing_when_verbose(monkeypatch, _capsys) -> None:
     """Test that errors include timing information in verbose mode."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
@@ -240,9 +242,11 @@ def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -
         mock_client.models.generate_content_stream.side_effect = Exception("Network error")
 
         # Patch sys.modules to intercept the import inside the function
-        with patch.dict(sys.modules, {"google": mock_google, "google.genai": mock_genai}):
-            with pytest.raises(GeminiError, match="after 5.0s"):
-                generate_text(model="gemini-2.5-flash", prompt="test", verbose=True)
+        with (
+            patch.dict(sys.modules, {"google": mock_google, "google.genai": mock_genai}),
+            pytest.raises(GeminiError, match=r"after 5\.0s"),
+        ):
+            generate_text(model="gemini-2.5-flash", prompt="test", verbose=True)
 
 
 def test_generate_text_verbose_omits_both_keys_message(monkeypatch, capsys) -> None:

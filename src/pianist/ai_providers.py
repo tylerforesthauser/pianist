@@ -277,8 +277,6 @@ def generate_text_openrouter(*, model: str, prompt: str, verbose: bool = False) 
         OpenRouterError: If API key is missing, connection fails, or request fails.
     """
     try:
-        import json
-
         import requests
     except ImportError as err:
         raise OpenRouterError(

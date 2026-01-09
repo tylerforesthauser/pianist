@@ -333,9 +333,8 @@ def handle_expand(args) -> int:
         if args.out_path is None:
             sys.stdout.write(expanded_json)
             # Save raw response if we have it and no JSON output path
-            if raw_text is not None and raw_out_path is not None:
-                if cached_raw_path is None:
-                    write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
+            if raw_text is not None and raw_out_path is not None and cached_raw_path is None:
+                write_text(raw_out_path, raw_text, version_if_exists=not args.overwrite)
         else:
             # Use unified output utility for coordinated versioning
             # Always write sidecar if we have raw_text (even if cached)

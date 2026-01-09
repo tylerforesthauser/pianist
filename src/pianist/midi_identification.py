@@ -349,12 +349,9 @@ def _is_classical_composer(composer: str) -> bool:
         "Yiruma",
         "Max Richter",
     }
-    if composer in modern_composers:
-        return False
-
     # Everything else is assumed classical (can be refined later)
     # This includes all composers in COMPOSER_DEFINITIONS that aren't in modern_composers
-    return True
+    return composer not in modern_composers
 
 
 def _extract_classical_metadata(text: str, result: MidiIdentification) -> None:

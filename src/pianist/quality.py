@@ -544,7 +544,7 @@ def print_report(report: QualityReport, verbose: bool = False) -> None:
             severity_emoji = {
                 "error": "❌",
                 "warning": "⚠️",
-                "info": "ℹ️",
+                "info": "i",
             }.get(issue.severity, "•")
             print(f"  {severity_emoji} [{issue.category}] {issue.message}")
             if verbose and issue.details:
