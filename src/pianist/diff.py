@@ -217,7 +217,7 @@ def diff_compositions(original: Composition, modified: Composition) -> Compositi
     return diff
 
 
-def format_diff_text(diff: CompositionDiff, _show_preserved: bool = False) -> str:
+def format_diff_text(diff: CompositionDiff, show_preserved: bool = False) -> str:  # noqa: ARG001
     """Format a diff as human-readable text."""
     lines = []
 
