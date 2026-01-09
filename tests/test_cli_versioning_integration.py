@@ -70,7 +70,7 @@ def test_modify_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -144,7 +144,7 @@ def test_modify_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         call_count["count"] += 1
         comp = json.loads(_valid_composition_json())
@@ -219,7 +219,7 @@ def test_analyze_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -284,7 +284,7 @@ def test_expand_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return an expanded composition that meets target length
         comp = json.loads(_valid_composition_json())
@@ -354,7 +354,7 @@ def test_generate_versioning_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -406,7 +406,7 @@ def test_different_providers_create_different_sidecars(tmp_path: Path, monkeypat
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 

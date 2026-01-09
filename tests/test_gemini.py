@@ -224,7 +224,7 @@ def test_generate_text_handles_import_error(monkeypatch) -> None:
         generate_text(model="gemini-2.5-flash", prompt="test", verbose=False)
 
 
-def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -> None:  # noqa: ARG001
+def test_generate_text_error_includes_timing_when_verbose(monkeypatch, capsys) -> None:
     """Test that errors include timing information in verbose mode."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)

@@ -40,7 +40,7 @@ def test_cli_expand_with_validate(tmp_path: Path, monkeypatch, capsys) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return expanded composition
         expanded = {
@@ -119,7 +119,7 @@ def test_cli_expand_with_validate_verbose(tmp_path: Path, monkeypatch, capsys) -
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         expanded = {
             "title": "Expanded",

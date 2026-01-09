@@ -33,7 +33,7 @@ def test_cli_generate_prompt_only(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -62,7 +62,7 @@ def test_cli_generate_prompt_only(tmp_path: Path, monkeypatch) -> None:
     assert comp_data["title"] == "Test"
 
 
-def test_cli_generate_prompt_stdout(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
+def test_cli_generate_prompt_stdout(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test generate with provider outputs to stdout."""
 
     # Mock AI provider - patch both where it's defined and where it's imported
@@ -71,7 +71,7 @@ def test_cli_generate_prompt_stdout(tmp_path: Path, monkeypatch, capsys) -> None
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -106,7 +106,7 @@ def test_cli_generate_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         assert model
         assert "Compose a piano piece" in prompt or "Title: Test Piece" in prompt
@@ -145,7 +145,7 @@ def test_cli_generate_with_provider_and_render(tmp_path: Path, monkeypatch) -> N
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -175,13 +175,13 @@ def test_cli_generate_with_provider_and_render(tmp_path: Path, monkeypatch) -> N
     assert midi_file.exists()
 
 
-def test_cli_generate_requires_description(tmp_path: Path) -> None:  # noqa: ARG001
+def test_cli_generate_requires_description(tmp_path: Path) -> None:
     """Test that generate requires a description."""
     rc = main(["generate"])
     assert rc != 0  # Should fail without description
 
 
-def test_cli_generate_render_requires_provider(tmp_path: Path, monkeypatch) -> None:  # noqa: ARG001
+def test_cli_generate_render_requires_provider(tmp_path: Path, monkeypatch) -> None:
     """Test that --render requires --provider."""
 
     # Mock to prevent hanging if it tries to use default provider
@@ -190,7 +190,7 @@ def test_cli_generate_render_requires_provider(tmp_path: Path, monkeypatch) -> N
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -236,7 +236,7 @@ def test_cli_generate_reads_from_stdin(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -268,7 +268,7 @@ def test_cli_generate_with_raw_output(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -321,7 +321,7 @@ def test_cli_generate_versioning(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -351,7 +351,7 @@ def test_cli_generate_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 

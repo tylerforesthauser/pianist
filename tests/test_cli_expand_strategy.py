@@ -41,7 +41,7 @@ def test_cli_expand_with_provider_expands_composition(tmp_path: Path, monkeypatc
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return expanded composition with more events to meet target length
         # Deep copy to avoid modifying original
@@ -122,7 +122,7 @@ def test_cli_expand_with_provider_saves_expanded_composition(tmp_path: Path, mon
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return expanded composition with more events to meet target length
         # Deep copy to avoid modifying original

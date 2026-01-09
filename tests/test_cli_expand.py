@@ -34,7 +34,7 @@ def test_cli_expand_basic(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return expanded composition
         expanded = comp_json.copy()
@@ -85,7 +85,7 @@ def test_cli_expand_with_provider(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return expanded composition
         expanded = {
@@ -190,7 +190,7 @@ def test_cli_expand_with_preserve_motifs(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Verify preserve-motifs is in prompt
         assert "preserve" in prompt.lower() or "motif" in prompt.lower()
@@ -254,7 +254,7 @@ def test_cli_expand_with_preserve_list(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         expanded = {
             "title": "Expanded",
@@ -334,7 +334,7 @@ def test_cli_expand_with_render(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         expanded = {
             "title": "Expanded",

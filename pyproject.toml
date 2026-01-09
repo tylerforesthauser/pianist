@@ -124,6 +124,10 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["pianist"]
 
+[tool.ruff.lint.per-file-ignores]
+# Allow unused arguments in test files (common in mock functions that must match signatures)
+"tests/**/*.py" = ["ARG001"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 

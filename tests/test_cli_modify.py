@@ -57,7 +57,7 @@ def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path, monkeypatc
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return (
             "{"
@@ -134,7 +134,7 @@ def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path, monkeypa
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return (
             "{"
@@ -184,7 +184,7 @@ def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) ->
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         assert model
         assert "SYSTEM PROMPT" in prompt
@@ -313,7 +313,7 @@ def test_cli_modify_optional_instructions_with_gemini(tmp_path: Path, monkeypatc
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -364,7 +364,7 @@ def test_cli_modify_render_auto_generates_midi(tmp_path: Path) -> None:
     assert (output_dir / "seed.mid").exists() or any(output_dir.glob("*.mid"))
 
 
-def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
+def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that modify outputs to stdout when --output is omitted."""
 
     # Mock AI provider
@@ -373,7 +373,7 @@ def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None: 
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -399,7 +399,7 @@ def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         from pianist.ai_providers import OpenRouterError
 
@@ -458,7 +458,7 @@ def test_cli_modify_custom_model(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         models_called.append(model)
         return _valid_composition_json()
@@ -500,7 +500,7 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -533,7 +533,7 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     assert not (tmp_path / "out.json.openrouter.txt").exists()
 
 
-def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
+def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that warning is shown when raw output is not saved in modify command."""
 
     def fake_generate_text_unified(
@@ -541,7 +541,7 @@ def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatc
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -584,7 +584,7 @@ def test_cli_modify_versioning_creates_v2_when_file_exists(tmp_path: Path, monke
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -630,7 +630,7 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -718,7 +718,7 @@ def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypat
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         nonlocal call_count
         call_count += 1
@@ -775,7 +775,7 @@ def test_cli_modify_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 

@@ -55,7 +55,7 @@ def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         assert model
         assert "REFERENCE ANALYSIS" in prompt
@@ -149,7 +149,7 @@ def test_cli_analyze_optional_instructions_with_provider(tmp_path: Path, monkeyp
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -188,7 +188,7 @@ def test_cli_analyze_render_auto_generates_midi(tmp_path: Path, monkeypatch) -> 
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -272,7 +272,7 @@ def test_cli_analyze_format_json_only(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return minimal valid JSON for AI insights
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
@@ -318,7 +318,7 @@ def test_cli_analyze_error_handling(tmp_path: Path, monkeypatch, capsys) -> None
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         from pianist.ai_providers import OpenRouterError
 
@@ -380,7 +380,7 @@ def test_cli_analyze_custom_model(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         models_called.append(model)
         return _valid_composition_json()
@@ -425,7 +425,7 @@ def test_cli_analyze_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -468,7 +468,7 @@ def test_cli_analyze_warning_when_raw_output_not_saved(tmp_path: Path, monkeypat
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -567,7 +567,7 @@ def test_cli_analyze_prompt_out_with_format_both(tmp_path: Path, monkeypatch) ->
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return minimal valid JSON for composition generation
         return _valid_composition_json()
@@ -628,7 +628,7 @@ def test_cli_analyze_versioning_creates_v2_when_file_exists(tmp_path: Path, monk
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 
@@ -684,7 +684,7 @@ def test_cli_analyze_versioning_synchronizes_raw_response(tmp_path: Path, monkey
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         nonlocal call_count
         call_count += 1
@@ -744,7 +744,7 @@ def test_cli_analyze_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return _valid_composition_json()
 

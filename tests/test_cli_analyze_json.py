@@ -46,7 +46,7 @@ def test_cli_analyze_json_basic(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         # Return minimal valid JSON for AI insights
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
@@ -133,7 +133,7 @@ def test_cli_analyze_json_with_motifs(tmp_path: Path, monkeypatch) -> None:
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
 
@@ -203,7 +203,7 @@ def test_cli_analyze_json_includes_expansion_suggestions(tmp_path: Path, monkeyp
         provider: str,
         model: str,
         prompt: str,
-        verbose: bool = False,  # noqa: ARG001
+        verbose: bool = False,
     ) -> str:
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
 
