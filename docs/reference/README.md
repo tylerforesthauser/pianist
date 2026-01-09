@@ -4,9 +4,11 @@ This directory contains quick reference materials.
 
 ## Available References
 
-- [`command_reference.md`](command_reference.md) - All commands in one place (TODO)
-- [`schema_quick_reference.md`](schema_quick_reference.md) - Schema cheat sheet (TODO)
-- [`file_formats.md`](file_formats.md) - Supported formats (TODO)
+This directory is reserved for future quick reference materials. For now, see:
+
+- [`../commands/`](../commands/) - Individual command documentation
+- [`../technical/`](../technical/) - Technical deep dives
+- [`../../README.md`](../../README.md) - Main documentation with command overview
 
 ## Detailed Documentation
 

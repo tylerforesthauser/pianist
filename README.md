@@ -189,7 +189,7 @@ export GOOGLE_API_KEY="YOUR_KEY"
 
 **Note**: If both `GEMINI_API_KEY` and `GOOGLE_API_KEY` are set, `GEMINI_API_KEY` takes precedence. Environment variables override values from `.env` files.
 
-For detailed API key management, see [docs/guides/API_KEY_MANAGEMENT.md](docs/guides/API_KEY_MANAGEMENT.md).
+For detailed configuration including API key setup, see [docs/guides/CONFIGURATION.md](docs/guides/CONFIGURATION.md).
 
 #### Ollama (Local AI)
 
@@ -440,7 +440,7 @@ Correct issues in compositions:
 ./pianist fix --all -i "composition.json"
 ```
 
-See [`docs/guides/PEDAL_FIX_USAGE.md`](docs/guides/PEDAL_FIX_USAGE.md) for details on fixing sustain pedal patterns.
+The `fix --pedal` command automatically corrects sustain pedal patterns by ensuring pedals are released before new notes and properly synchronized with note events.
 
 ## Building Effective Prompts
 

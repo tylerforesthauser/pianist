@@ -30,7 +30,6 @@ pianist render -i <input.json> -o <output.mid>
 
 ## See Also
 
-- [`../technical/midi_conversion.md`](../technical/midi_conversion.md)
 - [`README.md`](README.md) - All commands
 - [`../../README.md`](../../README.md) - Main documentation
 

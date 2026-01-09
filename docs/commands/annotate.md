@@ -75,7 +75,7 @@ pianist annotate -i composition.json --show
 ## See Also
 
 - [`../workflows/expanding_incomplete_compositions.md`](../workflows/expanding_incomplete_compositions.md)
-- [`../reference/schema_reference.md`](../reference/schema_reference.md)
+- [`../../src/pianist/schema.py`](../../src/pianist/schema.py) - Schema implementation (source code)
 - [`README.md`](README.md) - All commands
 - [`../../README.md`](../../README.md) - Main documentation
 

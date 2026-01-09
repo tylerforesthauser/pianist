@@ -5,10 +5,13 @@ This directory contains deep dives into how Pianist works internally.
 ## Available Documentation
 
 - [`analysis_technical_details.md`](analysis_technical_details.md) - How musical analysis works
-- [`schema_reference.md`](schema_reference.md) - Complete schema documentation (TODO)
-- [`midi_conversion.md`](midi_conversion.md) - MIDI conversion details (TODO)
-- [`ai_integration.md`](ai_integration.md) - AI provider integration (TODO)
-- [`output_directory_structure.md`](output_directory_structure.md) - File organization (TODO)
+- [`music21_performance_optimization.md`](music21_performance_optimization.md) - Performance optimization details
+- [`CODE_QUALITY.md`](CODE_QUALITY.md) - Code quality standards and tools
+- [`SCRIPT_CONSOLIDATION.md`](SCRIPT_CONSOLIDATION.md) - Script consolidation planning
+- [`STYLE_SUGGESTIONS.md`](STYLE_SUGGESTIONS.md) - Code style suggestions
+
+**Future Planning Documents:**
+- See [`../temp/REFERENCE_DATABASE_ENHANCEMENTS.md`](../temp/REFERENCE_DATABASE_ENHANCEMENTS.md) for planned database enhancements
 
 ## For Users
 

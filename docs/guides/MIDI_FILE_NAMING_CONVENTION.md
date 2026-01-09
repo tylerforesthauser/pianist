@@ -324,6 +324,15 @@ done
 
 ---
 
+## Alternative: Metadata JSON Files
+
+Instead of renaming files, you can create companion JSON metadata files (`filename.mid.json`) with explicit metadata. This is especially useful for:
+- Files with generic names you don't want to rename
+- Modern works that don't fit standard naming patterns
+- Batch imports where renaming is impractical
+
+**See [`MIDI_IDENTIFICATION_IMPLEMENTATION.md`](MIDI_IDENTIFICATION_IMPLEMENTATION.md) for details on metadata JSON files.**
+
 ## Integration with Review Script
 
 The `review_and_categorize_midi.py` script automatically:

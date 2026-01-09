@@ -31,7 +31,6 @@ pianist import -i <input.mid> [-o <output.json>]
 ## See Also
 
 - [`../workflows/midi_analysis_generation.md`](../workflows/midi_analysis_generation.md)
-- [`../technical/midi_conversion.md`](../technical/midi_conversion.md)
 - [`README.md`](README.md) - All commands
 - [`../../README.md`](../../README.md) - Main documentation
 

@@ -2,6 +2,11 @@
 
 This document provides a prioritized, actionable list of specific composers and works to add to the reference database. Use this as a checklist when searching for MIDI files.
 
+**Related documents:**
+- [`REFERENCE_DATABASE_CURATION.md`](REFERENCE_DATABASE_CURATION.md) - Main curation guide (how to curate)
+- [`REFERENCE_CURATION_LIST.md`](REFERENCE_CURATION_LIST.md) - Curated list of recommended works
+- [`REFERENCE_DATABASE_EXPANSION_PLAN.md`](REFERENCE_DATABASE_EXPANSION_PLAN.md) - Comprehensive expansion strategy
+
 ---
 
 ## Priority 1: Critical Gaps (Start Here)

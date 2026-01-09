@@ -19,6 +19,7 @@ The following documents were removed after implementation:
 
 ### 📋 Current Documents
 - **tonesemantics_evaluation.md** - Evaluation document (referenced in ROADMAP.md, keep for reference)
+- **REFERENCE_DATABASE_ENHANCEMENTS.md** - Future planning document for database enhancements (not yet implemented)
 
 ## Guidelines
 

@@ -4,6 +4,11 @@ This document provides a curated list of public domain musical works that would 
 
 **Note:** All listed works are in the public domain (composer died 70+ years ago in most jurisdictions). Always verify copyright status for your jurisdiction.
 
+**Related documents:**
+- [`REFERENCE_DATABASE_CURATION.md`](REFERENCE_DATABASE_CURATION.md) - Main curation guide (how to curate)
+- [`REFERENCE_DATABASE_ACTION_ITEMS.md`](REFERENCE_DATABASE_ACTION_ITEMS.md) - Prioritized actionable checklist
+- [`REFERENCE_DATABASE_EXPANSION_PLAN.md`](REFERENCE_DATABASE_EXPANSION_PLAN.md) - Comprehensive expansion strategy
+
 ---
 
 ## How to Use This List

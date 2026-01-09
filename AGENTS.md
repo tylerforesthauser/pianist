@@ -21,8 +21,6 @@ Instructions for AI agents working on the Pianist project.
 - Auto-fix issues: `make lint-fix && make format`
 - Sync prompts: `make sync-prompts` (after modifying prompt templates)
 
-**CRITICAL: Always run tests in parallel (`-n auto`) for faster execution. Sequential test runs are not acceptable.**
-
 **CRITICAL: Code quality is mandatory.**
 - **Always run `make quality` after code changes** - This checks linting, formatting, and type checking
 - **Fix all issues before proceeding** - Use `make lint-fix && make format` to auto-fix most issues
@@ -77,17 +75,34 @@ Instructions for AI agents working on the Pianist project.
 
 **Pre-commit hooks:** Installed hooks automatically check code quality. If hooks fail, fix issues before committing (or use `--no-verify` only if explicitly needed and documented).
 
-**Documentation:** DO NOT create new docs unless requested. Update existing files only. Update ROADMAP.md "Current Status" if status changed. Use `docs/temp/` for WIP, remove when done.
+### Documentation rules
 
-## Project structure
+**DO NOT create new docs unless requested. Update existing files only.**
 
-- `src/pianist/` - Main source code
-- `tests/` - Test files (`test_*.py`)
-- `docs/` - Documentation
-- `input/`, `output/` - User files (gitignored)
-- `references/` - Reference database staging
+- Update ROADMAP.md "Current Status" if status changed (single source of truth)
+- Use `docs/temp/` for temporary/planning documents, remove when done
+- DO NOT create new markdown documents for every plan - consolidate into existing planning documents
+- DO NOT create separate status documents - Update ROADMAP.md instead
+- Run `make sync-prompts` if prompt templates modified
 
-**Key files:** `ROADMAP.md` (single source of truth for status), `MISSION.md`, `PLANNING.md`
+## Development mode
+
+**The project is currently in active development with no external users or production deployments.**
+
+- **No backwards compatibility requirements:** Breaking changes are acceptable when they improve code quality, maintainability, or align with the project roadmap
+- **Focus on efficiency:** Prioritize clean, maintainable code over preserving existing interfaces
+- **Refactor freely:** Don't hesitate to restructure code, rename functions, or change APIs if it makes the codebase better
+- **Roadmap-driven:** Changes should align with the project roadmap and current development priorities
+
+## When implementing new features
+
+**REQUIRED steps:**
+
+1. **Write tests** - Unit tests for functions/modules, integration tests for CLI (mark with `@pytest.mark.integration`), aim for >80% coverage
+2. **Run tests** - `pytest -m "not integration" -n auto` (always in parallel, REQUIRED)
+3. **Fix failing tests** - Do not proceed until all tests pass
+4. **Update existing tests** - When refactoring, fix broken tests and update expectations
+5. **Update documentation** - Update existing docs only, update ROADMAP.md if status changed, run `make sync-prompts` if prompts changed, remove temp files from `docs/temp/`
 
 ## Before completing task
 
@@ -96,24 +111,52 @@ Instructions for AI agents working on the Pianist project.
 - [ ] All code finished (no TODOs, placeholders, incomplete implementations)
 - [ ] **Quality checks pass (`make quality`)** - Lint, format-check, type-check all pass
 - [ ] **All linting errors fixed** - Run `make lint-fix && make format` if needed
-- [ ] Tests pass in parallel (`pytest -m "not integration" -n auto` or `make test`)
+- [ ] **Tests pass in parallel** (`pytest -m "not integration" -n auto` or `make test`) - REQUIRED
+- [ ] **All related tests written and passing** - New features must have tests
 - [ ] No broken imports or syntax errors
 - [ ] No temp files, debug code, or commented-out code
 - [ ] Documentation updated (existing files only)
 - [ ] ROADMAP.md updated if status changed
 - [ ] `make sync-prompts` run if prompt templates modified
+- [ ] Temporary documents removed from `docs/temp/` (if any were created)
 
 **If quality checks fail:** Fix issues immediately. Do not proceed with incomplete or non-compliant code.
 
 ## Commit instructions
 
-**DO NOT commit unless explicitly requested.**
+**CRITICAL: DO NOT commit changes unless explicitly requested by the user.**
 
-When requested:
-- Verify completeness (use checklist above)
-- One commit per feature/logical change
-- Format: `<type>: <subject>` (types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `chore`)
-- Example: `feat: add MIDI quality validation`
+**When to commit:**
+- ❌ **NEVER commit automatically** - Only commit when the user explicitly asks you to
+- ✅ **ONLY commit when requested** - Wait for explicit instructions like "commit these changes" or "commit your work"
+- ✅ **ONLY commit complete work** - Verify all changes are finished, tested, and working before committing
+- ❌ **DO NOT commit incomplete work** - If changes are not complete, inform the user and do not commit
+
+**Commit workflow (when requested):**
+1. **Verify completeness** - Use "Before completing task" checklist above
+2. **Review changes:** `git status` and `git diff`
+3. **Exclude incomplete work** - DO NOT commit files with TODOs, failing tests, syntax errors, or temp/debug code
+4. **Create atomic commits** - One commit per logical group (code, tests, docs separate)
+5. **Commit message format:** `<type>: <subject>` (types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `chore`)
+6. **Verify:** `git log --oneline -5`
+7. **Inform user** - List commits created, note any files left uncommitted and why
+
+**Commit message guidelines:**
+- Use imperative mood ("add" not "added")
+- Keep subject under 72 characters
+- Capitalize first letter, no period
+- Examples: `feat: add MIDI quality validation`, `fix: correct pattern matching algorithm`, `docs: update ROADMAP.md`
+
+## Project structure
+
+- `src/pianist/` - Main source code
+- `tests/` - Test files (`test_*.py`)
+- `docs/` - Documentation
+  - `docs/temp/` - **Temporary/planning documents** (gitignored, clean up when done)
+- `input/`, `output/` - User files (gitignored)
+- `references/` - Reference database staging
+
+**Key files:** `ROADMAP.md` (single source of truth for status), `MISSION.md`, `PLANNING.md`
 
 ## Common tasks
 

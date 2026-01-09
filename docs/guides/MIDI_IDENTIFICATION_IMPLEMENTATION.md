@@ -2,6 +2,8 @@
 
 This document describes the enhanced identification system implemented for MIDI files, addressing issues with generically named files and modern works.
 
+> **Note**: This implementation is based on the design proposal in [`ENHANCED_MIDI_IDENTIFICATION.md`](ENHANCED_MIDI_IDENTIFICATION.md). That document provides the original design context and rationale.
+
 ---
 
 ## Overview

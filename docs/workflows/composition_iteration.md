@@ -25,5 +25,5 @@ Refine compositions through multiple iterations, tracking changes and managing v
 
 - [`../commands/modify.md`](../commands/modify.md)
 - [`../commands/diff.md`](../commands/diff.md)
-- [`../technical/output_directory_structure.md`](../technical/output_directory_structure.md)
+- See [`../../README.md`](../../README.md) - "Output Directory Structure" section for details
 

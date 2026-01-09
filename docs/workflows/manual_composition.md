@@ -23,6 +23,6 @@ Create compositions manually in JSON format, then render to MIDI.
 ## See Also
 
 - [`../commands/render.md`](../commands/render.md)
-- [`../reference/schema_reference.md`](../reference/schema_reference.md)
+- [`../../src/pianist/schema.py`](../../src/pianist/schema.py) - Schema implementation (source code)
 - [`../reference/schema_quick_reference.md`](../reference/schema_quick_reference.md)
 

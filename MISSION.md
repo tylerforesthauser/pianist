@@ -29,14 +29,16 @@
 
 ## Current State Assessment
 
-### Achievement: 75% of Core Goal
+> **📊 For the latest project status and progress, see [`ROADMAP.md`](ROADMAP.md) - the single source of truth for project status and planning.**
+
+### Achievement: ~85-90% of Core Goal
 
 | Component | Status | Completion | Notes |
 |-----------|--------|------------|-------|
 | **Shared Language** | ✅ | 95% | JSON schema works with musical intent annotation ✅ |
-| **Bidirectional Communication** | ✅ | 85% | MIDI↔JSON works, but lacks intelligence about what to preserve/expand |
-| **AI Musical Understanding** | 🟡 | 75% | AI can generate, analysis works, expansion strategies implemented, but lacks reference database |
-| **Collaboration Reliability** | 🟡 | 80% | Basic iteration works, change tracking implemented, expansion strategies work, but lacks quality validation |
+| **Bidirectional Communication** | ✅ | 85% | MIDI↔JSON works, expansion strategies implemented ✅ |
+| **AI Musical Understanding** | 🟡 | 75% | AI can generate, analysis works, expansion strategies implemented, but needs more reference examples |
+| **Collaboration Reliability** | 🟡 | 80% | Basic iteration works, expansion strategies work, validation implemented ✅ |
 
 ### What's Working
 

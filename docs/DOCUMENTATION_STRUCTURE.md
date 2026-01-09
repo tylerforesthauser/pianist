@@ -87,7 +87,6 @@ Each command gets its own dedicated doc with:
    - [ ] Purpose: Fix common issues (pedal patterns, etc.)
    - [ ] Options: --pedal, etc.
    - [ ] Examples: Fixing pedal patterns
-   - [ ] Link to: guides/PEDAL_FIX_USAGE.md (existing)
 
 10. **`reference.md`** - Manage reference database
    - [ ] Purpose: Add, list, search, and manage musical references
@@ -189,13 +188,10 @@ How-to guides for specific tasks.
    - [x] Evaluation strategies
    - [x] Move from temp/ to guides/ ✅
 
-4. **`API_KEY_MANAGEMENT.md`** ✅ (exists in guides/)
-   - [x] How to set up API keys
-   - [x] Move to guides/ ✅
-
-5. **`PEDAL_FIX_USAGE.md`** ✅ (exists in guides/)
-   - [x] How to use pedal fix
-   - [x] Move to guides/ ✅
+4. **`CONFIGURATION.md`** ✅ (exists in guides/)
+   - [x] AI provider and model configuration
+   - [x] API key setup (covered in configuration guide)
+   - [x] Environment variables and config files
 
 ## Reference Documentation (`docs/reference/`)
 
@@ -231,14 +227,17 @@ These stay at the root for discoverability:
 ### Phase 1: Organize Existing Docs
 - [x] Move `docs/temp/analysis_technical_details.md` → `docs/technical/` ✅ (already in technical/)
 - [x] Move `docs/temp/testing_musical_analysis.md` → `docs/guides/` ✅ (consolidated into guides/testing_analysis.md)
-- [x] Move `docs/PEDAL_FIX_USAGE.md` → `docs/guides/` ✅ (duplicate removed, guides/ version kept)
-- [x] Move `docs/API_KEY_MANAGEMENT.md` → `docs/guides/` ✅ (duplicate removed, guides/ version kept)
+- [x] API key management consolidated into `docs/guides/CONFIGURATION.md` ✅
+- [x] Pedal fix usage covered in `docs/commands/fix.md` and README.md ✅
 - [x] Keep `docs/INTEGRATION_TESTING.md` in docs/ (testing-specific) ✅
 
 ### Phase 2: Create Command Placeholders
 - [x] Create all 10 command docs with basic structure ✅
 - [x] Add links from README.md ✅
 - [ ] Document existing functionality (many are still placeholders)
+  - Most command docs are placeholders with basic structure
+  - Some commands (analyze, expand, generate, reference) have more complete documentation
+  - See individual command docs for current status
 
 ### Phase 3: Create Workflow Placeholders
 - [ ] Create all 5 workflow docs with outlines

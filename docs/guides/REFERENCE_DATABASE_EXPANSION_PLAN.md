@@ -1,6 +1,16 @@
 # Reference Database Expansion Plan
 
+> **📋 STRATEGIC PLANNING DOCUMENT**  
+> This document provides comprehensive strategic planning for expanding the reference database.  
+> **For actionable tasks, see [`REFERENCE_DATABASE_ACTION_ITEMS.md`](REFERENCE_DATABASE_ACTION_ITEMS.md)**  
+> **For curated work recommendations, see [`REFERENCE_CURATION_LIST.md`](REFERENCE_CURATION_LIST.md)**
+
 This document provides a comprehensive plan to expand and diversify the reference database beyond the current Baroque/Romantic bias, fill gaps in techniques and forms, and include modern styles and non-classical genres.
+
+**Related documents:**
+- [`REFERENCE_DATABASE_CURATION.md`](REFERENCE_DATABASE_CURATION.md) - Main curation guide (how to curate)
+- [`REFERENCE_CURATION_LIST.md`](REFERENCE_CURATION_LIST.md) - Curated list of recommended works
+- [`REFERENCE_DATABASE_ACTION_ITEMS.md`](REFERENCE_DATABASE_ACTION_ITEMS.md) - Prioritized actionable checklist
 
 ---
 
