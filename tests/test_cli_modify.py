@@ -172,7 +172,7 @@ def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) ->
     out_midi = tmp_path / "out.mid"
 
     def fake_generate_text_unified(
-        *, _provider: str, model: str, prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         assert model
         assert "SYSTEM PROMPT" in prompt
@@ -217,7 +217,7 @@ def test_cli_modify_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
     verbose_called = []
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
@@ -255,7 +255,7 @@ def test_cli_modify_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None:
     verbose_called = []
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         verbose_called.append(verbose)
         return _valid_composition_json()
@@ -422,7 +422,7 @@ def test_cli_modify_custom_model(tmp_path: Path, monkeypatch) -> None:
     models_called = []
 
     def fake_generate_text_unified(
-        *, _provider: str, model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         models_called.append(model)
         return _valid_composition_json()
