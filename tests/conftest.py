@@ -2,6 +2,7 @@
 
 This ensures the src directory is in the Python path so tests can import the pianist package.
 """
+
 from __future__ import annotations
 
 import sys
@@ -17,14 +18,14 @@ if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 # Import after path is set up
-from pianist.schema import Composition, Track, NoteEvent
 from pianist.musical_analysis import MUSIC21_AVAILABLE, _composition_to_music21_stream
+from pianist.schema import Composition, NoteEvent, Track
 
 
 @pytest.fixture(scope="module")
 def simple_composition() -> Composition:
     """A simple test composition that can be reused across tests.
-    
+
     Module-scoped to avoid recreating for every test, since Composition objects are immutable.
     """
     return Composition(
@@ -47,7 +48,7 @@ def simple_composition() -> Composition:
 @pytest.fixture(scope="module")
 def simple_composition_stream(simple_composition: Composition):
     """Pre-converted music21 stream for simple_composition (cached to avoid re-conversion).
-    
+
     Module-scoped to cache the expensive music21 conversion across tests in the same module.
     """
     if not MUSIC21_AVAILABLE:
@@ -61,7 +62,7 @@ def simple_composition_stream(simple_composition: Composition):
 @pytest.fixture(scope="module")
 def motif_test_composition() -> Composition:
     """A composition designed for motif detection tests.
-    
+
     Module-scoped to avoid recreating for every test, since Composition objects are immutable.
     """
     return Composition(
@@ -87,7 +88,7 @@ def motif_test_composition() -> Composition:
 @pytest.fixture(scope="module")
 def motif_test_composition_stream(motif_test_composition: Composition):
     """Pre-converted music21 stream for motif_test_composition.
-    
+
     Module-scoped to cache the expensive music21 conversion across tests in the same module.
     """
     if not MUSIC21_AVAILABLE:
@@ -96,4 +97,3 @@ def motif_test_composition_stream(motif_test_composition: Composition):
         return _composition_to_music21_stream(motif_test_composition)
     except Exception as e:
         pytest.skip(f"Failed to convert composition to music21 stream: {e}")
-

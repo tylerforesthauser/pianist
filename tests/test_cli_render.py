@@ -87,9 +87,9 @@ def test_cli_render_debug_flag_shows_traceback(tmp_path: Path, capsys) -> None:
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_text("not valid json", encoding="utf-8")
     out = tmp_path / "out.mid"
-    
+
     rc = main(["render", "-i", str(invalid_file), "-o", str(out), "--debug"])
-    
+
     assert rc == 1
     captured = capsys.readouterr()
     # Debug mode should show traceback
@@ -104,7 +104,7 @@ def test_cli_render_special_characters_in_paths(tmp_path: Path) -> None:
 
     out_midi = tmp_path / "output with émojis 🎹.mid"
     rc = main(["render", "-i", str(special_name), "-o", str(out_midi)])
-    
+
     assert rc == 0
     assert out_midi.exists()
 
@@ -117,7 +117,7 @@ def test_cli_render_unicode_characters_in_paths(tmp_path: Path) -> None:
 
     out_midi = tmp_path / "输出_вывод_出力.mid"
     rc = main(["render", "-i", str(unicode_name), "-o", str(out_midi)])
-    
+
     assert rc == 0
     assert out_midi.exists()
 
@@ -127,13 +127,12 @@ def test_cli_render_long_path(tmp_path: Path) -> None:
     # Create a reasonably long path (but not too long to avoid OS limits)
     long_dir = tmp_path / ("a" * 50) / ("b" * 50) / ("c" * 50)
     long_dir.mkdir(parents=True, exist_ok=True)
-    
+
     long_input = long_dir / "input.json"
     long_input.write_text(_valid_composition_json(), encoding="utf-8")
-    
+
     long_output = long_dir / "output.mid"
     rc = main(["render", "-i", str(long_input), "-o", str(long_output)])
-    
+
     assert rc == 0
     assert long_output.exists()
-

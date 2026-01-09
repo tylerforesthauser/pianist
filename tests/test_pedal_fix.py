@@ -1,6 +1,7 @@
 """Tests for pedal pattern fixing functionality."""
 
 from __future__ import annotations
+
 import warnings
 
 from pianist.pedal_fix import fix_pedal_patterns
@@ -26,9 +27,9 @@ def test_fix_pedal_press_release_pair() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].start == 0
@@ -55,9 +56,9 @@ def test_fix_orphaned_press() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].start == 0
@@ -82,9 +83,9 @@ def test_fix_preserves_correct_patterns() -> None:
             ],
         }
     )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 2
     assert pedals[0].duration == 4
@@ -121,9 +122,9 @@ def test_fix_preserves_annotations() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].section == "A"
@@ -154,9 +155,9 @@ def test_fix_handles_multiple_tracks() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     assert len(fixed.tracks) == 2
     pedals_0 = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     pedals_1 = [e for e in fixed.tracks[1].events if isinstance(e, PedalEvent)]
@@ -185,9 +186,9 @@ def test_fix_extends_to_next_pedal() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 2
     # First pedal should extend to just before the second
@@ -215,9 +216,9 @@ def test_fix_handles_same_start_time() -> None:
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     # Both events should be skipped (invalid pattern)
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 0
@@ -241,10 +242,10 @@ def test_fix_handles_empty_events() -> None:
                 ],
             }
         )
-    
+
     # Should not raise ValueError even with no events with duration
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].duration > 0  # Should use fallback default
@@ -262,15 +263,20 @@ def test_fix_handles_half_pedaling_duration_zero() -> None:
                 "tracks": [
                     {
                         "events": [
-                            {"type": "pedal", "start": 0, "duration": 0, "value": 64},  # Half-pedaling
+                            {
+                                "type": "pedal",
+                                "start": 0,
+                                "duration": 0,
+                                "value": 64,
+                            },  # Half-pedaling
                         ]
                     }
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].duration == 0  # Preserved as-is
@@ -293,9 +299,9 @@ def test_fix_preserves_half_pedaling_duration_positive() -> None:
             ],
         }
     )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     assert len(pedals) == 1
     assert pedals[0].duration == 4  # Preserved
@@ -314,17 +320,32 @@ def test_fix_handles_two_presses_one_release() -> None:
                 "tracks": [
                     {
                         "events": [
-                            {"type": "pedal", "start": 0, "duration": 0, "value": 127},  # First press
-                            {"type": "pedal", "start": 2, "duration": 0, "value": 127},  # Second press
-                            {"type": "pedal", "start": 4, "duration": 0, "value": 0},   # Single release
+                            {
+                                "type": "pedal",
+                                "start": 0,
+                                "duration": 0,
+                                "value": 127,
+                            },  # First press
+                            {
+                                "type": "pedal",
+                                "start": 2,
+                                "duration": 0,
+                                "value": 127,
+                            },  # Second press
+                            {
+                                "type": "pedal",
+                                "start": 4,
+                                "duration": 0,
+                                "value": 0,
+                            },  # Single release
                         ]
                     }
                 ],
             }
         )
-    
+
     fixed = fix_pedal_patterns(comp)
-    
+
     pedals = [e for e in fixed.tracks[0].events if isinstance(e, PedalEvent)]
     # Should have: first press paired with release (duration=4), second press extended
     assert len(pedals) == 2

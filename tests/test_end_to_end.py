@@ -33,7 +33,7 @@ def test_parse_and_render(tmp_path: Path) -> None:
 
 def test_render_with_tempo_changes(tmp_path: Path) -> None:
     """Test rendering a composition with tempo changes."""
-    from pianist.schema import Composition, Track, NoteEvent, TempoEvent
+    from pianist.schema import Composition, NoteEvent, TempoEvent, Track
 
     comp = Composition(
         title="Test with Tempo Changes",
@@ -74,4 +74,3 @@ def test_render_with_tempo_changes(tmp_path: Path) -> None:
     ]
     # Should have initial tempo + at least one tempo change
     assert len(tempo_msgs) >= 2
-

@@ -12,20 +12,20 @@ Best Practices for Integration Tests:
 6. Use timeouts for network calls
 7. Test real-world scenarios, not just happy paths
 """
+
 from __future__ import annotations
 
 import os
-import pytest
 
-from pianist.ai_providers import GeminiError, generate_text
+import pytest
 
 
 def skip_if_no_api_key() -> None:
     """Skip the test if no Gemini API key is available.
-    
+
     Use this at the start of integration tests that require a real API key.
     This should be used in combination with @pytest.mark.integration.
-    
+
     Example:
         @pytest.mark.integration
         def test_real_gemini_call():
@@ -43,7 +43,7 @@ def skip_if_no_api_key() -> None:
 
 def has_api_key() -> bool:
     """Check if a Gemini API key is available.
-    
+
     Returns:
         True if GEMINI_API_KEY or GOOGLE_API_KEY is set, False otherwise.
     """
@@ -53,10 +53,10 @@ def has_api_key() -> bool:
 @pytest.fixture
 def gemini_api_key_available() -> bool:
     """Pytest fixture that checks if API key is available.
-    
+
     Use this fixture in tests that need to conditionally run based on API key availability.
     This is useful when you want to test different behavior with/without API keys.
-    
+
     Example:
         @pytest.mark.integration
         def test_something(gemini_api_key_available):
@@ -70,9 +70,9 @@ def gemini_api_key_available() -> bool:
 @pytest.fixture
 def require_api_key() -> None:
     """Fixture that skips the test if no API key is available.
-    
+
     Use this fixture when the entire test requires an API key.
-    
+
     Example:
         @pytest.mark.integration
         def test_real_api_call(require_api_key):
@@ -81,4 +81,3 @@ def require_api_key() -> None:
             assert result
     """
     skip_if_no_api_key()
-

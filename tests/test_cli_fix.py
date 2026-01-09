@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import warnings
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pianist.cli import main
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_cli_fix_pedal_basic(tmp_path: Path) -> None:
@@ -26,20 +29,20 @@ def test_cli_fix_pedal_basic(tmp_path: Path) -> None:
             }
         ],
     }
-    
+
     input_file = tmp_path / "input.json"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     output_file = tmp_path / "output.json"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         rc = main(["fix", "--pedal", "-i", str(input_file), "-o", str(output_file)])
-    
+
     assert rc == 0
     assert output_file.exists()
-    
+
     # Verify the fix worked
     fixed_data = json.loads(output_file.read_text(encoding="utf-8"))
     pedals = [e for e in fixed_data["tracks"][0]["events"] if e["type"] == "pedal"]
@@ -63,16 +66,16 @@ def test_cli_fix_pedal_overwrites_input(tmp_path: Path) -> None:
             }
         ],
     }
-    
+
     input_file = tmp_path / "input.json"
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
         rc = main(["fix", "--pedal", "-i", str(input_file)])
-    
+
     assert rc == 0
     # File should be modified
     fixed_data = json.loads(input_file.read_text(encoding="utf-8"))
@@ -89,15 +92,16 @@ def test_cli_fix_pedal_render_auto_generates_midi(tmp_path: Path) -> None:
         "ppq": 480,
         "tracks": [{"events": []}],
     }
-    
+
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     rc = main(["fix", "--pedal", "-i", str(input_file), "--render"])
     # Should succeed - MIDI path auto-generated
     assert rc == 0
     # Check that MIDI file was created in output directory
     from pathlib import Path
+
     output_dir = Path("output") / "input" / "fix"
     assert any(output_dir.glob("*.mid"))
 
@@ -117,14 +121,15 @@ def test_cli_fix_pedal_with_render(tmp_path: Path) -> None:
             }
         ],
     }
-    
+
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     output_midi = tmp_path / "output.mid"
     rc = main(
         [
-            "fix", "--pedal",
+            "fix",
+            "--pedal",
             "-i",
             str(input_file),
             "--render",
@@ -132,7 +137,7 @@ def test_cli_fix_pedal_with_render(tmp_path: Path) -> None:
             str(output_midi),
         ]
     )
-    
+
     assert rc == 0
     assert output_midi.exists()
 
@@ -141,9 +146,9 @@ def test_cli_fix_pedal_debug_flag_shows_traceback(tmp_path: Path, capsys) -> Non
     """Test that --debug flag shows full traceback on errors in fix command."""
     invalid_file = tmp_path / "invalid.txt"
     invalid_file.write_text("not valid json", encoding="utf-8")
-    
+
     rc = main(["fix", "--pedal", "-i", str(invalid_file), "--debug"])
-    
+
     assert rc == 1
     captured = capsys.readouterr()
     # Debug mode should show traceback
@@ -159,10 +164,9 @@ def test_cli_fix_requires_flag(tmp_path: Path) -> None:
         "ppq": 480,
         "tracks": [{"events": []}],
     }
-    
+
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     rc = main(["fix", "-i", str(input_file)])
     assert rc == 1  # Should fail - no fix flag specified
-

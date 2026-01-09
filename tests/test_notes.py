@@ -29,4 +29,3 @@ def test_note_name_to_midi_invalid() -> None:
     # Out-of-range MIDI note
     with pytest.raises(ValueError):
         note_name_to_midi("C10")
-

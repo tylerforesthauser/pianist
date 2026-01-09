@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE_PATH = ROOT / "AI_PROMPTING_GUIDE.md"
 PROMPTS_DIR = ROOT / "src" / "pianist" / "prompts"
@@ -85,5 +84,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

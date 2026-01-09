@@ -3,19 +3,25 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from pianist.expansion_strategy import (
+    ExpansionStrategy,
     generate_expansion_strategy,
     suggest_motif_development,
     suggest_phrase_extension,
     suggest_section_expansion,
-    ExpansionStrategy,
 )
-from pianist.musical_analysis import MUSIC21_AVAILABLE, analyze_composition, _composition_to_music21_stream
-from pianist.schema import Composition
+from pianist.musical_analysis import (
+    MUSIC21_AVAILABLE,
+    _composition_to_music21_stream,
+    analyze_composition,
+)
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
@@ -35,17 +41,18 @@ def test_generate_expansion_strategy_basic(tmp_path: Path) -> None:
                     {"type": "note", "start": 2, "duration": 1, "pitches": [64], "velocity": 80},
                 ]
             }
-        ]
+        ],
     }
-    
+
     input_file = tmp_path / "input.json"
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
-    
+
     from pianist.parser import parse_composition_from_text
+
     comp = parse_composition_from_text(input_file.read_text(encoding="utf-8"))
-    
+
     strategy = generate_expansion_strategy(comp, target_length=16.0)
-    
+
     assert isinstance(strategy, ExpansionStrategy)
     assert strategy.motif_developments is not None
     assert strategy.section_expansions is not None
@@ -70,18 +77,19 @@ def test_generate_expansion_strategy_with_analysis(tmp_path: Path) -> None:
                     {"type": "note", "start": 0, "duration": 1, "pitches": [60], "velocity": 80},
                 ]
             }
-        ]
+        ],
     }
-    
+
     from pianist.parser import parse_composition_from_text
+
     comp = parse_composition_from_text(json.dumps(comp_json))
-    
+
     # Pre-compute analysis with pre-converted stream to avoid redundant conversion
     stream = _composition_to_music21_stream(comp)
     analysis = analyze_composition(comp, music21_stream=stream)
-    
+
     strategy = generate_expansion_strategy(comp, target_length=16.0, analysis=analysis)
-    
+
     assert isinstance(strategy, ExpansionStrategy)
     assert strategy.overall_approach is not None
 
@@ -110,19 +118,20 @@ def test_generate_expansion_strategy_with_expansion_points(tmp_path: Path) -> No
                     "current_length": 8.0,
                     "suggested_length": 16.0,
                     "development_strategy": "Develop opening motif",
-                    "preserve": []
+                    "preserve": [],
                 }
             ],
             "preserve": [],
-            "development_direction": None
-        }
+            "development_direction": None,
+        },
     }
-    
+
     from pianist.parser import parse_composition_from_text
+
     comp = parse_composition_from_text(json.dumps(comp_json))
-    
+
     strategy = generate_expansion_strategy(comp, target_length=16.0)
-    
+
     assert len(strategy.section_expansions) > 0
     assert any(exp.section_name == "A" for exp in strategy.section_expansions)
 
@@ -131,14 +140,9 @@ def test_generate_expansion_strategy_with_expansion_points(tmp_path: Path) -> No
 def test_suggest_motif_development(tmp_path: Path) -> None:
     """Test motif development suggestion."""
     from pianist.musical_analysis import Motif
-    
-    motif = Motif(
-        start=0.0,
-        duration=2.0,
-        pitches=[60, 64, 67],
-        description="Test motif"
-    )
-    
+
+    motif = Motif(start=0.0, duration=2.0, pitches=[60, 64, 67], description="Test motif")
+
     suggestion = suggest_motif_development(motif, target_length=16.0)
     assert isinstance(suggestion, str)
     assert len(suggestion) > 0
@@ -149,13 +153,9 @@ def test_suggest_motif_development(tmp_path: Path) -> None:
 def test_suggest_phrase_extension(tmp_path: Path) -> None:
     """Test phrase extension suggestion."""
     from pianist.musical_analysis import Phrase
-    
-    phrase = Phrase(
-        start=0.0,
-        duration=4.0,
-        description="Test phrase"
-    )
-    
+
+    phrase = Phrase(start=0.0, duration=4.0, description="Test phrase")
+
     suggestion = suggest_phrase_extension(phrase, target_length=16.0)
     assert isinstance(suggestion, str)
     assert len(suggestion) > 0
@@ -194,20 +194,20 @@ def test_expansion_strategy_preserve_list(tmp_path: Path) -> None:
                     "start": 0,
                     "duration": 1,
                     "description": "Important motif",
-                    "importance": "high"
+                    "importance": "high",
                 }
             ],
             "expansion_points": [],
             "preserve": ["key_idea:important_motif"],
-            "development_direction": None
-        }
+            "development_direction": None,
+        },
     }
-    
+
     from pianist.parser import parse_composition_from_text
+
     comp = parse_composition_from_text(json.dumps(comp_json))
-    
+
     strategy = generate_expansion_strategy(comp, target_length=16.0)
-    
+
     assert len(strategy.preserve) > 0
     assert any("important_motif" in item or "key_idea" in item for item in strategy.preserve)
-

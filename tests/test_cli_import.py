@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mido
 
 from pianist.cli import main
-from pianist.iterate import composition_from_midi
-from pianist.schema import NoteEvent, PedalEvent, TempoEvent, validate_composition_dict
+from pianist.schema import validate_composition_dict
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_test_midi(path: Path) -> None:
@@ -68,7 +70,6 @@ def test_cli_import_rejects_non_midi_file(tmp_path: Path) -> None:
     """Test that import errors when input is not a MIDI file."""
     text_file = tmp_path / "not_midi.txt"
     text_file.write_text("not a midi file", encoding="utf-8")
-    
+
     rc = main(["import", "-i", str(text_file)])
     assert rc == 1
-

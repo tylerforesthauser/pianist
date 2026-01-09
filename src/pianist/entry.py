@@ -5,6 +5,7 @@ by handling path setup before importing the main module. This addresses an
 issue where entry point scripts may not process .pth files correctly in
 some Python versions (notably Python 3.14+).
 """
+
 from __future__ import annotations
 
 import site
@@ -30,8 +31,7 @@ except (ImportError, ModuleNotFoundError):
     # Also try to find and process .pth files manually
     try:
         import sysconfig
-        import importlib.util
-        
+
         # Find site-packages directory
         site_packages = Path(sysconfig.get_path("purelib"))
         if site_packages.exists():
@@ -44,7 +44,7 @@ except (ImportError, ModuleNotFoundError):
                         sys.path.insert(0, str(pth_path))
     except Exception:
         pass  # Fallback failed, continue with src_path
-    
+
     # Now try importing again
     from .cli import main
 

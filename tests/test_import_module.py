@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mido
 
 from pianist.iterate import composition_from_midi, transpose_composition
 from pianist.schema import NoteEvent, PedalEvent, TempoEvent
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_test_midi(path: Path) -> None:
@@ -74,4 +77,3 @@ def test_midi_import_to_composition(tmp_path: Path) -> None:
     tr2 = comp2.tracks[0]
     notes2 = [e for e in tr2.events if isinstance(e, NoteEvent)]
     assert notes2[0].pitches == [62, 66]
-

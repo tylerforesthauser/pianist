@@ -77,9 +77,7 @@ def test_schema_errors_when_missing_pitch_fields() -> None:
                 "tracks": [{"events": [{"type": "note", "start": 0, "duration": 1}]}],
             }
         )
-    assert "One of 'pitch', 'pitches', 'notes', or 'groups' must be provided" in str(
-        exc.value
-    )
+    assert "One of 'pitch', 'pitches', 'notes', or 'groups' must be provided" in str(exc.value)
 
 
 def test_schema_errors_when_both_pitch_and_pitches_provided() -> None:
@@ -116,11 +114,7 @@ def test_pedal_event_validation() -> None:
                 "bpm": 120,
                 "time_signature": {"numerator": 4, "denominator": 4},
                 "tracks": [
-                    {
-                        "events": [
-                            {"type": "pedal", "start": 0, "duration": 1, "value": 200}
-                        ]
-                    }
+                    {"events": [{"type": "pedal", "start": 0, "duration": 1, "value": 200}]}
                 ],
             }
         )
@@ -272,9 +266,7 @@ def test_schema_rejects_empty_notes_and_empty_groups() -> None:
                 "title": "x",
                 "bpm": 120,
                 "time_signature": {"numerator": 4, "denominator": 4},
-                "tracks": [
-                    {"events": [{"type": "note", "start": 0, "duration": 1, "notes": []}]}
-                ],
+                "tracks": [{"events": [{"type": "note", "start": 0, "duration": 1, "notes": []}]}],
             }
         )
     assert "'notes' must not be empty" in str(exc_notes.value)
@@ -285,9 +277,7 @@ def test_schema_rejects_empty_notes_and_empty_groups() -> None:
                 "title": "x",
                 "bpm": 120,
                 "time_signature": {"numerator": 4, "denominator": 4},
-                "tracks": [
-                    {"events": [{"type": "note", "start": 0, "duration": 1, "groups": []}]}
-                ],
+                "tracks": [{"events": [{"type": "note", "start": 0, "duration": 1, "groups": []}]}],
             }
         )
     assert "'groups' must not be empty" in str(exc_groups.value)
@@ -544,7 +534,7 @@ def test_schema_infers_hand_when_missing_in_groups_list() -> None:
     assert event.groups is not None
     assert len(event.groups) == 1
     assert event.groups[0].hand == "rh"  # C4 (60) is at threshold, so "rh"
-    
+
     # Test lower pitches (should infer "lh")
     comp2 = validate_composition_dict(
         {
@@ -795,4 +785,3 @@ def test_tempo_event_bpm_bounds() -> None:
                 ],
             }
         )
-

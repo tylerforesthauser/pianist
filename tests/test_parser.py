@@ -93,4 +93,3 @@ def test_parser_does_not_convert_legitimate_beats() -> None:
     assert events[0].duration == 1.0
     assert events[1].start == 4.0
     assert events[1].duration == 2.0
-

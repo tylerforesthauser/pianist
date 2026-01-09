@@ -1,5 +1,0 @@
-filename,id,title,description,style,form,techniques
-example1.mid,example_1,"Example 1: Sequential Motif Development","Demonstrates sequential development of a simple ascending motif (C-E-G) transposed up a step (D-F-A)",Classical,binary,"sequence,motif_development"
-example2.json,example_2,"Example 2: Phrase Extension","Shows how to extend a 4-beat phrase to 8 beats by continuing the melodic line",Classical,,"phrase_extension,melodic_continuation"
-example3.mid,example_3,"Example 3: Section Transition","Demonstrates a smooth transition between sections using stepwise voice leading and dynamic variation",Classical,ternary,"transition,voice_leading,dynamic_variation"
-

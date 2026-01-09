@@ -6,18 +6,18 @@ from __future__ import annotations
 
 import pytest
 
-from pianist.schema import Composition, Track, NoteEvent, TempoEvent
 from pianist.musical_analysis import (
-    analyze_composition,
-    detect_motifs,
-    detect_phrases,
-    analyze_harmony,
-    detect_form,
-    identify_key_ideas,
-    generate_expansion_strategies,
     MUSIC21_AVAILABLE,
     _composition_to_music21_stream,
+    analyze_composition,
+    analyze_harmony,
+    detect_form,
+    detect_motifs,
+    detect_phrases,
+    generate_expansion_strategies,
+    identify_key_ideas,
 )
+from pianist.schema import Composition, NoteEvent, Track
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
@@ -45,11 +45,12 @@ def test_composition_to_music21_stream():
             )
         ],
     )
-    
+
     stream = _composition_to_music21_stream(comp)
     assert stream is not None
     # Check that stream has parts (using getElementsByClass)
     from music21 import stream as m21_stream
+
     parts = stream.getElementsByClass(m21_stream.Part)
     assert len(parts) > 0
 
@@ -59,7 +60,7 @@ def test_composition_to_music21_stream():
 def test_analyze_harmony():
     """Test harmonic analysis."""
     from pianist.musical_analysis import ChordAnalysis
-    
+
     comp = Composition(
         title="Test",
         bpm=120,
@@ -75,7 +76,7 @@ def test_analyze_harmony():
             )
         ],
     )
-    
+
     # Convert stream once and reuse to avoid redundant conversion
     stream = _composition_to_music21_stream(comp)
     harmony = analyze_harmony(comp, music21_stream=stream)
@@ -113,7 +114,7 @@ def test_detect_motifs():
             )
         ],
     )
-    
+
     # Convert stream once and reuse to avoid redundant conversion
     stream = _composition_to_music21_stream(comp)
     motifs = detect_motifs(comp, music21_stream=stream)
@@ -142,7 +143,7 @@ def test_detect_motifs_transposed():
             )
         ],
     )
-    
+
     motifs = detect_motifs(comp)
     # Should detect the transposed pattern
     assert isinstance(motifs, list)
@@ -170,7 +171,7 @@ def test_detect_phrases():
             )
         ],
     )
-    
+
     # Convert stream once and reuse
     stream = _composition_to_music21_stream(comp)
     phrases = detect_phrases(comp, music21_stream=stream)
@@ -183,7 +184,7 @@ def test_detect_phrases():
 def test_detect_form():
     """Test form detection."""
     from pianist.schema import SectionEvent
-    
+
     comp = Composition(
         title="Test",
         bpm=120,
@@ -200,7 +201,7 @@ def test_detect_form():
             )
         ],
     )
-    
+
     form = detect_form(comp)
     # Should detect ternary form (A-B-A)
     assert form == "ternary"
@@ -221,7 +222,7 @@ def test_identify_key_ideas():
             )
         ],
     )
-    
+
     # Convert stream once and reuse to avoid redundant conversion
     stream = _composition_to_music21_stream(comp)
     key_ideas = identify_key_ideas(comp, music21_stream=stream)
@@ -243,7 +244,7 @@ def test_generate_expansion_strategies():
             )
         ],
     )
-    
+
     # Convert stream once and reuse to avoid redundant conversion
     stream = _composition_to_music21_stream(comp)
     strategies = generate_expansion_strategies(comp, music21_stream=stream)
@@ -269,7 +270,7 @@ def test_analyze_composition():
             )
         ],
     )
-    
+
     # Convert stream once and reuse to avoid redundant conversion
     # This test does full analysis so it's marked as slow
     stream = _composition_to_music21_stream(comp)
@@ -281,10 +282,10 @@ def test_analyze_composition():
     assert analysis.expansion_suggestions is not None
     # Check that harmonic_progression has new fields
     if analysis.harmonic_progression:
-        assert hasattr(analysis.harmonic_progression, 'roman_numerals')
-        assert hasattr(analysis.harmonic_progression, 'cadences')
-        assert hasattr(analysis.harmonic_progression, 'progression')
-        assert hasattr(analysis.harmonic_progression, 'voice_leading')
+        assert hasattr(analysis.harmonic_progression, "roman_numerals")
+        assert hasattr(analysis.harmonic_progression, "cadences")
+        assert hasattr(analysis.harmonic_progression, "progression")
+        assert hasattr(analysis.harmonic_progression, "voice_leading")
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
@@ -297,14 +298,20 @@ def test_analyze_harmony_roman_numerals():
         tracks=[
             Track(
                 events=[
-                    NoteEvent(start=0, duration=1, pitches=[60, 64, 67], velocity=80),  # C major (I)
-                    NoteEvent(start=1, duration=1, pitches=[67, 71, 74], velocity=80),  # G major (V)
-                    NoteEvent(start=2, duration=1, pitches=[60, 64, 67], velocity=80),  # C major (I)
+                    NoteEvent(
+                        start=0, duration=1, pitches=[60, 64, 67], velocity=80
+                    ),  # C major (I)
+                    NoteEvent(
+                        start=1, duration=1, pitches=[67, 71, 74], velocity=80
+                    ),  # G major (V)
+                    NoteEvent(
+                        start=2, duration=1, pitches=[60, 64, 67], velocity=80
+                    ),  # C major (I)
                 ]
             )
         ],
     )
-    
+
     # Convert stream once and reuse
     stream = _composition_to_music21_stream(comp)
     harmony = analyze_harmony(comp, music21_stream=stream)
@@ -325,25 +332,29 @@ def test_analyze_harmony_cadences():
         tracks=[
             Track(
                 events=[
-                    NoteEvent(start=0, duration=1, pitches=[67, 71, 74], velocity=80),  # G major (V)
-                    NoteEvent(start=1, duration=1, pitches=[60, 64, 67], velocity=80),  # C major (I) - authentic cadence
+                    NoteEvent(
+                        start=0, duration=1, pitches=[67, 71, 74], velocity=80
+                    ),  # G major (V)
+                    NoteEvent(
+                        start=1, duration=1, pitches=[60, 64, 67], velocity=80
+                    ),  # C major (I) - authentic cadence
                 ]
             )
         ],
     )
-    
+
     # Convert stream once and reuse
     stream = _composition_to_music21_stream(comp)
     harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     # May or may not detect cadences depending on Roman numeral analysis
     # But should have cadences field
-    assert hasattr(harmony, 'cadences')
+    assert hasattr(harmony, "cadences")
     if harmony.cadences:
         assert isinstance(harmony.cadences, list)
         for cadence in harmony.cadences:
-            assert 'type' in cadence
-            assert 'start' in cadence
+            assert "type" in cadence
+            assert "start" in cadence
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
@@ -362,20 +373,20 @@ def test_analyze_harmony_voice_leading():
             )
         ],
     )
-    
+
     # Convert stream once and reuse
     stream = _composition_to_music21_stream(comp)
     harmony = analyze_harmony(comp, music21_stream=stream)
     assert harmony is not None
     # Should have voice_leading field
-    assert hasattr(harmony, 'voice_leading')
+    assert hasattr(harmony, "voice_leading")
     if harmony.voice_leading and len(harmony.chords) >= 2:
         assert isinstance(harmony.voice_leading, list)
         if harmony.voice_leading:
             vl = harmony.voice_leading[0]
-            assert 'common_tones' in vl
-            assert 'stepwise_motion' in vl
-            assert 'quality' in vl
+            assert "common_tones" in vl
+            assert "stepwise_motion" in vl
+            assert "quality" in vl
 
 
 @pytest.mark.skipif(not MUSIC21_AVAILABLE, reason="music21 not installed")
@@ -398,7 +409,7 @@ def test_detect_form_automatic():
             )
         ],
     )
-    
+
     # Convert stream once and reuse
     stream = _composition_to_music21_stream(comp)
     form = detect_form(comp, music21_stream=stream)
@@ -414,6 +425,6 @@ def test_analysis_requires_music21():
         bpm=120,
         tracks=[Track(events=[])],
     )
-    
+
     with pytest.raises(ImportError, match="music21"):
         analyze_composition(comp)

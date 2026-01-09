@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mido
 
-from pianist.analyze import analyze_midi, analysis_prompt_template
+from pianist.analyze import analysis_prompt_template, analyze_midi
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_test_midi(path: Path) -> None:
@@ -82,6 +84,3 @@ def test_analysis_prompt_template_contains_key_fields(tmp_path: Path) -> None:
     assert "Output MUST be valid JSON only" in prompt
     assert "REFERENCE ANALYSIS" in prompt
     assert "Write a calm 32-bar nocturne." in prompt
-
-
-
