@@ -654,23 +654,26 @@ See [docs/technical/CODE_QUALITY.md](docs/technical/CODE_QUALITY.md) for complet
 Run the test suite:
 
 ```bash
-# Run all unit tests (excludes integration tests)
-pytest -m "not integration"
-
-# Run tests in parallel for faster execution (recommended)
+# Run all unit tests in parallel (RECOMMENDED - 2-3x faster)
+make test
+# or
 pytest -m "not integration" -n auto
 
-# Run only failed tests (faster iteration during development)
-pytest -m "not integration" --lf
+# Run only failed tests in parallel (faster iteration during development)
+make test-failed
+# or
+pytest -m "not integration" -n auto --lf
 
 # Run only integration tests (requires API key)
-pytest -m integration
+pytest -m integration -n auto
 
-# Run all tests
-pytest
+# Run all tests in parallel
+pytest -n auto
 ```
 
-**Performance:** The test suite uses `pytest-xdist` for parallel execution. Use `-n auto` to automatically use all CPU cores, which can reduce test runtime from ~3 minutes to under 90 seconds on multi-core systems. Module-scoped fixtures are used to cache expensive operations like music21 stream conversions.
+**CRITICAL: Always run tests in parallel (`-n auto`).** The test suite uses `pytest-xdist` for parallel execution, which reduces test runtime from ~3 minutes to under 90 seconds on multi-core systems. Sequential test execution is not acceptable for development workflows.
+
+**Performance:** Module-scoped fixtures are used to cache expensive operations like music21 stream conversions. Parallel execution is the standard and is required for all test runs.
 
 For more information on integration testing best practices, see [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md).
 

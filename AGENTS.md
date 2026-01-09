@@ -15,12 +15,13 @@ Instructions for AI agents working on the Pianist project.
 
 ## Build and test commands
 
-- Run tests: `pytest -m "not integration"`
-- Run tests in parallel: `pytest -m "not integration" -n auto`
-- Run failed tests only: `pytest -m "not integration" --lf`
+- **Run tests (ALWAYS in parallel):** `pytest -m "not integration" -n auto` or `make test`
+- Run failed tests only: `pytest -m "not integration" -n auto --lf`
 - Code quality: `make quality` (lint, format-check, type-check)
 - Auto-fix issues: `make lint-fix && make format`
 - Sync prompts: `make sync-prompts` (after modifying prompt templates)
+
+**CRITICAL: Always run tests in parallel (`-n auto`) for faster execution. Sequential test runs are not acceptable.**
 
 **CRITICAL: Code quality is mandatory.**
 - **Always run `make quality` after code changes** - This checks linting, formatting, and type checking
@@ -58,7 +59,7 @@ Instructions for AI agents working on the Pianist project.
 
 **⚠️ READ THIS FIRST: These rules are frequently ignored. Follow them strictly.**
 
-**Always:** Activate venv (`source .venv/bin/activate`) before Python commands. Run `make quality` and tests after code changes. Never commit unless explicitly requested.
+**Always:** Activate venv (`source .venv/bin/activate`) before Python commands. Run `make quality` and tests (in parallel with `-n auto`) after code changes. Never commit unless explicitly requested.
 
 **When to RUN:** Tests, quality checks (`make quality`), verification commands, sync prompts.
 
@@ -69,8 +70,10 @@ Instructions for AI agents working on the Pianist project.
 **MANDATORY before any code changes are considered complete:**
 1. Run `make quality` - Must pass with zero errors
 2. Run `make lint-fix && make format` if issues found
-3. Run tests: `pytest -m "not integration"`
+3. Run tests in parallel: `pytest -m "not integration" -n auto` or `make test`
 4. Verify: All checks pass, no warnings, no errors
+
+**Test execution:** Always use parallel execution (`-n auto`) - it's 2-3x faster and is the standard for this project.
 
 **Pre-commit hooks:** Installed hooks automatically check code quality. If hooks fail, fix issues before committing (or use `--no-verify` only if explicitly needed and documented).
 
@@ -93,7 +96,7 @@ Instructions for AI agents working on the Pianist project.
 - [ ] All code finished (no TODOs, placeholders, incomplete implementations)
 - [ ] **Quality checks pass (`make quality`)** - Lint, format-check, type-check all pass
 - [ ] **All linting errors fixed** - Run `make lint-fix && make format` if needed
-- [ ] Tests pass (`pytest -m "not integration"`)
+- [ ] Tests pass in parallel (`pytest -m "not integration" -n auto` or `make test`)
 - [ ] No broken imports or syntax errors
 - [ ] No temp files, debug code, or commented-out code
 - [ ] Documentation updated (existing files only)

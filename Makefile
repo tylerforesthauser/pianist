@@ -25,9 +25,15 @@ type-check:
 quality: lint format-check type-check
 	@echo "✓ All quality checks passed"
 
-# Test coverage
+# Test targets (always run in parallel for faster execution)
+test:
+	pytest -m "not integration" -n auto
+
+test-failed:
+	pytest -m "not integration" -n auto --lf
+
 test-coverage:
-	pytest -m "not integration" --cov=src/pianist --cov-report=term-missing --cov-report=html
+	pytest -m "not integration" -n auto --cov=src/pianist --cov-report=term-missing --cov-report=html
 
 # Pre-commit hooks
 install-pre-commit:
