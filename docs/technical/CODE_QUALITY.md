@@ -59,6 +59,8 @@ make pre-commit-all        # Test all files
 **Usage:**
 ```bash
 make test-coverage    # Generate coverage report (HTML in htmlcov/)
+pytest -m "not integration" --cov  # Coverage for unit tests only
+pytest -m integration --cov      # Coverage for integration tests
 ```
 
 ## Quick Reference
@@ -68,7 +70,8 @@ make test-coverage    # Generate coverage report (HTML in htmlcov/)
 make quality          # Run all checks (lint, format-check, type-check)
 make lint-fix         # Auto-fix linting issues
 make format           # Format code
-pytest -m "not integration"  # Run tests
+pytest -m "not integration" -n auto  # Run unit tests (parallel, REQUIRED)
+# Optional: pytest -m "integration and free"  # Run free integration tests
 ```
 
 ### Complete Quality Check

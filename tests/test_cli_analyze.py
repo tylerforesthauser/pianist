@@ -13,19 +13,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _valid_composition_json() -> str:
-    """Minimal valid Pianist composition JSON."""
-    return (
-        "{"
-        '"title":"Test",'
-        '"bpm":120,'
-        '"time_signature":{"numerator":4,"denominator":4},'
-        '"ppq":480,'
-        '"tracks":[{"name":"Piano","channel":0,"program":0,"events":['
-        '{"type":"note","start":0,"duration":1,"pitches":[60],"velocity":80}'
-        "]}]"
-        "}"
-    )
+# Import shared test helper from conftest
+from conftest import valid_composition_json as _valid_composition_json
 
 
 def _write_test_midi(path: Path) -> None:
@@ -40,7 +29,7 @@ def _write_test_midi(path: Path) -> None:
     mid.save(path)
 
 
-def test_cli_analyze_gemini_writes_json_raw_and_midi(tmp_path: Path, monkeypatch) -> None:
+def test_cli_analyze_provider_writes_json_raw_and_midi(tmp_path: Path, monkeypatch) -> None:
     """Test analyze with AI provider writes JSON, raw response, and MIDI."""
     # Build a tiny MIDI file.
     midi_path = tmp_path / "in.mid"

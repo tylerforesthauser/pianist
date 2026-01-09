@@ -17,7 +17,7 @@ This document describes the development environment setup for the Pianist projec
    ```bash
    # On macOS/Linux:
    source .venv/bin/activate
-   
+
    # On Windows:
    .venv\Scripts\activate
    ```
@@ -84,11 +84,35 @@ make format          # Format code
 
 **See `docs/technical/CODE_QUALITY.md` for complete documentation.**
 
+## Testing
+
+This project has comprehensive test coverage:
+
+- **Unit tests:** 267 passing, 2 skipped (269 total)
+- **Integration tests:** 35 tests (24 free-tier, 11 expensive)
+
+**Running Tests:**
+```bash
+# Unit tests (parallel, recommended)
+pytest -m "not integration" -n auto
+
+# Integration tests (requires API keys)
+pytest -m integration
+
+# Free-tier integration tests (CI-safe)
+pytest -m "integration and free"
+
+# Check API keys before running integration tests
+./scripts/check_test_keys.sh
+```
+
+**See `docs/INTEGRATION_TESTING.md` for complete integration testing documentation.**
+
 ### Troubleshooting
 
 **Issue:** "music21 not available" or "ModuleNotFoundError: No module named 'music21'"
 
-**Solution:** 
+**Solution:**
 1. Make sure virtual environment is activated: `source .venv/bin/activate`
 2. Install dependencies: `pip install -e ".[dev]"`
 3. Verify: `python -c "import music21; print('OK')"`
@@ -112,4 +136,3 @@ make format          # Format code
 
 - [README.md](../README.md) - Main project documentation
 - [docs/guides/REFERENCE_DATABASE_CURATION.md](guides/REFERENCE_DATABASE_CURATION.md) - Reference database setup
-

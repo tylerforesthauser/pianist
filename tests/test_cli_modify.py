@@ -14,19 +14,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _valid_composition_json() -> str:
-    """Minimal valid Pianist composition JSON."""
-    return (
-        "{"
-        '"title":"Test",'
-        '"bpm":120,'
-        '"time_signature":{"numerator":4,"denominator":4},'
-        '"ppq":480,'
-        '"tracks":[{"name":"Piano","channel":0,"program":0,"events":['
-        '{"type":"note","start":0,"duration":1,"pitches":[60],"velocity":80}'
-        "]}]"
-        "}"
-    )
+# Import shared test helper from conftest
+from conftest import valid_composition_json as _valid_composition_json
 
 
 def _write_test_midi(path: Path) -> None:
@@ -174,7 +163,7 @@ def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path, monkeypa
     assert comp.tracks[0].events == []
 
 
-def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) -> None:
+def test_cli_modify_provider_saves_raw_and_renders(tmp_path: Path, monkeypatch) -> None:
     """Test modify with AI provider saves raw response and renders MIDI."""
     out_json = tmp_path / "seed_updated.json"
     out_midi = tmp_path / "out.mid"
@@ -222,7 +211,7 @@ def test_cli_modify_gemini_saves_raw_and_renders(tmp_path: Path, monkeypatch) ->
     assert (tmp_path / "seed_updated.json.openrouter.txt").exists()
 
 
-def test_cli_modify_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
+def test_cli_modify_provider_with_verbose(tmp_path: Path, monkeypatch) -> None:
     """Test that --verbose flag is passed to generate_text."""
     out_json = tmp_path / "seed_updated.json"
 
@@ -264,7 +253,7 @@ def test_cli_modify_gemini_with_verbose(tmp_path: Path, monkeypatch) -> None:
     assert verbose_called == [True]
 
 
-def test_cli_modify_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None:
+def test_cli_modify_provider_without_verbose(tmp_path: Path, monkeypatch) -> None:
     """Test that verbose defaults to False when not specified."""
     out_json = tmp_path / "seed_updated.json"
 
@@ -305,7 +294,7 @@ def test_cli_modify_gemini_without_verbose(tmp_path: Path, monkeypatch) -> None:
     assert verbose_called == [False]
 
 
-def test_cli_modify_optional_instructions_with_gemini(tmp_path: Path, monkeypatch) -> None:
+def test_cli_modify_optional_instructions_with_provider(tmp_path: Path, monkeypatch) -> None:
     """Test that modify works when --provider is used without --instructions."""
 
     def fake_generate_text_unified(
@@ -391,7 +380,7 @@ def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:
     assert "title" in captured.out.lower() or '"title"' in captured.out
 
 
-def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_cli_modify_provider_error_handling(tmp_path: Path, monkeypatch, capsys) -> None:
     """Test that AI provider errors are properly displayed in CLI."""
 
     def fake_generate_text_unified(
@@ -701,8 +690,8 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
     assert v3_json.exists()
 
 
-def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypatch) -> None:
-    """Test that Gemini raw response is versioned to match JSON output."""
+def test_cli_modify_versioning_synchronizes_provider_raw(tmp_path: Path, monkeypatch) -> None:
+    """Test that provider raw response is versioned to match JSON output."""
     out_json = tmp_path / "updated.json"
 
     # Create initial files with valid cached response
@@ -747,7 +736,7 @@ def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypat
     )
     assert rc == 0
 
-    # Should use cached response (not call Gemini)
+    # Should use cached response (not call AI provider)
     assert call_count == 0
 
     # Original files should still exist

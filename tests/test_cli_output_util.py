@@ -108,8 +108,8 @@ def test_derive_sidecar_path_preserves_version() -> None:
     assert sidecar == Path("output/song.v2.json.gemini.txt")
 
 
-def test_write_output_with_sidecar_basic(tmp_path: Path) -> None:
-    """Write primary and sidecar files."""
+def test_write_output_with_sidecar_writes_files(tmp_path: Path) -> None:
+    """Test that write_output_with_sidecar writes both primary and sidecar files."""
     primary_path = tmp_path / "output.json"
     result = write_output_with_sidecar(
         primary_path,

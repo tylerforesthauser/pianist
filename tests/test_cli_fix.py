@@ -12,8 +12,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_cli_fix_pedal_basic(tmp_path: Path) -> None:
-    """Test the fix --pedal command."""
+def test_cli_fix_pedal_command(tmp_path: Path) -> None:
+    """Test the fix --pedal command fixes pedal patterns."""
     # Create a composition with pedal issues
     comp_json = {
         "title": "Test",

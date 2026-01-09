@@ -15,12 +15,12 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 > - Status assessments are performed
 > - Priorities change
 > - New gaps or issues are identified
-> 
+>
 > **DO NOT create new status documents.** Update this section instead.
 
 ### Overall Progress
 
-**Current Achievement:** ~85-90% toward core goal  
+**Current Achievement:** ~85-90% toward core goal
 **Phase Breakdown:**
 - Phase 1 (Foundation): ✅ **100% Complete**
 - Phase 2 (Intelligence Layer): 🟡 **~70% Complete**
@@ -55,6 +55,8 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
   - Eliminated redundant quality check analysis
   - Expected: 15min → 1.5-2.5min for large files (see `docs/technical/music21_performance_optimization.md`)
 - ✅ Comprehensive test coverage
+  - Unit tests: 267 passing, 2 skipped (269 total)
+  - Integration tests: 35 tests (24 free-tier, 11 paid) covering providers and CLI commands
 
 #### Expansion Infrastructure
 - ✅ Expansion strategy module (`expansion_strategy.py`) - Comprehensive strategy generation
@@ -79,7 +81,11 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 #### AI Refactoring (Mostly Complete)
 - ✅ Core commands require AI provider where appropriate (`expand` requires `--provider`)
 - ✅ Scripts always use AI for quality assessment and naming
-- ✅ Test suite updated for provider system (252/252 tests passing)
+- ✅ Test suite updated for provider system
+  - Unit tests: 267 passing, 2 skipped (269 total)
+  - Integration tests: 35 tests covering providers and CLI commands
+  - Integration test helpers: Multi-provider support, graceful skipping
+  - Helper script: `scripts/check_test_keys.sh` for checking API key availability
 - ✅ Global configuration system with default provider (openrouter)
 - ⚠️ **Remaining**: Metadata generation simplification (optional), documentation updates (optional)
 
@@ -218,7 +224,9 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ **AI Provider Refactoring** (2025-01):
   - Core commands now require AI provider (`expand` requires `--provider`)
   - Scripts always use AI when appropriate (`review_and_categorize_midi.py`, `check_midi_quality.py`)
-  - Test suite fully updated (252/252 tests passing)
+  - Test suite fully updated
+    - Unit tests: 267 passing, 2 skipped (269 total)
+    - Integration tests: 35 tests (24 free-tier, 11 expensive)
   - All tests use openrouter as default provider
 
 ---
@@ -768,7 +776,7 @@ This section provides practical steps for implementing the roadmap, consolidatin
 ### Implementation Order
 
 #### Step 1: Implement Basic Musical Analysis ⚡ **CRITICAL PATH** ✅ **COMPLETE**
-**Priority:** CRITICAL  
+**Priority:** CRITICAL
 **Status:** ✅ **COMPLETE**
 
 **Completed:**
@@ -787,7 +795,7 @@ This section provides practical steps for implementing the roadmap, consolidatin
 - Add more sophisticated pattern matching
 
 #### Step 2: Enhance `analyze` Command ✅ **COMPLETE**
-**Priority:** HIGH  
+**Priority:** HIGH
 **Status:** ✅ **COMPLETE**
 
 **Completed:**
@@ -797,7 +805,7 @@ This section provides practical steps for implementing the roadmap, consolidatin
 4. ✅ Tests updated
 
 #### Step 3: Enhance Expansion Prompts ✅ **COMPLETE**
-**Priority:** HIGH  
+**Priority:** HIGH
 **Status:** ✅ **COMPLETE**
 
 **Completed:**
@@ -811,7 +819,7 @@ This section provides practical steps for implementing the roadmap, consolidatin
 - Enhance prompt formatting and detail level
 
 #### Step 4: Implement Basic Auto-Detection ✅ **COMPLETE**
-**Priority:** MEDIUM  
+**Priority:** MEDIUM
 **Status:** ✅ **COMPLETE**
 
 **Completed:**
@@ -860,12 +868,25 @@ This section provides practical steps for implementing the roadmap, consolidatin
 - [ ] Document test data structure
 
 #### Test Framework
-**Status:** Test files exist
+**Status:** Test files exist and comprehensive
 
+**Unit Tests:**
 - ✅ `tests/test_musical_analysis.py` - ✅ **COMPLETE** (tests written and passing)
 - ✅ `tests/test_annotations.py` - Not needed (annotations.py is complete)
 - ✅ `tests/test_expansion_strategy.py` - ✅ **COMPLETE** (7 tests, all passing)
 - ✅ `tests/test_validation.py` - ✅ **COMPLETE** (8 tests, all passing)
+- ✅ All unit tests: 267 passing, 2 skipped (269 total)
+
+**Integration Tests:**
+- ✅ `tests/test_ai_providers_gemini_integration.py` - 6 tests (expensive, rate-limited)
+- ✅ `tests/test_ai_providers_openrouter_integration.py` - 5 tests (free-tier)
+- ✅ `tests/test_ai_providers_unified_integration.py` - 9 tests (unified interface)
+- ✅ `tests/test_cli_generate_integration.py` - 5 tests (free-tier)
+- ✅ `tests/test_cli_modify_integration.py` - 4 tests (free-tier)
+- ✅ `tests/test_cli_expand_integration.py` - 3 tests (free-tier)
+- ✅ `tests/test_cli_analyze_integration.py` - 3 tests (free-tier)
+- ✅ Integration test infrastructure: Multi-provider helpers, test markers, helper script
+- ✅ Total: 35 integration tests (24 free-tier, 11 expensive)
 
 ### Questions to Answer
 
@@ -922,4 +943,3 @@ Before beginning implementation, these questions should be answered:
 - After status assessments
 - When new gaps or issues are identified
 - Quarterly reviews
-

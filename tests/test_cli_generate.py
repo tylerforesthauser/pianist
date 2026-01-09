@@ -5,22 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+# Import shared test helper from conftest
+from conftest import valid_composition_json as _valid_composition_json
+
 from pianist.cli import main
-
-
-def _valid_composition_json() -> str:
-    """Minimal valid Pianist composition JSON."""
-    return (
-        "{"
-        '"title":"Test",'
-        '"bpm":120,'
-        '"time_signature":{"numerator":4,"denominator":4},'
-        '"ppq":480,'
-        '"tracks":[{"name":"Piano","channel":0,"program":0,"events":['
-        '{"type":"note","start":0,"duration":1,"pitches":[60],"velocity":80}'
-        "]}]"
-        "}"
-    )
 
 
 def test_cli_generate_prompt_only(tmp_path: Path, monkeypatch) -> None:

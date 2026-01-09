@@ -35,8 +35,14 @@ def _write_test_midi(path: Path) -> None:
     mid.save(path)
 
 
+# Import shared test helper from conftest
+
+
+# This file uses json.dumps, so we need a wrapper
 def _valid_composition_json() -> str:
-    """Minimal valid Pianist composition JSON."""
+    """Return valid composition JSON as dict (for this file's usage pattern)."""
+    import json
+
     return json.dumps(
         {
             "title": "Test",

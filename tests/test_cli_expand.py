@@ -9,8 +9,8 @@ from pianist.cli import main
 from pianist.schema import validate_composition_dict
 
 
-def test_cli_expand_basic(tmp_path: Path, monkeypatch) -> None:
-    """Test expand command with provider."""
+def test_cli_expand_with_provider_no_output(tmp_path: Path, monkeypatch) -> None:
+    """Test expand command with provider (no output file specified)."""
     comp_json = {
         "title": "Sketch",
         "bpm": 120,

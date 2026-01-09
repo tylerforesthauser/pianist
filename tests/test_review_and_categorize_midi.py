@@ -46,8 +46,8 @@ def _write_test_midi(path: Path) -> None:
 
 
 @pytest.mark.slow
-def test_extract_info_from_filename_basic() -> None:
-    """Test filename extraction with basic patterns."""
+def test_extract_info_from_filename_patterns() -> None:
+    """Test filename extraction with various naming patterns."""
     # Test composer - title format
     info = extract_info_from_filename("Frédéric François Chopin - 24 Preludes, Op.28 No.7.mid")
     assert info["composer"] == "Chopin"

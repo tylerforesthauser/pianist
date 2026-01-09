@@ -141,7 +141,7 @@ OPENROUTER_API_KEY=your-api-key-here
    ```bash
    # Use OpenRouter with default model (mistralai/devstral-2512:free - free tier)
    ./pianist generate --provider openrouter "Title: Morning Sketch..." -o composition.json
-   
+
    # Use a specific model (see https://openrouter.ai/models for available models)
    ./pianist generate --provider openrouter --model "anthropic/claude-3.5-sonnet" "Title: Morning Sketch..." -o composition.json
    ```
@@ -217,7 +217,7 @@ To enable Ollama integration:
    ```bash
    # Primary recommendation (best quality)
    ollama pull gpt-oss:20b
-   
+
    # Alternative options
    ollama pull gemma3:4b
    ollama pull deepseek-r1:8b
@@ -232,7 +232,7 @@ To enable Ollama integration:
    ```bash
    # Use Ollama with default model (gpt-oss:20b)
    ./pianist generate --provider ollama "Title: Morning Sketch..." -o composition.json
-   
+
    # Use a specific model
    ./pianist generate --provider ollama --model gemma3:4b "Title: Morning Sketch..." -o composition.json
    ```
@@ -665,7 +665,10 @@ make test-failed
 pytest -m "not integration" -n auto --lf
 
 # Run only integration tests (requires API key)
-pytest -m integration -n auto
+pytest -m integration
+
+# Run only free-tier integration tests (recommended for CI)
+pytest -m "integration and free"
 
 # Run all tests in parallel
 pytest -n auto
@@ -674,6 +677,12 @@ pytest -n auto
 **CRITICAL: Always run tests in parallel (`-n auto`).** The test suite uses `pytest-xdist` for parallel execution, which reduces test runtime from ~3 minutes to under 90 seconds on multi-core systems. Sequential test execution is not acceptable for development workflows.
 
 **Performance:** Module-scoped fixtures are used to cache expensive operations like music21 stream conversions. Parallel execution is the standard and is required for all test runs.
+
+**Integration Tests:**
+- **35 integration tests** covering provider APIs and CLI commands
+- **24 free-tier tests** (safe for frequent CI runs)
+- **11 expensive tests** (may hit rate limits, use sparingly)
+- Check API keys before running: `./scripts/check_test_keys.sh`
 
 For more information on integration testing best practices, see [docs/INTEGRATION_TESTING.md](docs/INTEGRATION_TESTING.md).
 

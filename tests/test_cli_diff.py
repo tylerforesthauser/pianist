@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_cli_diff_basic(tmp_path: Path) -> None:
-    """Test basic diff command."""
+def test_cli_diff_command(tmp_path: Path) -> None:
+    """Test diff command compares two compositions."""
     comp1_json = {
         "title": "Original",
         "bpm": 120,
