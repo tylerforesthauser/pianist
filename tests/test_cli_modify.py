@@ -53,7 +53,7 @@ def test_cli_modify_supports_transpose_and_prompt_out(tmp_path: Path, monkeypatc
 
     # Mock AI provider - return composition with transposed notes [62, 66]
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return (
             "{"
@@ -126,7 +126,7 @@ def test_cli_modify_accepts_json_input_and_empty_events(tmp_path: Path, monkeypa
 
     # Mock AI provider - preserve the input composition's title and empty events
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return (
             "{"
@@ -289,7 +289,7 @@ def test_cli_modify_optional_instructions_with_gemini(tmp_path: Path, monkeypatc
     """Test that modify works when --provider is used without --instructions."""
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -345,7 +345,7 @@ def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None: 
 
     # Mock AI provider
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -367,7 +367,7 @@ def test_cli_modify_gemini_error_handling(tmp_path: Path, monkeypatch, capsys) -
     """Test that AI provider errors are properly displayed in CLI."""
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         from pianist.ai_providers import OpenRouterError
 
@@ -460,7 +460,7 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     custom_raw = tmp_path / "custom_raw.txt"
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -497,7 +497,7 @@ def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatc
     """Test that warning is shown when raw output is not saved in modify command."""
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -536,7 +536,7 @@ def test_cli_modify_versioning_creates_v2_when_file_exists(tmp_path: Path, monke
     initial_content = out_json.read_text(encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -578,7 +578,7 @@ def test_cli_modify_versioning_incremental(tmp_path: Path, monkeypatch) -> None:
     out_json = tmp_path / "updated.json"
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -662,7 +662,7 @@ def test_cli_modify_versioning_synchronizes_gemini_raw(tmp_path: Path, monkeypat
     call_count = 0
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         nonlocal call_count
         call_count += 1
@@ -715,7 +715,7 @@ def test_cli_modify_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     out_json.write_text(initial_content, encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
