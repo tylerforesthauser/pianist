@@ -7,7 +7,7 @@ These tests make real API calls to Gemini and should be:
 - Only run when API key is available
 
 To run these tests:
-    pytest -m integration tests/test_gemini_integration.py
+    pytest -m integration tests/test_ai_providers_gemini_integration.py
 
 To run all tests except integration:
     pytest -m "not integration"
@@ -23,6 +23,7 @@ from pianist.ai_providers import GeminiError, generate_text
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.expensive
 def test_generate_text_real_api_call() -> None:
     """Test that generate_text works with real Gemini API."""
     skip_if_no_api_key()
@@ -71,6 +72,7 @@ def test_generate_text_real_api_verbose() -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.expensive
 def test_generate_text_real_api_streaming() -> None:
     """Test that streaming works with real API."""
     skip_if_no_api_key()
@@ -89,6 +91,7 @@ def test_generate_text_real_api_streaming() -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.expensive
 def test_generate_text_real_api_error_handling() -> None:
     """Test error handling with real API (invalid model)."""
     skip_if_no_api_key()
@@ -100,6 +103,7 @@ def test_generate_text_real_api_error_handling() -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.expensive
 def test_generate_text_real_api_empty_prompt() -> None:
     """Test that empty prompts are handled correctly by the API."""
     skip_if_no_api_key()
@@ -117,6 +121,7 @@ def test_generate_text_real_api_empty_prompt() -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.expensive
 def test_generate_text_real_api_long_prompt() -> None:
     """Test that longer prompts work correctly."""
     skip_if_no_api_key()
