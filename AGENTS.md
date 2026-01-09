@@ -2,7 +2,7 @@
 
 Instructions for AI agents working on the Pianist project.
 
-**For project mission, goals, and principles:** See [`MISSION.md`](MISSION.md)  
+**For project mission, goals, and principles:** See [`MISSION.md`](MISSION.md)
 **For current status, progress, and priorities:** See [`ROADMAP.md`](ROADMAP.md) (single source of truth)
 
 ## Setup commands
@@ -84,6 +84,7 @@ Instructions for AI agents working on the Pianist project.
 - DO NOT create new markdown documents for every plan - consolidate into existing planning documents
 - DO NOT create separate status documents - Update ROADMAP.md instead
 - Run `make sync-prompts` if prompt templates modified
+- **NEVER include dates or timelines** - Do not add project dates (e.g., "2024-12", "2025-01", "June 2026"), quarters (e.g., "Q1 2025"), or any project timeline references in documentation. Focus on status and features, not when they were completed or when they will be completed. Exception: Third-party service deprecation dates and shutdown dates (e.g., API model deprecations) are appropriate to include.
 
 ## Development mode
 

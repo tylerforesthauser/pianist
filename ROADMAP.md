@@ -195,7 +195,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ Annotation tools implemented (`annotations.py`)
 - ✅ Command structure refined (import, modify, fix, etc.)
 - ✅ Musical analysis module implemented (basic motif, phrase, harmony, form detection)
-- ✅ **Reference Database Curation Tools** (2024-12):
+- ✅ **Reference Database Curation Tools**:
   - Batch import script for JSON/MIDI files with CSV metadata support
   - MIDI quality check tool with technical, musical, and structural analysis
   - Comprehensive scoring system (technical 40%, musical 40%, structure 20%)
@@ -213,7 +213,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
 - ✅ Validation module implemented (quality checks, preservation, coherence)
 - ✅ Validation integrated with expand command
 - ✅ Comprehensive tests for validation (8 tests + 2 CLI tests)
-- ✅ **Global Configuration System** (2025-01):
+- ✅ **Global Configuration System**:
   - Config system implemented (`src/pianist/config.py`)
   - Support for config files (`~/.pianist/config.toml`, `.pianist/config.toml`)
   - Environment variable support (`AI_PROVIDER`, `AI_MODEL`, `AI_DELAY_SECONDS`)
@@ -221,7 +221,7 @@ This roadmap outlines the path to achieving the core goal: **rock solid human-AI
   - Default model: mistralai/devstral-2512:free
   - All commands and scripts integrated with config system
   - Configuration guide added (`docs/guides/CONFIGURATION.md`)
-- ✅ **AI Provider Refactoring** (2025-01):
+- ✅ **AI Provider Refactoring**:
   - Core commands now require AI provider (`expand` requires `--provider`)
   - Scripts always use AI when appropriate (`review_and_categorize_midi.py`, `check_midi_quality.py`)
   - Test suite fully updated
