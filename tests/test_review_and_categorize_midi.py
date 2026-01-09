@@ -98,12 +98,6 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
     def fake_extract_melodic_signature(*_args, **_kwargs):
         return [60, 64, 67]  # Simple signature
 
-    # Mock AI provider to avoid actual API calls
-    def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
-    ) -> str:
-        return '{"suggested_name": "AI Generated Name", "suggested_style": "Romantic", "suggested_description": "AI description"}'
-
     # Mock comprehensive_analysis to return AI insights
     def fake_analyze_for_user(*_args, **_kwargs):
         return {

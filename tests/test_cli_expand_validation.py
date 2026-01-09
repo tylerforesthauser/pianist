@@ -36,7 +36,11 @@ def test_cli_expand_with_validate(tmp_path: Path, monkeypatch, capsys) -> None:
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         # Return expanded composition
         expanded = {
@@ -111,7 +115,11 @@ def test_cli_expand_with_validate_verbose(tmp_path: Path, monkeypatch, capsys) -
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         expanded = {
             "title": "Expanded",
@@ -168,6 +176,6 @@ def test_cli_expand_with_validate_verbose(tmp_path: Path, monkeypatch, capsys) -
         or "overall_quality" in captured.err.lower()
         or "motifs_preserved" in captured.err.lower()
     )
-    assert validation_found, (
-        f"Expected validation output, got stderr: {captured.err[:200]}, stdout: {captured.out[:200]}"
-    )
+    assert (
+        validation_found
+    ), f"Expected validation output, got stderr: {captured.err[:200]}, stdout: {captured.out[:200]}"

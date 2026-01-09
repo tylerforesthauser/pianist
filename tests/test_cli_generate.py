@@ -29,7 +29,11 @@ def test_cli_generate_prompt_only(tmp_path: Path, monkeypatch) -> None:
 
     # Mock AI provider - patch both where it's defined and where it's imported
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -63,7 +67,11 @@ def test_cli_generate_prompt_stdout(tmp_path: Path, monkeypatch, capsys) -> None
 
     # Mock AI provider - patch both where it's defined and where it's imported
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -94,7 +102,11 @@ def test_cli_generate_with_provider(tmp_path: Path, monkeypatch) -> None:
     """Test generate with AI provider generates composition."""
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         assert model
         assert "Compose a piano piece" in prompt or "Title: Test Piece" in prompt
@@ -129,7 +141,11 @@ def test_cli_generate_with_provider_and_render(tmp_path: Path, monkeypatch) -> N
     """Test generate with provider and render creates MIDI."""
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -170,7 +186,11 @@ def test_cli_generate_render_requires_provider(tmp_path: Path, monkeypatch) -> N
 
     # Mock to prevent hanging if it tries to use default provider
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -212,7 +232,11 @@ def test_cli_generate_reads_from_stdin(tmp_path: Path, monkeypatch) -> None:
 
     # Mock AI provider since generate will use default provider from config
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -240,7 +264,11 @@ def test_cli_generate_with_raw_output(tmp_path: Path, monkeypatch) -> None:
     """Test that generate saves raw AI response when --raw is provided."""
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -289,7 +317,11 @@ def test_cli_generate_versioning(tmp_path: Path, monkeypatch) -> None:
     """Test that generate versions output files when they exist."""
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 
@@ -315,7 +347,11 @@ def test_cli_generate_overwrite_flag(tmp_path: Path, monkeypatch) -> None:
     """Test that --overwrite prevents versioning."""
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         return _valid_composition_json()
 

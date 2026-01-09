@@ -30,7 +30,11 @@ def test_cli_expand_basic(tmp_path: Path, monkeypatch) -> None:
 
     # Mock AI provider
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         # Return expanded composition
         expanded = comp_json.copy()
@@ -77,7 +81,11 @@ def test_cli_expand_with_provider(tmp_path: Path, monkeypatch) -> None:
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         # Return expanded composition
         expanded = {
@@ -150,9 +158,7 @@ def test_cli_expand_with_provider(tmp_path: Path, monkeypatch) -> None:
         if potential_file.exists():
             output_file = potential_file
 
-    assert output_file.exists(), (
-        f"Output file not found. Checked: {output_file}, stdout: {stdout_text[:200] if stdout_text else 'empty'}"
-    )
+    assert output_file.exists(), f"Output file not found. Checked: {output_file}, stdout: {stdout_text[:200] if stdout_text else 'empty'}"
 
     # Verify output is valid
     data = json.loads(output_file.read_text(encoding="utf-8"))
@@ -180,7 +186,11 @@ def test_cli_expand_with_preserve_motifs(tmp_path: Path, monkeypatch) -> None:
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         # Verify preserve-motifs is in prompt
         assert "preserve" in prompt.lower() or "motif" in prompt.lower()
@@ -240,7 +250,11 @@ def test_cli_expand_with_preserve_list(tmp_path: Path, monkeypatch) -> None:
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         expanded = {
             "title": "Expanded",
@@ -316,7 +330,11 @@ def test_cli_expand_with_render(tmp_path: Path, monkeypatch) -> None:
     input_file.write_text(json.dumps(comp_json), encoding="utf-8")
 
     def fake_generate_text_unified(
-        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
+        *,
+        provider: str,
+        model: str,
+        prompt: str,
+        verbose: bool = False,  # noqa: ARG001
     ) -> str:
         expanded = {
             "title": "Expanded",
