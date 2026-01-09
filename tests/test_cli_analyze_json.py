@@ -42,7 +42,7 @@ def test_cli_analyze_json_basic(tmp_path: Path, monkeypatch) -> None:
     }
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         # Return minimal valid JSON for AI insights
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
@@ -125,7 +125,7 @@ def test_cli_analyze_json_with_motifs(tmp_path: Path, monkeypatch) -> None:
     """Test analyze detects motifs in JSON composition."""
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
 
@@ -191,7 +191,7 @@ def test_cli_analyze_json_includes_expansion_suggestions(tmp_path: Path, monkeyp
     """Test that analyze includes expansion suggestions in output."""
 
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return '{"suggested_name": "Test", "suggested_style": "Classical", "suggested_description": "A test composition"}'
 

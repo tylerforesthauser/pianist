@@ -100,7 +100,7 @@ def test_analyze_file_with_filename_extraction(tmp_path: Path, monkeypatch) -> N
 
     # Mock AI provider to avoid actual API calls
     def fake_generate_text_unified(
-        *, _provider: str, _model: str, _prompt: str, _verbose: bool = False
+        *, provider: str, model: str, prompt: str, verbose: bool = False  # noqa: ARG001
     ) -> str:
         return '{"suggested_name": "AI Generated Name", "suggested_style": "Romantic", "suggested_description": "AI description"}'
 
