@@ -63,6 +63,27 @@ python3 scripts/check_midi_quality.py --dir input/
 python3 scripts/batch_import_references.py --dir references/
 ```
 
+## Code Quality Tools
+
+This project uses automated code quality tools to maintain high standards:
+
+- **Ruff**: Fast linter and formatter (replaces flake8, black, isort)
+- **MyPy**: Static type checker
+- **Pre-commit hooks**: Automatic quality checks before commits
+
+**Setup:**
+```bash
+# Install pre-commit hooks (recommended)
+make install-pre-commit
+
+# Run quality checks
+make quality          # Check linting, formatting, types
+make lint-fix        # Auto-fix linting issues
+make format          # Format code
+```
+
+**See `docs/technical/CODE_QUALITY.md` for complete documentation.**
+
 ### Troubleshooting
 
 **Issue:** "music21 not available" or "ModuleNotFoundError: No module named 'music21'"
@@ -78,6 +99,14 @@ python3 scripts/batch_import_references.py --dir references/
 1. Make sure virtual environment is activated
 2. Install in development mode: `pip install -e ".[dev]"`
 3. Scripts automatically add `src/` to path, but venv must be active
+
+**Issue:** Code quality checks failing
+
+**Solution:**
+1. Run `make lint-fix` to auto-fix most issues
+2. Run `make format` to fix formatting
+3. Check `docs/technical/CODE_QUALITY.md` for detailed guidance
+4. Review error messages - most are auto-fixable
 
 ## See Also
 

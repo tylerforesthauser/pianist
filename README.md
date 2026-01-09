@@ -610,6 +610,45 @@ Pianist supports tempo changes within compositions, including instant tempo chan
 
 ## Development
 
+### Code Quality
+
+**All code must pass quality checks before being considered complete.**
+
+```bash
+# Run all quality checks (linting, formatting, type checking)
+make quality
+
+# Auto-fix linting issues
+make lint-fix
+
+# Format code
+make format
+
+# Check formatting without modifying files
+make format-check
+
+# Run type checker
+make type-check
+```
+
+**Tools:**
+- **Ruff**: Fast linter and formatter (replaces flake8, black, isort)
+- **MyPy**: Static type checker
+- **Pre-commit hooks**: Automatic quality checks before commits
+
+**Setup pre-commit hooks (recommended):**
+```bash
+make install-pre-commit
+```
+
+**Standards enforced:**
+- Zero linting errors (unused imports, variables, arguments)
+- Consistent code formatting
+- Type safety where possible
+- Simplified logic (nested ifs combined, conditions simplified)
+
+See [docs/technical/CODE_QUALITY.md](docs/technical/CODE_QUALITY.md) for complete documentation.
+
 ### Testing
 
 Run the test suite:

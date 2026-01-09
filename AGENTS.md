@@ -22,25 +22,57 @@ Instructions for AI agents working on the Pianist project.
 - Auto-fix issues: `make lint-fix && make format`
 - Sync prompts: `make sync-prompts` (after modifying prompt templates)
 
-**Rules:** Always run `make quality` and tests after code changes. Fix failures before proceeding.
+**CRITICAL: Code quality is mandatory.**
+- **Always run `make quality` after code changes** - This checks linting, formatting, and type checking
+- **Fix all issues before proceeding** - Use `make lint-fix && make format` to auto-fix most issues
+- **All checks must pass** - No exceptions. See `docs/technical/CODE_QUALITY.md` for details
+- **Pre-commit hooks enforce quality** - Install with `make install-pre-commit` to catch issues before commit
 
-## Code style
+## Code style and quality
 
-- PEP 8 guidelines
-- Type hints for function signatures
+**Enforced by Ruff, MyPy, and pre-commit hooks. See `docs/technical/CODE_QUALITY.md` for full details.**
+
+**Style requirements:**
+- PEP 8 guidelines (enforced by Ruff)
+- Type hints for function signatures (checked by MyPy)
 - Pydantic models for data validation
 - Single-purpose functions
 - Clear docstrings for public functions
 
+**Code quality standards:**
+- **Zero linting errors** - All Ruff checks must pass (`make lint`)
+- **Consistent formatting** - Code must be formatted (`make format-check`)
+- **Type safety** - Type hints validated by MyPy (`make type-check`)
+- **No unused code** - Unused imports, variables, arguments are flagged
+- **Simplified logic** - Nested ifs combined, conditions simplified
+
 **Performance:** Use O(n) or O(n log n) over O(n²). Avoid redundant computations. Pass pre-computed results as optional parameters.
+
+**Common fixes:**
+- Unused arguments: Prefix with `_` (e.g., `_unused_arg`)
+- Nested ifs: Combine conditions with `and`
+- Unused imports: Remove or use `# noqa: F401` if intentional
+- Type issues: Add proper type hints or use `# type: ignore` sparingly
 
 ## Critical rules
 
-**Always:** Activate venv before Python commands. Run `make quality` and tests after changes. Never commit unless explicitly requested.
+**⚠️ READ THIS FIRST: These rules are frequently ignored. Follow them strictly.**
 
-**When to RUN:** Tests, quality checks, verification commands, sync prompts.
+**Always:** Activate venv (`source .venv/bin/activate`) before Python commands. Run `make quality` and tests after code changes. Never commit unless explicitly requested.
 
-**When to SUGGEST:** Integration tests (require API keys), destructive operations, git commits.
+**When to RUN:** Tests, quality checks (`make quality`), verification commands, sync prompts.
+
+**When to SUGGEST:** Integration tests (require API keys), destructive operations, commands requiring user input/API keys, git commits.
+
+### Code quality enforcement
+
+**MANDATORY before any code changes are considered complete:**
+1. Run `make quality` - Must pass with zero errors
+2. Run `make lint-fix && make format` if issues found
+3. Run tests: `pytest -m "not integration"`
+4. Verify: All checks pass, no warnings, no errors
+
+**Pre-commit hooks:** Installed hooks automatically check code quality. If hooks fail, fix issues before committing (or use `--no-verify` only if explicitly needed and documented).
 
 **Documentation:** DO NOT create new docs unless requested. Update existing files only. Update ROADMAP.md "Current Status" if status changed. Use `docs/temp/` for WIP, remove when done.
 
@@ -56,14 +88,19 @@ Instructions for AI agents working on the Pianist project.
 
 ## Before completing task
 
-- [ ] All code finished (no TODOs, placeholders)
-- [ ] Quality checks pass (`make quality`)
+**CRITICAL CHECKLIST - All items must be verified:**
+
+- [ ] All code finished (no TODOs, placeholders, incomplete implementations)
+- [ ] **Quality checks pass (`make quality`)** - Lint, format-check, type-check all pass
+- [ ] **All linting errors fixed** - Run `make lint-fix && make format` if needed
 - [ ] Tests pass (`pytest -m "not integration"`)
 - [ ] No broken imports or syntax errors
-- [ ] No temp files, debug code, or commented code
+- [ ] No temp files, debug code, or commented-out code
 - [ ] Documentation updated (existing files only)
 - [ ] ROADMAP.md updated if status changed
-- [ ] `make sync-prompts` run if prompts changed
+- [ ] `make sync-prompts` run if prompt templates modified
+
+**If quality checks fail:** Fix issues immediately. Do not proceed with incomplete or non-compliant code.
 
 ## Commit instructions
 
