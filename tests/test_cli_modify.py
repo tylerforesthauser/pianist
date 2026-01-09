@@ -340,7 +340,7 @@ def test_cli_modify_render_auto_generates_midi(tmp_path: Path) -> None:
     assert (output_dir / "seed.mid").exists() or any(output_dir.glob("*.mid"))
 
 
-def test_cli_modify_stdout_output(_tmp_path: Path, monkeypatch, capsys) -> None:
+def test_cli_modify_stdout_output(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
     """Test that modify outputs to stdout when --output is omitted."""
 
     # Mock AI provider
@@ -493,7 +493,7 @@ def test_cli_modify_custom_raw_out_path(tmp_path: Path, monkeypatch) -> None:
     assert not (tmp_path / "out.json.openrouter.txt").exists()
 
 
-def test_cli_modify_warning_when_raw_output_not_saved(_tmp_path: Path, monkeypatch, capsys) -> None:
+def test_cli_modify_warning_when_raw_output_not_saved(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
     """Test that warning is shown when raw output is not saved in modify command."""
 
     def fake_generate_text_unified(

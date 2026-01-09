@@ -58,7 +58,7 @@ def test_cli_generate_prompt_only(tmp_path: Path, monkeypatch) -> None:
     assert comp_data["title"] == "Test"
 
 
-def test_cli_generate_prompt_stdout(_tmp_path: Path, monkeypatch, capsys) -> None:
+def test_cli_generate_prompt_stdout(tmp_path: Path, monkeypatch, capsys) -> None:  # noqa: ARG001
     """Test generate with provider outputs to stdout."""
 
     # Mock AI provider - patch both where it's defined and where it's imported
@@ -159,13 +159,13 @@ def test_cli_generate_with_provider_and_render(tmp_path: Path, monkeypatch) -> N
     assert midi_file.exists()
 
 
-def test_cli_generate_requires_description(_tmp_path: Path) -> None:
+def test_cli_generate_requires_description(tmp_path: Path) -> None:  # noqa: ARG001
     """Test that generate requires a description."""
     rc = main(["generate"])
     assert rc != 0  # Should fail without description
 
 
-def test_cli_generate_render_requires_provider(_tmp_path: Path, monkeypatch) -> None:
+def test_cli_generate_render_requires_provider(tmp_path: Path, monkeypatch) -> None:  # noqa: ARG001
     """Test that --render requires --provider."""
 
     # Mock to prevent hanging if it tries to use default provider
