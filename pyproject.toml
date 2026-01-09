@@ -54,6 +54,8 @@ testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "expensive: marks tests that may incur costs or hit rate limits (e.g., paid API calls)",
+    "free: marks tests that use free tier APIs (safe for frequent CI runs)",
 ]
 # Performance optimizations
 # Use pytest-xdist for parallel execution: pytest -n auto

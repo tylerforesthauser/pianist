@@ -97,3 +97,78 @@ def motif_test_composition_stream(motif_test_composition: Composition):
         return _composition_to_music21_stream(motif_test_composition)
     except Exception as e:
         pytest.skip(f"Failed to convert composition to music21 stream: {e}")
+
+
+def valid_composition_json() -> str:
+    """Return minimal valid Pianist composition JSON string.
+
+    This is a shared helper function used across multiple test files.
+    Returns a JSON string representing a minimal valid composition.
+    """
+    return (
+        "{"
+        '"title":"Test",'
+        '"bpm":120,'
+        '"time_signature":{"numerator":4,"denominator":4},'
+        '"ppq":480,'
+        '"tracks":[{"name":"Piano","channel":0,"program":0,"events":['
+        '{"type":"note","start":0,"duration":1,"pitches":[60],"velocity":80}'
+        "]}]"
+        "}"
+    )
+
+
+# ============================================================================
+# Environment Variable Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def mock_api_keys(monkeypatch):
+    """Fixture that sets up mock API keys for UNIT TESTS ONLY.
+
+    ⚠️ DO NOT USE IN INTEGRATION TESTS ⚠️
+
+    Integration tests must use REAL API keys and make REAL API calls.
+    Use `skip_if_no_provider()` from integration_helpers for integration tests.
+
+    This fixture is ONLY for unit tests that:
+    - Test environment variable reading logic
+    - Test key preference/fallback logic
+    - Mock the actual API client (not make real calls)
+
+    Example (UNIT TEST):
+        def test_key_preference(mock_api_keys):
+            # Mock API client too - this is a unit test
+            with patch(...):
+                # Test code that mocks API calls...
+
+    Example (INTEGRATION TEST - CORRECT):
+        @pytest.mark.integration
+        def test_real_api():
+            skip_if_no_provider("openrouter")  # Uses REAL key
+            result = generate_text_unified(...)  # REAL API call
+    """
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("OLLAMA_URL", "http://localhost:11434")
+    # Note: monkeypatch automatically cleans up after test
+
+
+@pytest.fixture
+def clean_env(monkeypatch):
+    """Fixture that clears all API key environment variables.
+
+    Use this fixture when you need to test behavior when no API keys
+    are set, or to ensure a clean environment for a test.
+
+    Example:
+        def test_no_api_key(clean_env):
+            # All API keys are cleared
+            # Test code that should handle missing keys...
+    """
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("OLLAMA_URL", raising=False)
+    # Note: monkeypatch automatically restores original values after test
